@@ -1,0 +1,675 @@
+/* Professional Lookup Table Styles */
+.lookup-container {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+    "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  margin: 20px 0;
+  border: 1px solid rgba(230, 230, 230, 0.8);
+}
+
+/* Header with action buttons */
+.lookup-header {
+  padding: 12px 16px;
+  background: linear-gradient(to right, rgba(240, 240, 240, 0.8), rgba(250, 250, 250, 0.8));
+  border-bottom: 1px solid rgba(230, 230, 230, 0.8);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  color: white;
+  font-weight: 500;
+  background: linear-gradient(to bottom, #9e9e9e, #757575); /* Ash color for all buttons */
+}
+
+.refresh-btn{
+ position: fixed;
+ bottom: 490px;
+ left: 815px;
+ display: flex;
+align-items: center;
+justify-content: center;
+gap: 5px;
+padding: 6px 12px;
+  
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  color: white;
+  font-weight: 500;
+  background: linear-gradient(to bottom, #9e9e9e, #757575); /* Ash color for all buttons */
+}
+
+.action-btn:hover {
+  background: linear-gradient(to bottom, #757575, #616161); /* Darker ash color on hover */
+}
+
+/* Search section */
+.lookup-search-section {
+  padding: 16px;
+  background: linear-gradient(to bottom, rgba(250, 250, 250, 0.8), rgba(245, 245, 245, 0.8));
+}
+
+.lookup-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.search-box {
+  display: flex;
+  gap: 8px;
+  max-width: 500px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) inset;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.search-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 15px;
+  background: linear-gradient(to bottom, #2196f3, #1976d2);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.search-button:hover {
+  background: linear-gradient(to bottom, #1976d2, #1565c0);
+}
+
+/* Add this new class to make the table body scrollable */
+.table-wrapper {
+  padding: 0 16px 16px;
+  overflow-x: auto;
+  max-height: 400px; /* Set a fixed height for the table wrapper */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
+
+/* Custom scrollbar styling for better visual appearance */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive adjustments for the scrollable area */
+@media (max-width: 768px) {
+  .table-wrapper {
+    max-height: 300px; /* Smaller height on mobile devices */
+  }
+}
+
+@media (min-width: 1200px) {
+  .table-wrapper {
+    max-height: 500px; /* Larger height on bigger screens */
+  }
+}
+
+/* Make sure the table headers stay fixed when scrolling */
+.lookup-table th {
+  background: linear-gradient(to bottom, #f5f5f5, #e0e0e0);
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 10; /* Ensure headers appear above scrolling content */
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Ensure headers have proper background to avoid content showing through */
+.lookup-table th {
+  background: linear-gradient(to bottom, #f5f5f5, #e0e0e0);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05); /* Add subtle shadow for separation */
+}
+
+/* Ensure the table maintains its structure */
+.lookup-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  margin-top: 8px;
+  table-layout: fixed; /* Helps maintain column widths when scrolling */
+}
+
+/* Ensure the last rows have proper styling when scrolling */
+.lookup-table tr:last-child td {
+  border-bottom: 1px solid #eee;
+}
+
+.no-data {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+  font-style: italic;
+}
+
+.actions-col {
+  width: 60px;
+  text-align: center;
+}
+
+.lookup-type-col {
+  width: 180px;
+}
+
+.editable-col {
+  width: 80px;
+  text-align: center;
+}
+
+.lookup-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.lookup-link:hover {
+  color: #1565c0;
+  text-decoration: underline;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: #757575;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+/* Blue checkmark in box */
+.blue-checkmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #0a152f;
+  color: white;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0 auto;
+}
+
+.cross-mark {
+  color: #f44336;
+  font-size: 14px;
+}
+
+/* Enhanced Pagination styles */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  border-top: 1px solid #dee2e6;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.records-info {
+  color: #495057;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Enhanced page buttons with gradients */
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation buttons (first, prev, next, last) */
+.page-btn.first,
+.page-btn.prev,
+.page-btn.next,
+.page-btn.last {
+  background-image: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.page-btn.first:hover,
+.page-btn.prev:hover,
+.page-btn.next:hover,
+.page-btn.last:hover {
+  background-image: linear-gradient(135deg, #764ba2, #667eea);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Number buttons */
+.page-btn.number {
+  background-image: linear-gradient(135deg, #6a85b6, #bac8e0);
+  color: #fff;
+  font-weight: 500;
+}
+
+.page-btn.number:hover {
+  background-image: linear-gradient(135deg, #5a75a6, #aab8d0);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.page-btn.number.active {
+  background-image: linear-gradient(135deg, #43c6ac, #00c853);
+  color: white;
+  font-weight: 600;
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0, 200, 83, 0.3);
+}
+
+.page-btn:disabled {
+  background-image: linear-gradient(135deg, #bdbdbd, #9e9e9e);
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Page number display */
+.page-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  background-image: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+  color: #495057;
+  font-weight: 600;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  font-size: 13px;
+}
+
+/* Pagination group for better visual separation */
+.pagination-group {
+  display: flex;
+  gap: 6px;
+}
+
+/* Ellipsis for page breaks */
+.page-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  color: #495057;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Popup styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-container {
+  width: 450px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+}
+
+.popup-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.popup-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+}
+
+.popup-content {
+  padding: 16px;
+}
+
+.popup-section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.popup-section-underline {
+  height: 2px;
+  width: 80px;
+  background-color: #00bcd4;
+  margin-bottom: 16px;
+}
+
+.popup-form {
+  background-color: #f0f4f8;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.form-row {
+  display: flex;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-row label {
+  width: 120px;
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.input-container {
+  flex: 1;
+  position: relative;
+}
+
+.input-container::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #d32f2f; /* Maroon color as requested */
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  font-size: 13px;
+  background-color: white;
+}
+
+.input-container input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.checkbox-container {
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+
+.checkbox-container input[type="checkbox"] {
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.checkbox-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.checkbox-container input[type="checkbox"]:checked + .checkbox-label::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #2196f3;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+}
+
+.next-btn,
+.cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.next-btn {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #d1d5db;
+}
+
+.next-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #d1d5db;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Make sure pagination is responsive */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .popup-container {
+    width: 90%;
+    max-width: 450px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form-row label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  /* Hide some pagination elements on small screens */
+  .page-display,
+  .page-ellipsis {
+    display: none;
+  }
+
+  .page-btn.number:not(.active) {
+    display: none;
+  }
+
+  .page-btn.number.active {
+    display: flex;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .lookup-table {
+    font-size: 11px;
+  }
+
+  .lookup-table th,
+  .lookup-table td {
+    padding: 6px 8px;
+  }
+}

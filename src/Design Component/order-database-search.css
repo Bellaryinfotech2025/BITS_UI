@@ -1,0 +1,651 @@
+/* Import modern fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+/* Base container styles */
+.order-search-container-ary-bell {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+}
+
+/* Header styles */
+.order-search-header-ary-bell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #fff;
+}
+
+.order-search-header-ary-bell h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.header-actions-ary-bell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-order-btn-ary-bell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(to bottom, #9e9e9e, #757575);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.add-order-btn-ary-bell:hover {
+  background-color: #4338ca;
+}
+
+.add-new-order-btn-ary-bell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.add-new-order-btn-ary-bell:hover {
+  background-color: #059669;
+}
+
+/* Search section styles */
+.search-section-ary-bell {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+  justify-content: space-between;
+  background-color: #f9fafb;
+}
+
+/* Search input styles to match the provided image */
+.search-input-container-ary-bell {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  width: 100%;
+  max-width: 600px;
+  position: relative;
+}
+
+.search-input-ary-bell {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  padding-right: 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #4b5563;
+  background-color: #fff;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.search-input-ary-bell::placeholder {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.search-input-ary-bell:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-button-ary-bell {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 38px;
+  width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  cursor: pointer;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  transition: all 0.2s ease;
+}
+
+.search-button-ary-bell:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.table-actions-ary-bell {
+  display: flex;
+  gap: 6px;
+}
+
+.table-action-btn-ary-bell {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+}
+
+.table-action-btn-ary-bell:hover {
+  background-color: #f9fafb;
+  color: #111827;
+  border-color: #9ca3af;
+}
+
+/* Table wrapper with border-radius and box-shadow */
+.table-wrapper-ary-bell {
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+}
+
+/* Table container with scrollbar */
+.table-container-ary-bell {
+  width: 100%;
+  overflow-x: auto; /* Changed to auto to allow scrolling */
+  overflow-y: auto;
+  max-height: calc(100vh - 260px);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Make scrollbar always visible */
+.table-container-ary-bell::-webkit-scrollbar {
+  height: 0; /* Hide the default scrollbar, we'll use the bottom one */
+  width: 6px;
+}
+
+.table-container-ary-bell::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.table-container-ary-bell::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.table-container-ary-bell::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Bottom scrollbar container - NEW */
+.bottom-scrollbar-ary-bell {
+  width: 100%;
+  height: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  position: relative;
+}
+
+/* Style for the bottom scrollbar */
+.bottom-scrollbar-ary-bell::-webkit-scrollbar {
+  height: 12px;
+}
+
+.bottom-scrollbar-ary-bell::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.bottom-scrollbar-ary-bell::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 6px;
+  border: 2px solid #f1f5f9;
+}
+
+.bottom-scrollbar-ary-bell::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Content for the bottom scrollbar to match table width */
+.scrollbar-content-ary-bell {
+  height: 1px;
+  width: 1500px; /* Match the min-width of the table */
+}
+
+/* Compact table styles */
+.table-container-ary-bell.compact-ary-bell .orders-table-ary-bell th,
+.table-container-ary-bell.compact-ary-bell .orders-table-ary-bell td {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.orders-table-ary-bell {
+  width: 100%;
+  min-width: 1500px; /* Set a minimum width to ensure all columns are visible with scrolling */
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+.orders-table-ary-bell th {
+  background-color: #f8fafc;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.orders-table-ary-bell th.column-actions-ary-bell {
+  width: 70px;
+}
+
+/* Adjusted column widths to ensure all are visible */
+.orders-table-ary-bell th:nth-child(1) {
+  width: 120px;
+} /* Actions */
+.orders-table-ary-bell th:nth-child(2) {
+  width: 110px;
+} /* Order Number */
+.orders-table-ary-bell th:nth-child(3) {
+  width: 110px;
+} /* Order Type */
+.orders-table-ary-bell th:nth-child(4) {
+  width: 120px;
+} /* Business Unit */
+.orders-table-ary-bell th:nth-child(5) {
+  width: 90px;
+} /* Category */
+.orders-table-ary-bell th:nth-child(6) {
+  width: 120px;
+} /* Bill To Customer */
+.orders-table-ary-bell th:nth-child(7) {
+  width: 130px;
+} /* Start Date */
+.orders-table-ary-bell th:nth-child(8) {
+  width: 130px;
+} /* End Date */
+.orders-table-ary-bell th:nth-child(9) {
+  width: 90px;
+} /* Total Value */
+
+/* Additional columns (will require scrolling) */
+.orders-table-ary-bell th:nth-child(n + 10) {
+  width: 110px;
+}
+
+.orders-table-ary-bell tr {
+  transition: background-color 0.2s ease;
+}
+
+.orders-table-ary-bell tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.orders-table-ary-bell tr:hover {
+  background-color: #f1f5f9;
+}
+
+.orders-table-ary-bell td {
+  padding: 6px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #334155;
+  font-size: 12px;
+}
+
+/* Order number cell styling */
+.order-number-cell-ary-bell {
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: normal;
+  color: #0066cc;
+}
+
+.order-number-cell-ary-bell:hover {
+  color: #004c99;
+}
+
+/* Style for links in the table */
+.orders-table-ary-bell td a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.orders-table-ary-bell td a:hover {
+  text-decoration: underline;
+}
+
+/* Highlight certain columns with blue text */
+.orders-table-ary-bell td:nth-child(6),
+.orders-table-ary-bell td:nth-child(7) {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.no-records-row-ary-bell {
+  height: 100px;
+}
+
+/* Loading and error cells */
+.loading-cell-ary-bell {
+  text-align: center;
+  padding: 16px;
+}
+
+.error-cell-ary-bell {
+  text-align: center;
+  padding: 16px;
+  color: #e53e3e;
+}
+
+/* No records toast styling - updated to match design */
+.no-records-toast-ary-bell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 auto;
+  width: fit-content;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.no-records-toast-ary-bell svg {
+  color: #0284c7;
+}
+
+/* Load orders toast styling */
+.load-orders-toast-ary-bell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #10b981;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  margin: 16px auto;
+  width: fit-content;
+  max-width: 90%;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+  animation: greenPulse 2s infinite;
+}
+
+.load-orders-toast-ary-bell svg {
+  color: #059669;
+}
+
+@keyframes greenPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    transform: scale(1);
+  }
+}
+
+/* Pagination styles */
+.table-pagination-ary-bell {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.pagination-btn-ary-bell {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn-ary-bell:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+.pagination-slider-ary-bell {
+  flex: 1;
+  height: 3px;
+  margin: 0 12px;
+  position: relative;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+}
+
+.slider-track-ary-bell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background-color: #94a3b8;
+  border-radius: 2px;
+}
+
+.slider-thumb-ary-bell {
+  position: absolute;
+  top: -4px;
+  left: 30%;
+  width: 10px;
+  height: 10px;
+  background-color: #64748b;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.slider-thumb-ary-bell:hover {
+  background-color: #475569;
+  transform: scale(1.1);
+}
+
+/* Action button for table rows */
+.action-btn-ary-bell {
+  padding: 3px 8px;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn-ary-bell:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+/* Action buttons styling */
+.action-buttons-ary-bell {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.action-btn-ary-bell {
+  padding: 4px;
+  background-color: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn-ary-bell:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+tr:hover .action-btn-ary-bell {
+  border-color: #cbd5e1;
+}
+
+tr.selected-row-ary-bell .action-btn-ary-bell,
+tr:hover.selected-row-ary-bell .action-btn-ary-bell {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Loading state */
+.loading-indicator-ary-bell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 160px;
+  width: 100%;
+}
+
+/* Clickable row styling */
+.clickable-row-ary-bell {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickable-row-ary-bell:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.clickable-row-ary-bell.selected-row-ary-bell {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.clickable-row-ary-bell.selected-row-ary-bell:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* Selected row styling */
+.orders-table-ary-bell tr.selected-row-ary-bell {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.orders-table-ary-bell tr.selected-row-ary-bell:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+/* Highlighted row styling */
+.orders-table-ary-bell tr.highlighted-row-ary-bell {
+  background-color: #808080;
+  color: white;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.highlighted-text-ary-bell {
+  color: white !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-section-ary-bell {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-input-container-ary-bell {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+
+  .table-actions-ary-bell {
+    align-self: flex-end;
+  }
+}
+
+/* Order number link styling */
+.order-number-link-ary-bell {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-number-link-ary-bell:hover {
+  color: #004c99;
+}
+
+/* Ensure the table and bottom scrollbar are synchronized */
+/* This is done with JavaScript in the component */

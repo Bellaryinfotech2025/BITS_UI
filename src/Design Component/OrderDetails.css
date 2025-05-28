@@ -1,0 +1,700 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --primary-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+  --secondary-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --success-gradient: linear-gradient(135deg, #43c6ac 0%, #00c853 100%);
+  --info-gradient: linear-gradient(135deg, #00c6fb 0%, #005bea 100%);
+  --text-primary: #333;
+  --text-secondary: #666;
+  --border-color: #ddd;
+  --background-light: #f5f7fa;
+  --background-form: #ffffff;
+  --background-section: #f5f7fa;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --transition-speed: 0.2s;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+  background-color: white;
+}
+
+.order-details-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Toast notification styling */
+.toast-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: toastFadeIn 0.3s ease, toastFadeOut 0.3s ease 1.7s forwards;
+  max-width: 400px;
+}
+
+.success-toast {
+  background-color: #f0fdf4;
+  border-left: 4px solid #22c55e;
+  color: #166534;
+}
+
+.success-toast svg {
+  color: #22c55e;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* Updated Header styling to match screenshot */
+.order-header {
+  background-color: white;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.order-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.order-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.save-btn,
+.cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
+}
+
+.save-btn {
+  background-color: #00a3ff;
+  color: white !important;
+}
+
+.save-btn span, .save-btn svg {
+  color: white !important;
+}
+
+.cancel-btn {
+  background-color: #f0f0f0;
+  color: var(--text-primary);
+}
+
+.save-btn:hover {
+  background-color: #0090e0;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Tabs styling to match screenshot */
+.order-tabs {
+  display: flex;
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
+}
+
+.tab {
+  padding: 14px 20px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all var(--transition-speed) ease;
+}
+
+.tab:hover {
+  color: #2193b0;
+}
+
+.tab.active {
+  color: #2193b0;
+  border-bottom: 2px solid #2193b0;
+  font-weight: 500;
+}
+
+/* Form styling - changed to white background */
+.order-form {
+  background-color: var(--background-form);
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* Section styling - kept ash color background */
+.form-section {
+  background-color: var(--background-section);
+  padding: 20px 24px;
+  margin-bottom: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2193b0;
+  margin: 0 0 18px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #d1e0e0;
+}
+
+/* Form grid layout with consistent field widths */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.form-field-container {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-field-container label {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Input styling with consistent width */
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-wrapper::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-image: linear-gradient(to bottom, #2193b0, #6dd5ed);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+/* Common styles for all input types to ensure consistency */
+.input-wrapper input[type="text"],
+.input-wrapper input[type="email"],
+.input-wrapper input[type="number"],
+.input-wrapper select,
+.input-wrapper textarea,
+.custom-dropdown-trigger,
+.form-control,
+#billingFrequency {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d1e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.input-wrapper input[type="text"]:focus,
+.input-wrapper input[type="email"]:focus,
+.input-wrapper input[type="number"]:focus,
+.input-wrapper select:focus,
+.input-wrapper textarea:focus,
+.custom-dropdown-trigger:focus,
+.form-control:focus,
+#billingFrequency:focus {
+  outline: none;
+  border-color: #2193b0;
+  box-shadow: 0 0 0 3px rgba(33, 147, 176, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Select styling */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper::after,
+.form-group::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #666;
+  pointer-events: none;
+}
+
+.select-wrapper select,
+.form-group select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+/* Custom dropdown styling */
+.custom-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-dropdown-wrapper::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-image: linear-gradient(to bottom, #2193b0, #6dd5ed);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  z-index: 1;
+}
+
+.custom-dropdown-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  background-color: white;
+  border: 1px solid #d1e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.custom-dropdown-trigger:hover {
+  border-color: #2193b0;
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 220px;
+  background-color: white;
+  border: 1px solid #d1e0e0;
+  border-radius: 4px;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.custom-dropdown-content {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.custom-dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.custom-dropdown-item:hover {
+  background-color: #f0f7fa;
+}
+
+/* Date input styling */
+.date-input-wrapper {
+  display: flex;
+  position: relative;
+}
+
+.date-input-wrapper input {
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.calendar-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 36px;
+  background: none;
+  border: none;
+  border-left: 1px solid #d1e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2193b0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-btn:hover {
+  background-color: rgba(33, 147, 176, 0.05);
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  border: 1px solid #d1e0e0;
+  border-radius: 3px;
+}
+
+/* Calendar styling */
+.date-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.date-picker-modal {
+  width: 300px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.calendar-header {
+  background-image: var(--primary-gradient);
+  color: white;
+  padding: 12px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 12px;
+  gap: 6px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  padding: 6px 0;
+}
+
+.calendar-day {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+  background-color: #e6f3f7;
+  color: #2193b0;
+}
+
+.calendar-day.today {
+  border: 1px solid #2193b0;
+  font-weight: 600;
+  color: #2193b0;
+}
+
+/* Calendar month and year views */
+.calendar-months,
+.calendar-years {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px;
+}
+
+.calendar-month,
+.calendar-year {
+  text-align: center;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-month:hover,
+.calendar-year:hover {
+  background-color: #e6f3f7;
+  color: #2193b0;
+}
+
+/* Billing frequency styles - made consistent with other fields */
+.billing-frequency-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Make the form-group match other input wrappers */
+.form-group {
+  position: relative;
+  width: 100%;
+}
+
+.form-group::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-image: linear-gradient(to bottom, #2193b0, #6dd5ed);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  z-index: 1;
+}
+
+/* Style the billing frequency select to match other inputs */
+#billingFrequency {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  padding-right: 30px;
+  border: 1px solid #d1e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.message {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.message.success {
+  background-color: #e6f7ef;
+  color: #2e7d32;
+  border-left: 3px solid #2e7d32;
+}
+
+.message.error {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-left: 3px solid #b91c1c;
+}
+
+.message.warning {
+  background-color: #fffbeb;
+  color: #92400e;
+  border-left: 3px solid #92400e;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.save-button {
+  padding: 8px 16px;
+  background-image: var(--success-gradient);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Checkbox wrapper for better alignment */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-label {
+  cursor: pointer;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field-container {
+    grid-template-columns: 110px 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-field-container {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field-container label {
+    text-align: left;
+  }
+}
+
+
+
+/*checkbox here css*/
+
+/* Add these styles to make the LD Applicable checkbox visible */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  appearance: auto;
+  -webkit-appearance: auto;
+  border: 1px solid #d1e0e0;
+  border-radius: 3px;
+  position: relative;
+  background-color: white;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked {
+  background-color: #2193b0;
+  border-color: #2193b0;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  margin-left: 4px;
+}
+
+/* Make sure the checkbox container is properly visible */
+.form-field-container {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+

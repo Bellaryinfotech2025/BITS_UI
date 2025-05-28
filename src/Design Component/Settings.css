@@ -1,0 +1,279 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.settings-popup {
+  position: absolute;
+  top: 0;
+  left: 280px; /* Width of the sidebar */
+  right: 0;
+  bottom: 0;
+  background-color: #f5f7fa;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+  font-family: "Inter", sans-serif;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 25px;
+  background-image: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.close-settings {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.close-settings:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.settings-content {
+  padding: 30px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.settings-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Completely redesigned column layout */
+.settings-column {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: row; /* Make children display side by side */
+  gap: 25px; /* Space between the two sections */
+  background-color: transparent; /* Remove background from parent */
+  box-shadow: none; /* Remove shadow from parent */
+  padding: 0;
+}
+
+/* Style for each section (Manage Users and Master Data) */
+.settings-column > div {
+  flex: 1; /* Each section takes equal width */
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Since we can't modify the HTML, we'll use nth-child selectors */
+.settings-column h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  padding: 15px 20px;
+  background-image: linear-gradient(135deg, #43c6ac 0%, #00c853 100%);
+  color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.settings-column h3.section-highlight {
+  background-image: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+  color: white;
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.settings-column ul {
+  list-style: none;
+  padding: 15px;
+  margin: 0;
+  background-color: white;
+}
+
+.settings-column li {
+  margin-bottom: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.settings-column li:last-child {
+  margin-bottom: 0;
+}
+
+.settings-column li:hover {
+  transform: translateX(3px);
+}
+
+.settings-column li.highlight {
+  background-color: #e6f3f7;
+  border-left: 3px solid #2193b0;
+}
+
+.settings-column li.highlight:hover {
+  background-color: #d9edf2;
+}
+
+.settings-column a {
+  text-decoration: none;
+  color: #555;
+  font-size: 14px;
+  display: block;
+  padding: 10px 15px;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.settings-column a:hover {
+  color: #2193b0;
+}
+
+/* Create a wrapper for each section */
+.settings-column::before,
+.settings-column::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Create two separate sections */
+.settings-section {
+  width: 48%;
+  float: left;
+  margin-right: 2%;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.settings-section:last-child {
+  margin-right: 0;
+}
+
+/* Fix for the existing HTML structure */
+.settings-column h3:first-of-type {
+  background-image: linear-gradient(135deg, #43c6ac 0%, #00c853 100%);
+  color: white;
+  margin-bottom: 0;
+}
+
+.settings-column ul:first-of-type {
+  margin-bottom: 30px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .settings-popup {
+    left: 0;
+    top: 50px;
+  }
+
+  .settings-column {
+    flex-direction: column;
+  }
+}
+
+/* This CSS will create the visual effect of two separate sections */
+.settings-column {
+  position: relative;
+}
+
+.settings-column::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/* First section (Manage Users) */
+.settings-column h3:first-of-type {
+  width: 48%;
+  float: left;
+  box-sizing: border-box;
+  border-radius: 10px 10px 0 0;
+}
+
+.settings-column ul:first-of-type {
+  width: 48%;
+  float: left;
+  box-sizing: border-box;
+  margin-top: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 15px;
+}
+
+/* Second section (Master Data) */
+.settings-column h3.section-highlight {
+  width: 48%;
+  float: right;
+  box-sizing: border-box;
+  border-radius: 10px 10px 0 0;
+}
+
+.settings-column ul:last-of-type {
+  width: 48%;
+  float: right;
+  box-sizing: border-box;
+  margin-top: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 15px;
+}
+
+/* Non-highlighted items */
+.settings-column li:not(.highlight) {
+  background-color: #f8f9fa;
+  border-left: 3px solid #e0e0e0;
+}
+
+.settings-column li:not(.highlight):hover {
+  background-color: #f0f0f0;
+  border-left-color: #43c6ac;
+}

@@ -1,0 +1,554 @@
+body {
+   background-color: white;
+  color: #000;
+}
+
+.vercel-container {
+  min-height: 100vh;
+  background-image: linear-gradient(112.5deg, rgb(214, 214, 214) 0%, rgb(214, 214, 214) 10%,rgb(195, 195, 195) 10%, rgb(195, 195, 195) 53%,rgb(176, 176, 176) 53%, rgb(176, 176, 176) 55%,rgb(157, 157, 157) 55%, rgb(157, 157, 157) 60%,rgb(137, 137, 137) 60%, rgb(137, 137, 137) 88%,rgb(118, 118, 118) 88%, rgb(118, 118, 118) 91%,rgb(99, 99, 99) 91%, rgb(99, 99, 99) 100%),linear-gradient(157.5deg, rgb(214, 214, 214) 0%, rgb(214, 214, 214) 10%,rgb(195, 195, 195) 10%, rgb(195, 195, 195) 53%,rgb(176, 176, 176) 53%, rgb(176, 176, 176) 55%,rgb(157, 157, 157) 55%, rgb(157, 157, 157) 60%,rgb(137, 137, 137) 60%, rgb(137, 137, 137) 88%,rgb(118, 118, 118) 88%, rgb(118, 118, 118) 91%,rgb(99, 99, 99) 91%, rgb(99, 99, 99) 100%),linear-gradient(135deg, rgb(214, 214, 214) 0%, rgb(214, 214, 214) 10%,rgb(195, 195, 195) 10%, rgb(195, 195, 195) 53%,rgb(176, 176, 176) 53%, rgb(176, 176, 176) 55%,rgb(157, 157, 157) 55%, rgb(157, 157, 157) 60%,rgb(137, 137, 137) 60%, rgb(137, 137, 137) 88%,rgb(118, 118, 118) 88%, rgb(118, 118, 118) 91%,rgb(99, 99, 99) 91%, rgb(99, 99, 99) 100%),linear-gradient(90deg, rgb(195, 195, 195),rgb(228, 228, 228)); background-blend-mode:overlay,overlay,overlay,normal;
+ 
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Header */
+.vercel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  width: 100%;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.vercel-logo {
+  display: flex;
+  align-items: center;
+}
+
+.vercel-triangle {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 20px solid #000;
+}
+
+.vercel-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.vercel-nav-link {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.vercel-nav-link:hover {
+  color: #000;
+}
+
+.vercel-nav-button {
+  background-color: #000;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.vercel-nav-button:hover {
+  background-color: #333;
+}
+
+/* Content */
+.vercel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+.vercel-step {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease;
+}
+
+.vercel-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.vercel-welcome-text {
+  text-align: center;
+  color: #666;
+  margin-bottom: 32px;
+  font-size: 16px;
+}
+
+.vercel-back-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 32px;
+  cursor: pointer;
+}
+
+.vercel-back-link:hover {
+  color: #000;
+}
+
+/* Form elements */
+.vercel-form-group {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.vercel-form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.vercel-form-group input:focus {
+  outline: none;
+  border-color: #000;
+}
+
+.vercel-input-error {
+  border-color: #f44336 !important;
+}
+
+.vercel-error {
+  color: #f44336;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Password input */
+.vercel-password-input {
+  position: relative;
+}
+
+.vercel-password-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+}
+
+.vercel-password-toggle:hover {
+  color: #000;
+}
+
+/* Buttons */
+.vercel-google-btn,
+.vercel-email-btn,
+.vercel-continue-btn,
+.vercel-register-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.vercel-google-btn {
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #e5e5e5;
+  margin-bottom: 16px;
+}
+
+.vercel-google-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.vercel-email-btn {
+  background-color: #000;
+  color: #fff;
+  border: none;
+}
+
+.vercel-email-btn:hover {
+  background-color: #333;
+}
+
+.vercel-continue-btn {
+  background-color: #000;
+  color: #fff;
+  border: none;
+}
+
+.vercel-continue-btn:hover {
+  background-color: #333;
+}
+
+.vercel-register-btn {
+  background-color: #000;
+  color: #fff;
+  border: none;
+}
+
+.vercel-register-btn:hover {
+  background-color: #333;
+}
+
+.vercel-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vercel-btn-disabled:hover {
+  background-color: #000;
+}
+
+/* Divider */
+.vercel-divider {
+  position: relative;
+  text-align: center;
+  margin: 24px 0;
+}
+
+.vercel-divider::before,
+.vercel-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 20px);
+  height: 1px;
+  background-color: #e5e5e5;
+}
+
+.vercel-divider::before {
+  left: 0;
+}
+
+.vercel-divider::after {
+  right: 0;
+}
+
+.vercel-divider span {
+  background-color: #fff;
+  padding: 0 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Footer */
+.vercel-footer,
+.vercel-footer-links {
+  text-align: center;
+  margin-top: 32px;
+  font-size: 14px;
+  color: #666;
+}
+
+.vercel-footer a,
+.vercel-footer-links a,
+.vercel-link {
+  color: #000;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.vercel-footer a:hover,
+.vercel-footer-links a:hover,
+.vercel-link:hover {
+  text-decoration: underline;
+}
+
+/* User summary */
+.vercel-user-summary {
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.vercel-user-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.vercel-user-email {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Terms checkbox */
+.vercel-terms {
+  margin-bottom: 24px;
+}
+
+.vercel-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.vercel-checkbox {
+  margin-top: 2px;
+}
+
+/* Button spinner */
+.vercel-btn-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.vercel-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .vercel-title {
+    font-size: 24px;
+  }
+
+  .vercel-content {
+    padding: 16px 0;
+  }
+
+  .vercel-nav {
+    gap: 16px;
+  }
+}
+
+/* Material UI Toast Notification */
+.material-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  min-width: 300px;
+  max-width: 400px;
+  background-color: #323232;
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  z-index: 9999;
+  animation: material-toast-slide-in 0.3s ease forwards;
+}
+
+.material-toast-success {
+  background-color: #43a047;
+}
+
+.material-toast-error {
+  background-color: #e53935;
+}
+
+.material-toast-info {
+  background-color: #1e88e5;
+}
+
+.material-toast-warning {
+  background-color: #fb8c00;
+}
+
+.material-toast-icon {
+  flex-shrink: 0;
+  margin-right: 12px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-toast-content {
+  flex: 1;
+  padding-right: 8px;
+}
+
+.material-toast-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.material-toast-message {
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.material-toast-close {
+  background: none;
+  border: none;
+  color: white;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.material-toast-close:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.material-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.7);
+  width: 100%;
+  animation: material-toast-progress 5s linear forwards;
+}
+
+@keyframes material-toast-slide-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes material-toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (max-width: 600px) {
+  .material-toast {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    min-width: auto;
+    max-width: none;
+    width: calc(100% - 32px);
+  }
+}
+
+/* Add these styles at the bottom of the file */
+
+/* Loading Spinner Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(5px);
+}
+
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #000;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+.spinner-text {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.content-blur {
+  filter: blur(5px);
+  transition: filter 0.3s ease;
+}
+
+.content-visible {
+  filter: blur(0);
+  transition: filter 0.3s ease;
+}

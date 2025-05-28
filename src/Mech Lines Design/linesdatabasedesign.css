@@ -1,0 +1,440 @@
+/* Import modern fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+/* Base container styles */
+.order-search-containerlineskh {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  height: 100%;
+}
+
+/* Header styles */
+.order-search-headerlineskh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #fff;
+}
+
+.header-titlelineskh {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.header-actionslineskh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-parent-btnlineskh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-parent-btnlineskh:hover {
+  background-color: #4338ca;
+}
+
+.add-child-btnlineskh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-child-btnlineskh:hover {
+  background-color: #059669;
+}
+
+/* Refresh button */
+.refresh-btnlineskh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #0ea5e9;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-btnlineskh:hover {
+  background-color: #e0f2fe;
+}
+
+.refresh-btnlineskh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Back button styles */
+.header-back-buttonlineskh {
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+}
+
+.back-btnlineskh {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: transparent;
+  border: none;
+  color: #0066cc;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.back-btnlineskh:hover {
+  background-color: rgba(0, 102, 204, 0.1);
+  border-color: #d1d5db;
+}
+
+/* Order Number Section */
+.order-number-sectionlineskh {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+  justify-content: space-between;
+  background-color: #f9fafb;
+}
+
+.order-number-displaylineskh {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.parent-line-infolineskh {
+  font-weight: 600;
+  color: #0369a1;
+  margin-left: 20px;
+  padding: 4px 8px;
+  background-color: #f0f9ff;
+  border-radius: 4px;
+  border-left: 3px solid #0ea5e9;
+}
+
+.table-actionslineskh {
+  display: flex;
+  gap: 8px;
+}
+
+.table-action-btnlineskh {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+}
+
+.table-action-btnlineskh:hover {
+  background-color: #f9fafb;
+  color: #111827;
+  border-color: #9ca3af;
+}
+
+/* Table wrapper */
+.table-wrapperlineskh {
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Table container with scrollbar */
+.table-containerlineskh {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Make scrollbar always visible */
+.table-containerlineskh::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-containerlineskh::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.table-containerlineskh::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.table-containerlineskh::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Table styling */
+.orders-tablelineskh {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.orders-tablelineskh th {
+  background-color: #64748b;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Column widths */
+.orders-tablelineskh th:nth-child(1) {
+  width: 80px;
+} /* Actions */
+
+.orders-tablelineskh th:nth-child(2) {
+  width: 80px;
+} /* Line */
+
+.orders-tablelineskh th:nth-child(3) {
+  width: auto;
+} /* Service Description */
+
+.orders-tablelineskh th:nth-child(4) {
+  width: 80px;
+  text-align: center;
+} /* UOM */
+
+.orders-tablelineskh th:nth-child(5) {
+  width: 80px;
+  text-align: center;
+} /* Quantity */
+
+.orders-tablelineskh th:nth-child(6) {
+  width: 100px;
+  text-align: right;
+} /* Total */
+
+.orders-tablelineskh th:nth-child(7) {
+  width: 120px;
+  text-align: center;
+} /* Completion */
+
+.orders-tablelineskh tr {
+  transition: background-color 0.2s ease;
+}
+
+.table-row-evenlineskh {
+  background-color: #f8fafc;
+}
+
+.orders-tablelineskh tr:hover {
+  background-color: #f1f5f9;
+}
+
+.orders-tablelineskh td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  vertical-align: middle;
+}
+
+/* Align columns consistently with headers */
+.orders-tablelineskh td:nth-child(4),
+.orders-tablelineskh td:nth-child(5) {
+  text-align: center;
+}
+
+.orders-tablelineskh td:nth-child(6) {
+  text-align: right;
+  font-weight: 500;
+}
+
+.orders-tablelineskh td:nth-child(7) {
+  text-align: center;
+}
+
+/* Line number link styling */
+.line-number-linklineskh {
+  color: #0369a1;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.line-number-linklineskh:hover {
+  background-color: #e0f2fe;
+  text-decoration: underline;
+}
+
+/* Service description cell */
+.service-description-celllineskh {
+  white-space: normal;
+  overflow: visible;
+  word-wrap: break-word;
+  line-height: 1.4;
+  max-width: 300px;
+}
+
+.action-buttonslineskh {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btnlineskh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btnlineskh:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+.edit-iconlineskh {
+  color: #64748b;
+}
+
+.no-records-rowlineskh {
+  height: 120px;
+}
+
+.loading-celllineskh,
+.error-celllineskh {
+  text-align: center;
+  padding: 20px;
+}
+
+.error-celllineskh {
+  color: #e53e3e;
+}
+
+/* No records toast styling */
+.no-records-toastlineskh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 auto;
+  width: fit-content;
+}
+
+/* Status indicators */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-active {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-qa-check {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .order-number-sectionlineskh {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .table-actionslineskh {
+    align-self: flex-end;
+  }
+}

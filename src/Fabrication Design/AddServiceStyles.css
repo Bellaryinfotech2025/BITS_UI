@@ -1,0 +1,300 @@
+/* Add Service Popup Styles */
+.add-service-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  backdrop-filter: blur(5px);
+}
+
+.add-service-modal {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 750px;
+  max-height: 85vh;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modal-slide-in 0.3s ease-out forwards;
+  transform: translateY(20px);
+  opacity: 0;
+  border: 1px solid rgba(0, 123, 255, 0.1);
+}
+
+@keyframes modal-slide-in {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.add-service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+}
+
+.add-service-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+  font-weight: 600;
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.add-service-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-more-services-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(45deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-more-services-button:hover {
+  background: linear-gradient(45deg, #218838, #1e7e34);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.add-service-close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.add-service-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+  transform: rotate(90deg);
+}
+
+.add-service-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 65vh;
+  background-color: #fcfcfc;
+}
+
+.add-service-entry {
+  margin-bottom: 20px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s;
+}
+
+.add-service-entry:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #e0e0e0;
+}
+
+.add-service-entry-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+  margin: 16px 0;
+}
+
+.add-service-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.add-service-entry-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.add-service-entry-header h4::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #007bff;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* Update the remove-service-entry-button to make the delete icon black */
+.remove-service-entry-button {
+  background: none;
+  border: none;
+  color: #333; /* Changed from #dc3545 to #333 (black) */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.remove-service-entry-button:hover {
+  background-color: rgba(0, 0, 0, 0.1); /* Changed from rgba(220, 53, 69, 0.1) */
+  transform: scale(1.1);
+}
+
+.add-service-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-service-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.add-service-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.add-service-field label {
+  font-weight: 500;
+  color: #555;
+  font-size: 13px;
+  margin-left: 2px;
+}
+
+.add-service-field input,
+.add-service-field select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+  background-color: #f9f9f9;
+}
+
+.add-service-field input:focus,
+.add-service-field select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  background-color: white;
+}
+
+.add-service-field input:hover,
+.add-service-field select:hover {
+  border-color: #aaa;
+}
+
+.add-service-input-group {
+  display: flex;
+  align-items: center;
+}
+
+.add-service-input-group input {
+  flex: 1;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.add-service-input-group select {
+  width: 80px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  background-color: #f0f0f0;
+}
+
+.add-service-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+  gap: 12px;
+}
+
+.add-service-cancel-button,
+.add-service-save-button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.add-service-cancel-button {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #333;
+}
+
+.add-service-cancel-button:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.add-service-save-button {
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  border: none;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-service-save-button:hover {
+  background: linear-gradient(45deg, #0069d9, #004494);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .add-service-row {
+    grid-template-columns: 1fr;
+  }
+
+  .add-service-modal {
+    width: 95%;
+  }
+}

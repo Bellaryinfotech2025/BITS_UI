@@ -1,0 +1,45 @@
+/* Button spinner styles */
+.button-spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.button-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: button-spin 1s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Update the signin button to match the image */
+.signin-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #6bafbd;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.signin-button:hover {
+  background-color: #5a9daa;
+}
+
+.signin-button:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
