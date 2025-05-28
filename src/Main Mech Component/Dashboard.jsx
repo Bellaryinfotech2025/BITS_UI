@@ -25,6 +25,7 @@ import {
 import "../Design Component/Dashboard.css"
 import POEntry from "../POEntry Component/PoEntry"
 import DrawingEntry from "../Drawing Entry Component/DrawingEntry"
+import PoentrydatabseseTable from "../POEntry Component/POentryDatabaseTable"
  
 
 // Import other existing components
@@ -453,7 +454,7 @@ const MainDashboard = () => {
 
     // Handle PO Entry
     if (activeMenu === "poentry") {
-      return <POEntry />
+      return <PoentrydatabseseTable />
     }
 
     // Handle Drawing Entry
