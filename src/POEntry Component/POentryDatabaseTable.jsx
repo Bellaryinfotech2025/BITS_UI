@@ -1,4 +1,3 @@
-"use client"
 import { useState } from "react"
 import axios from "axios"
 import { IoMdOpen } from "react-icons/io"
@@ -235,8 +234,8 @@ const PoentrydatabseseTable = () => {
                   <div className="KiNoDataContentJi">
                     <div className="KiNoDataMessageJi">
                       {hasSearched
-                        ? "No Work Order Details Found"
-                        : "No Work Order Details Found - Click on search button to show your work orders"}
+                        ? "Click on search button to show your Work Orders"
+                        : "Click on search button to show your Work Orders"}
                     </div>
                   </div>
                 </td>
