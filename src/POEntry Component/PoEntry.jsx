@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { IoMdOpen } from "react-icons/io"
@@ -12,7 +10,7 @@ import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import '../POEntry Component/PoEntry.css'
 
-const API_BASE_URL = "http://localhost:5522/api/V2.0"
+const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
 const POEntry = () => {
   // Bits Header Table State
