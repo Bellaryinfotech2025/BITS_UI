@@ -316,7 +316,7 @@ const POEntry = ({ onClose }) => {
       </div>
 
       {/* Bits Header Table */}
-      <div className="AOzebraKI">
+      {/* <div className="AOzebraKI">
         <div className="AOhippoKI">
           <div className="AOrhinoKI">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -324,9 +324,9 @@ const POEntry = ({ onClose }) => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      <div className="AOleopardKI">
+      {/* <div className="AOleopardKI">
         {loading && (
           <div className="AOpantherKI">
             <div className="AOjaguarKI">
@@ -394,15 +394,15 @@ const POEntry = ({ onClose }) => {
             )}
           </tbody>
         </table>
-      </div>
+      </div> */}
 
       {/* Service Details Table */}
       <div className="AOzebraKI AOserviceSectionKI">
         <div className="AOhippoKI">
           <div className="AOrhinoKI">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "white" }}>
-                Service Details Management
+              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "#2c3e50" }}>
+                Service Order
               </h4>
               <div style={{ display: "flex", gap: "10px" }}>
                 <button className="AOcheetahKI AOaddBtnKI" onClick={handleAddService}>
