@@ -24,8 +24,9 @@ const DrawingEntry = () => {
   // API Data State
   const [workOrderOptions, setWorkOrderOptions] = useState([])
   const [sectionCodeOptions, setSectionCodeOptions] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filteredSectionCodes, setFilteredSectionCodes] = useState([])
+  const [searchTerms, setSearchTerms] = useState({}) // Store search terms per row
+  const [filteredSectionCodes, setFilteredSectionCodes] = useState({}) // Store filtered codes per row
+  const [showDropdowns, setShowDropdowns] = useState({}) // Control dropdown visibility per row
 
   // Fetch work orders and section codes on component mount
   useEffect(() => {
@@ -65,7 +66,6 @@ const DrawingEntry = () => {
           label: code
         }))
         setSectionCodeOptions(formattedOptions)
-        setFilteredSectionCodes(formattedOptions)
       } else {
         console.error('Failed to fetch section codes')
         toast.error('Failed to fetch section codes')
@@ -141,16 +141,42 @@ const DrawingEntry = () => {
     }
   }
 
-  // Filter section codes based on search term
-  const handleSectionCodeSearch = (term) => {
-    setSearchTerm(term)
+  // Handle search input for section codes
+  const handleSectionCodeSearch = (rowId, term) => {
+    setSearchTerms(prev => ({ ...prev, [rowId]: term }))
+    
     if (!term) {
-      setFilteredSectionCodes(sectionCodeOptions)
+      setFilteredSectionCodes(prev => ({ ...prev, [rowId]: sectionCodeOptions }))
     } else {
       const filtered = sectionCodeOptions.filter(option => 
         option.value.toLowerCase().includes(term.toLowerCase())
       )
-      setFilteredSectionCodes(filtered)
+      setFilteredSectionCodes(prev => ({ ...prev, [rowId]: filtered }))
+    }
+    
+    // Show dropdown when typing
+    setShowDropdowns(prev => ({ ...prev, [rowId]: true }))
+  }
+
+  // Handle section code selection
+  const handleSectionCodeSelect = (rowId, sectionCode) => {
+    // Update the form data
+    setServiceFormRows(prev => prev.map(row => {
+      if (row.id === rowId) {
+        return { ...row, sectionCode: sectionCode }
+      }
+      return row
+    }))
+    
+    // Update search term to show selected value
+    setSearchTerms(prev => ({ ...prev, [rowId]: sectionCode }))
+    
+    // Hide dropdown
+    setShowDropdowns(prev => ({ ...prev, [rowId]: false }))
+    
+    // Fetch section code details
+    if (sectionCode) {
+      fetchSectionCodeDetails(sectionCode, rowId)
     }
   }
 
@@ -166,17 +192,25 @@ const DrawingEntry = () => {
     markQty: "",
   })
 
-  const createNewServiceRow = () => ({
-    id: Date.now() + Math.random(),
-    itemNo: "",
-    sectionCode: "",
-    sectionName: "",
-    secWeight: "",
-    width: "",
-    length: "",
-    itemQty: "",
-    itemWeight: "",
-  })
+  const createNewServiceRow = () => {
+    const newId = Date.now() + Math.random()
+    // Initialize search state for new row
+    setSearchTerms(prev => ({ ...prev, [newId]: "" }))
+    setFilteredSectionCodes(prev => ({ ...prev, [newId]: sectionCodeOptions }))
+    setShowDropdowns(prev => ({ ...prev, [newId]: false }))
+    
+    return {
+      id: newId,
+      itemNo: "",
+      sectionCode: "",
+      sectionName: "",
+      secWeight: "",
+      width: "",
+      length: "",
+      itemQty: "",
+      itemWeight: "",
+    }
+  }
 
   const handleFormInputChange = (rowId, e) => {
     const { name, value } = e.target
@@ -198,11 +232,6 @@ const DrawingEntry = () => {
       prev.map((row) => {
         if (row.id === rowId) {
           const updatedRow = { ...row, [name]: value }
-
-          // If section code is changed, fetch the related details
-          if (name === "sectionCode" && value) {
-            fetchSectionCodeDetails(value, rowId)
-          }
 
           // Calculate item weight using the formula: (width/1000)*(length/1000)*Sec. Wty*item qty
           if (name === "width" || name === "length" || name === "itemQty" || name === "secWeight") {
@@ -295,6 +324,22 @@ const DrawingEntry = () => {
 
   const handleRemoveServiceRow = (rowId) => {
     setServiceFormRows((prev) => prev.filter((row) => row.id !== rowId))
+    // Clean up search state for removed row
+    setSearchTerms(prev => {
+      const newState = { ...prev }
+      delete newState[rowId]
+      return newState
+    })
+    setFilteredSectionCodes(prev => {
+      const newState = { ...prev }
+      delete newState[rowId]
+      return newState
+    })
+    setShowDropdowns(prev => {
+      const newState = { ...prev }
+      delete newState[rowId]
+      return newState
+    })
   }
 
   // Check if save button should be enabled
@@ -558,27 +603,25 @@ const DrawingEntry = () => {
                   <div className="drAOsearchableSelectgi">
                     <input
                       type="text"
-                      placeholder="Search section code..."
-                      value={searchTerm}
-                      onChange={(e) => handleSectionCodeSearch(e.target.value)}
+                      placeholder="Search or select section code..."
+                      value={searchTerms[formData.id] || ""}
+                      onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
+                      onFocus={() => setShowDropdowns(prev => ({ ...prev, [formData.id]: true }))}
                       className="drAOsearchInputgi"
                     />
-                    <select
-                      name="sectionCode"
-                      value={formData.sectionCode}
-                      onChange={(e) => {
-                        handleServiceInputChange(formData.id, e)
-                        setSearchTerm("")
-                      }}
-                      className="drAOfoxgi drAOserviceSelectgi"
-                    >
-                      <option value="">Section Code</option>
-                      {filteredSectionCodes.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    {showDropdowns[formData.id] && (
+                      <div className="drAOdropdownListgi">
+                        {(filteredSectionCodes[formData.id] || sectionCodeOptions).map((option) => (
+                          <div
+                            key={option.value}
+                            className="drAOdropdownItemgi"
+                            onClick={() => handleSectionCodeSelect(formData.id, option.value)}
+                          >
+                            {option.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td>
