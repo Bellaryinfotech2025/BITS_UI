@@ -412,6 +412,125 @@
   cursor: pointer;
 }
 
+/* NEW CSS FOR SERVICE CODE SECTION */
+.drAOsearchableSelectgi {
+  position: relative;
+  min-width: 160px;
+}
+
+.drAOsearchInputgi {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: #ffffff;
+}
+
+.drAOsearchInputgi:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.drAOremoveBtngi {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.drAOremoveBtngi:hover {
+  background-color: #d32f2f;
+}
+
+.drAOserviceTablegi {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.drAOserviceTablegi th,
+.drAOserviceTablegi td {
+  padding: 8px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.drAOserviceTablegi th:nth-child(1),
+.drAOserviceTablegi td:nth-child(1) { width: 8%; }
+.drAOserviceTablegi th:nth-child(2),
+.drAOserviceTablegi td:nth-child(2) { width: 10%; }
+.drAOserviceTablegi th:nth-child(3),
+.drAOserviceTablegi td:nth-child(3) { width: 15%; }
+.drAOserviceTablegi th:nth-child(4),
+.drAOserviceTablegi td:nth-child(4) { width: 12%; }
+.drAOserviceTablegi th:nth-child(5),
+.drAOserviceTablegi td:nth-child(5) { width: 10%; }
+.drAOserviceTablegi th:nth-child(6),
+.drAOserviceTablegi td:nth-child(6) { width: 10%; }
+.drAOserviceTablegi th:nth-child(7),
+.drAOserviceTablegi td:nth-child(7) { width: 10%; }
+.drAOserviceTablegi th:nth-child(8),
+.drAOserviceTablegi td:nth-child(8) { width: 10%; }
+.drAOserviceTablegi th:nth-child(9),
+.drAOserviceTablegi td:nth-child(9) { width: 10%; }
+.drAOserviceTablegi th:nth-child(10),
+.drAOserviceTablegi td:nth-child(10) { width: 5%; }
+
+.drAOserviceInputgi {
+  width: 100%;
+  min-width: 80px;
+  max-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.drAOserviceInputgi:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.drAOserviceInputgi.readonly {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.drAOserviceSelectgi {
+  width: 100%;
+  min-width: 120px;
+  max-width: 150px;
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.drAOserviceSelectgi:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.drAOworkOrderSelectgi {
+  min-width: 150px;
+  max-width: 180px;
+}
+
 /* Toast customization */
 .Toastify__toast {
   font-size: 14px;
@@ -428,6 +547,25 @@
 }
 
 /* Responsive styles */
+@media (max-width: 1200px) {
+  .drAOserviceInputgi {
+    min-width: 70px;
+    max-width: 100px;
+    font-size: 11px;
+  }
+  
+  .drAOserviceSelectgi {
+    min-width: 100px;
+    max-width: 120px;
+    font-size: 11px;
+  }
+  
+  .drAOsearchInputgi {
+    font-size: 11px;
+    padding: 5px 6px;
+  }
+}
+
 @media (max-width: 768px) {
   .drAOlynxgi {
     font-size: 11px;
@@ -446,6 +584,34 @@
   .drAOrhinogi {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  .drAOserviceTablegi {
+    font-size: 10px;
+  }
+  
+  .drAOserviceInputgi {
+    min-width: 60px;
+    max-width: 80px;
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  
+  .drAOserviceSelectgi {
+    min-width: 80px;
+    max-width: 100px;
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  
+  .drAOsearchInputgi {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  
+  .drAOremoveBtngi {
+    padding: 4px 8px;
+    font-size: 10px;
   }
 }
 

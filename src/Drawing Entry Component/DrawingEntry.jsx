@@ -1,5 +1,4 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdAdd } from "react-icons/md"
@@ -9,6 +8,9 @@ import "react-toastify/dist/ReactToastify.css"
 import '../Drawing Entry Component/DrawingEntry.css'
 
 const DrawingEntry = () => {
+  // API Base URL
+  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
+
   // Work Order Header Table State
   const [headerRows, setHeaderRows] = useState([])
   const [formRows, setFormRows] = useState([])
@@ -19,29 +21,138 @@ const DrawingEntry = () => {
   const [serviceFormRows, setServiceFormRows] = useState([])
   const [serviceLoading, setServiceLoading] = useState(false)
 
-  // Work Order options for dropdown
-  const workOrderOptions = [
-    { value: "WO001", label: "WO001 - Structural Work" },
-    { value: "WO002", label: "WO002 - Mechanical Installation" },
-    { value: "WO003", label: "WO003 - Electrical Work" },
-    { value: "WO004", label: "WO004 - Piping Installation" },
-    { value: "WO005", label: "WO005 - Civil Construction" },
-    { value: "WO006", label: "WO006 - Equipment Installation" },
-    { value: "WO007", label: "WO007 - Maintenance Work" },
-    { value: "WO008", label: "WO008 - Inspection Work" },
-  ]
+  // API Data State
+  const [workOrderOptions, setWorkOrderOptions] = useState([])
+  const [sectionCodeOptions, setSectionCodeOptions] = useState([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filteredSectionCodes, setFilteredSectionCodes] = useState([])
 
-  // Section Code options for dropdown
-  const sectionCodeOptions = [
-    { value: "SEC001", label: "SEC001 - Main Structure" },
-    { value: "SEC002", label: "SEC002 - Support Beam" },
-    { value: "SEC003", label: "SEC003 - Column Base" },
-    { value: "SEC004", label: "SEC004 - Roof Truss" },
-    { value: "SEC005", label: "SEC005 - Wall Panel" },
-    { value: "SEC006", label: "SEC006 - Foundation" },
-    { value: "SEC007", label: "SEC007 - Staircase" },
-    { value: "SEC008", label: "SEC008 - Platform" },
-  ]
+  // Fetch work orders and section codes on component mount
+  useEffect(() => {
+    fetchWorkOrders()
+    fetchSectionCodes()
+  }, [])
+
+  // Fetch work orders from API
+  const fetchWorkOrders = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/getworkorder/number`)
+      if (response.ok) {
+        const data = await response.json()
+        const formattedOptions = data.map(workOrder => ({
+          value: workOrder,
+          label: workOrder
+        }))
+        setWorkOrderOptions(formattedOptions)
+      } else {
+        console.error('Failed to fetch work orders')
+        toast.error('Failed to fetch work orders')
+      }
+    } catch (error) {
+      console.error('Error fetching work orders:', error)
+      toast.error('Error fetching work orders')
+    }
+  }
+
+  // Fetch section codes from API
+  const fetchSectionCodes = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/service_code_entry/codes`)
+      if (response.ok) {
+        const data = await response.json()
+        const formattedOptions = data.map(code => ({
+          value: code,
+          label: code
+        }))
+        setSectionCodeOptions(formattedOptions)
+        setFilteredSectionCodes(formattedOptions)
+      } else {
+        console.error('Failed to fetch section codes')
+        toast.error('Failed to fetch section codes')
+      }
+    } catch (error) {
+      console.error('Error fetching section codes:', error)
+      toast.error('Error fetching section codes')
+    }
+  }
+
+  // Fetch work order details when a work order is selected
+  const fetchWorkOrderDetails = async (workOrder, rowId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrder}`)
+      if (response.ok) {
+        const data = await response.json()
+        setFormRows(prev => prev.map(row => {
+          if (row.id === rowId) {
+            return {
+              ...row,
+              plantLocation: data.plantLocation || "",
+              department: data.department || "",
+              workLocation: data.workLocation || ""
+            }
+          }
+          return row
+        }))
+      } else {
+        console.error('Failed to fetch work order details')
+        toast.error('Failed to fetch work order details')
+      }
+    } catch (error) {
+      console.error('Error fetching work order details:', error)
+      toast.error('Error fetching work order details')
+    }
+  }
+
+  // Fetch section code details when a section code is selected
+  const fetchSectionCodeDetails = async (sectionCode, rowId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/service_code_entry/code/${sectionCode}`)
+      if (response.ok) {
+        const data = await response.json()
+        setServiceFormRows(prev => prev.map(row => {
+          if (row.id === rowId) {
+            const updatedRow = {
+              ...row,
+              sectionName: data.name || "",
+              secWeight: data.wgt || 0
+            }
+            
+            // Recalculate item weight if all required fields are present
+            if (updatedRow.width && updatedRow.length && updatedRow.itemQty) {
+              const width = Number.parseFloat(updatedRow.width) || 0
+              const length = Number.parseFloat(updatedRow.length) || 0
+              const itemQty = Number.parseFloat(updatedRow.itemQty) || 0
+              const secWeight = Number.parseFloat(data.wgt) || 0
+              
+              updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight * itemQty).toFixed(3)
+            }
+            
+            return updatedRow
+          }
+          return row
+        }))
+      } else {
+        console.error('Failed to fetch section code details')
+        toast.error('Failed to fetch section code details')
+      }
+    } catch (error) {
+      console.error('Error fetching section code details:', error)
+      toast.error('Error fetching section code details')
+    }
+  }
+
+  // Filter section codes based on search term
+  const handleSectionCodeSearch = (term) => {
+    setSearchTerm(term)
+    if (!term) {
+      setFilteredSectionCodes(sectionCodeOptions)
+    } else {
+      const filtered = sectionCodeOptions.filter(option => 
+        option.value.toLowerCase().includes(term.toLowerCase())
+      )
+      setFilteredSectionCodes(filtered)
+    }
+  }
 
   const createNewFormRow = () => ({
     id: Date.now() + Math.random(),
@@ -69,7 +180,16 @@ const DrawingEntry = () => {
 
   const handleFormInputChange = (rowId, e) => {
     const { name, value } = e.target
-    setFormRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, [name]: value } : row)))
+    setFormRows((prev) => prev.map((row) => {
+      if (row.id === rowId) {
+        // If work order is changed, fetch the related details
+        if (name === "workOrder" && value) {
+          fetchWorkOrderDetails(value, rowId)
+        }
+        return { ...row, [name]: value }
+      }
+      return row
+    }))
   }
 
   const handleServiceInputChange = (rowId, e) => {
@@ -78,6 +198,11 @@ const DrawingEntry = () => {
       prev.map((row) => {
         if (row.id === rowId) {
           const updatedRow = { ...row, [name]: value }
+
+          // If section code is changed, fetch the related details
+          if (name === "sectionCode" && value) {
+            fetchSectionCodeDetails(value, rowId)
+          }
 
           // Calculate item weight using the formula: (width/1000)*(length/1000)*Sec. Wty*item qty
           if (name === "width" || name === "length" || name === "itemQty" || name === "secWeight") {
@@ -236,6 +361,7 @@ const DrawingEntry = () => {
               <th>Drawing No</th>
               <th>Mark No</th>
               <th>Mark Qty</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -251,7 +377,7 @@ const DrawingEntry = () => {
                     name="workOrder"
                     value={formData.workOrder}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOworkOrderSelectgi"
                   >
                     <option value="">Select Work Order</option>
                     {workOrderOptions.map((option) => (
@@ -267,8 +393,9 @@ const DrawingEntry = () => {
                     name="plantLocation"
                     value={formData.plantLocation}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi readonly"
                     placeholder="Plant Location"
+                    readOnly
                   />
                 </td>
                 <td>
@@ -277,8 +404,9 @@ const DrawingEntry = () => {
                     name="department"
                     value={formData.department}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi readonly"
                     placeholder="Department"
+                    readOnly
                   />
                 </td>
                 <td>
@@ -287,8 +415,9 @@ const DrawingEntry = () => {
                     name="workLocation"
                     value={formData.workLocation}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi readonly"
                     placeholder="Work Location"
+                    readOnly
                   />
                 </td>
                 <td>
@@ -331,7 +460,14 @@ const DrawingEntry = () => {
                     placeholder="Mark Qty"
                   />
                 </td>
-                
+                <td>
+                  <button 
+                    onClick={() => handleRemoveFormRow(formData.id)}
+                    className="drAOremoveBtngi"
+                  >
+                    Remove
+                  </button>
+                </td>
               </tr>
             ))}
             {headerRows.map((row) => (
@@ -349,11 +485,12 @@ const DrawingEntry = () => {
                 <td>{row.drawingNo}</td>
                 <td>{row.markNo}</td>
                 <td>{row.markQty}</td>
+                <td></td>
               </tr>
             ))}
             {headerRows.length === 0 && formRows.length === 0 && (
               <tr className="drAOyakgi">
-                <td colSpan="9">
+                <td colSpan="10">
                   <div className="drAOcamelgi">
                     <div className="drAOllamagi">No work order records found.</div>
                   </div>
@@ -384,18 +521,19 @@ const DrawingEntry = () => {
       </div>
 
       <div className="drAOleopardgi">
-        <table className="drAOlynxgi">
+        <table className="drAOlynxgi drAOserviceTablegi">
           <thead>
             <tr>
               <th>Service #</th>
               <th>Item No</th>
               <th>Section Code</th>
               <th>Section Name</th>
-              <th>Section Weigth</th>
+              <th>Section Weight</th>
               <th>Width</th>
               <th>Length</th>
               <th>Item Qty</th>
               <th>Item Weight</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -412,24 +550,36 @@ const DrawingEntry = () => {
                     name="itemNo"
                     value={formData.itemNo}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOserviceInputgi"
                     placeholder="Item No"
                   />
                 </td>
                 <td>
-                  <select
-                    name="sectionCode"
-                    value={formData.sectionCode}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
-                  >
-                    <option value="">Section Code</option>
-                    {sectionCodeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="drAOsearchableSelectgi">
+                    <input
+                      type="text"
+                      placeholder="Search section code..."
+                      value={searchTerm}
+                      onChange={(e) => handleSectionCodeSearch(e.target.value)}
+                      className="drAOsearchInputgi"
+                    />
+                    <select
+                      name="sectionCode"
+                      value={formData.sectionCode}
+                      onChange={(e) => {
+                        handleServiceInputChange(formData.id, e)
+                        setSearchTerm("")
+                      }}
+                      className="drAOfoxgi drAOserviceSelectgi"
+                    >
+                      <option value="">Section Code</option>
+                      {filteredSectionCodes.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </td>
                 <td>
                   <input
@@ -437,8 +587,9 @@ const DrawingEntry = () => {
                     name="sectionName"
                     value={formData.sectionName}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOserviceInputgi readonly"
                     placeholder="Section Name"
+                    readOnly
                   />
                 </td>
                 <td>
@@ -448,8 +599,9 @@ const DrawingEntry = () => {
                     name="secWeight"
                     value={formData.secWeight}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOserviceInputgi readonly"
                     placeholder="Sec. Weight"
+                    readOnly
                   />
                 </td>
                 <td>
@@ -459,7 +611,7 @@ const DrawingEntry = () => {
                     name="width"
                     value={formData.width}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOserviceInputgi"
                     placeholder="Width"
                   />
                 </td>
@@ -470,7 +622,7 @@ const DrawingEntry = () => {
                     name="length"
                     value={formData.length}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOserviceInputgi"
                     placeholder="Length"
                   />
                 </td>
@@ -480,7 +632,7 @@ const DrawingEntry = () => {
                     name="itemQty"
                     value={formData.itemQty}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi"
+                    className="drAOfoxgi drAOserviceInputgi"
                     placeholder="Item Qty"
                   />
                 </td>
@@ -490,12 +642,19 @@ const DrawingEntry = () => {
                     step="0.001"
                     name="itemWeight"
                     value={formData.itemWeight}
-                    className="drAOfoxgi readonly"
+                    className="drAOfoxgi drAOserviceInputgi readonly"
                     placeholder="Item Weight"
                     readOnly
                   />
                 </td>
-                 
+                <td>
+                  <button 
+                    onClick={() => handleRemoveServiceRow(formData.id)}
+                    className="drAOremoveBtngi"
+                  >
+                    Remove
+                  </button>
+                </td>
               </tr>
             ))}
             {serviceRows.map((row) => (
@@ -513,11 +672,12 @@ const DrawingEntry = () => {
                 <td>{row.length}</td>
                 <td>{row.itemQty}</td>
                 <td>{row.itemWeight}</td>
+                <td></td>
               </tr>
             ))}
             {serviceRows.length === 0 && serviceFormRows.length === 0 && (
               <tr className="drAOyakgi">
-                <td colSpan="9">
+                <td colSpan="10">
                   <div className="drAOcamelgi">
                     <div className="drAOllamagi">No service records found.</div>
                   </div>
