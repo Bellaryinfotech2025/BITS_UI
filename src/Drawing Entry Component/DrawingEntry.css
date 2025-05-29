@@ -1,5 +1,5 @@
 /* Main container */
-.AOelephantKI {
+.drAOelephantgi {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
     "Helvetica Neue", sans-serif;
   color: #333;
@@ -8,7 +8,7 @@
 }
 
 /* Header */
-.AOlionKI {
+.drAOliongi {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -17,7 +17,7 @@
   border-bottom: 1px solid #e1e7ef;
 }
 
-.AOtigerKI h3 {
+.drAOtigergi h3 {
   margin: 0;
   font-size: 20px;
   font-weight: 500;
@@ -25,20 +25,20 @@
 }
 
 /* Search Section */
-.AOsearchSectionKI {
+.drAOsearchSectiongi {
   padding: 15px 20px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #e1e7ef;
 }
 
-.AOsearchContainerKI {
+.drAOsearchContainergi {
   display: flex;
   gap: 10px;
   align-items: center;
   max-width: 800px;
 }
 
-.AOsearchSelectKI {
+.drAOsearchSelectgi {
   padding: 10px 12px;
   border: 1px solid #ced4da;
   border-radius: 6px;
@@ -49,12 +49,12 @@
   transition: border-color 0.2s;
 }
 
-.AOsearchSelectKI:focus {
+.drAOsearchSelectgi:focus {
   border-color: #2c5282;
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
 }
 
-.AOsearchInputKI {
+.drAOsearchInputgi {
   flex: 1;
   padding: 10px 12px;
   border: 1px solid #ced4da;
@@ -64,12 +64,12 @@
   transition: border-color 0.2s;
 }
 
-.AOsearchInputKI:focus {
+.drAOsearchInputgi:focus {
   border-color: #2c5282;
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
 }
 
-.AOsearchButtonKI {
+.drAOsearchButtongi {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -85,18 +85,18 @@
   box-shadow: 0 2px 4px rgba(44, 82, 130, 0.3);
 }
 
-.AOsearchButtonKI:hover {
+.drAOsearchButtongi:hover {
   background-color: #2a4365;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(44, 82, 130, 0.4);
 }
 
-.AOsearchIconKI {
+.drAOsearchIcongi {
   font-size: 16px;
 }
 
 /* Enhanced button styles */
-.AOaddBtnKI {
+.drAOaddBtngi {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -112,13 +112,13 @@
   box-shadow: 0 2px 4px rgba(44, 82, 130, 0.3);
 }
 
-.AOaddBtnKI:hover {
+.drAOaddBtngi:hover {
   background-color: #2a4365;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(44, 82, 130, 0.4);
 }
 
-.AOsaveBtnKI {
+.drAOsaveBtngi {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -134,56 +134,56 @@
   box-shadow: 0 2px 4px rgba(44, 82, 130, 0.3);
 }
 
-.AOsaveBtnKI:hover:not(:disabled) {
+.drAOsaveBtngi:hover:not(:disabled) {
   background-color: #2a4365 !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(44, 82, 130, 0.4);
 }
 
-.AOsaveBtnKI:disabled {
+.drAOsaveBtngi:disabled {
   background-color: #a0aec0 !important;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.AObuttonIconKI {
+.drAObuttonIcongi {
   font-size: 16px;
 }
 
-.AOrefreshIconKI {
+.drAOrefreshIcongi {
   font-size: 16px;
 }
 
-.AOspinIconKI {
+.drAOspinIcongi {
   animation: spin 1s linear infinite;
 }
 
-.AOserviceSectionKI {
+.drAOserviceSectiongi {
   margin-top: 30px;
 }
 
 /* Custom toast styles */
-.AOcustomToastKI {
+.drAOcustomToastgi {
   background: #90ee90 !important;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(144, 238, 144, 0.3);
 }
 
-.AOsuccessToastKI {
+.drAOsuccessToastgi {
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 500;
 }
 
-.AOtoastIconKI {
+.drAOtoastIcongi {
   font-size: 18px;
   animation: checkmark 0.6s ease-in-out;
   color: #22543d;
 }
 
-.AOtoastTextKI {
+.drAOtoastTextgi {
   font-weight: bold;
   color: #22543d;
 }
@@ -213,7 +213,7 @@
 }
 
 /* Enhanced refresh button */
-.AOgiraffeKI {
+.drAOgiraffeги {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -229,14 +229,14 @@
   box-shadow: 0 2px 4px rgba(44, 82, 130, 0.3);
 }
 
-.AOgiraffeKI:hover {
+.drAOgiraffeги:hover {
   background-color: #2a4365;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(44, 82, 130, 0.4);
 }
 
 /* Enhanced action buttons */
-.AOelkKI {
+.drAOelkgi {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,54 +251,54 @@
   transition: all 0.2s;
 }
 
-.AOelkKI:hover:not(:disabled) {
+.drAOelkgi:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.AOelkKI:disabled {
+.drAOelkgi:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.AOimpalaKI {
+.drAOimpalagi {
   background-color: #4299e1;
 }
 
-.AOimpalaKI:hover:not(:disabled) {
+.drAOimpalagi:hover:not(:disabled) {
   background-color: #3182ce;
 }
 
-.AObisonKI {
+.drAObisongi {
   background-color: #f56565;
 }
 
-.AObisonKI:hover:not(:disabled) {
+.drAObisongi:hover:not(:disabled) {
   background-color: #e53e3e;
 }
 
 /* Search section */
-.AOzebraKI {
+.drAOzebragi {
   padding: 15px 20px;
   background-color: #fff;
   border-bottom: 1px solid #e1e7ef;
 }
 
-.AOhippoKI {
+.drAOhippogi {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.AOrhinoKI {
+.drAOrhinogi {
   display: flex;
   gap: 10px;
   align-items: center;
 }
 
-.AOcheetahKI {
+.drAOcheetahgi {
   background-color: #2c5282;
   color: white;
   border: none;
@@ -313,17 +313,17 @@
   transition: background-color 0.2s;
 }
 
-.AOcheetahKI:hover {
+.drAOcheetahgi:hover {
   background-color: #2a4365;
 }
 
-.AOcheetahKI:disabled {
+.drAOcheetahgi:disabled {
   background-color: #a0aec0;
   cursor: not-allowed;
 }
 
 /* Table container */
-.AOleopardKI {
+.drAOleopardgi {
   margin: 20px;
   background-color: #fff;
   border-radius: 4px;
@@ -334,7 +334,7 @@
 }
 
 /* Loading overlay */
-.AOpantherKI {
+.drAOpanthergi {
   position: absolute;
   top: 0;
   left: 0;
@@ -348,29 +348,29 @@
   z-index: 5;
 }
 
-.AOjaguarKI {
+.drAOjaguargi {
   font-size: 30px;
   color: #3182ce;
   animation: spin 1s linear infinite;
 }
 
-.AOcougarKI {
+.drAOcougargi {
   margin-top: 10px;
   font-size: 14px;
   color: #4a5568;
 }
 
 /* Table styles */
-.AOlynxKI {
+.drAOlynxgi {
   width: 100%;
   border-collapse: collapse;
 }
 
-.AOlynxKI thead {
+.drAOlynxgi thead {
   background-color: #2d3748;
 }
 
-.AOlynxKI th {
+.drAOlynxgi th {
   padding: 10px 15px;
   text-align: left;
   font-size: 13px;
@@ -380,7 +380,7 @@
   white-space: nowrap;
 }
 
-.AOlynxKI td {
+.drAOlynxgi td {
   padding: 10px 15px;
   font-size: 13px;
   color: #2d3748;
@@ -388,28 +388,28 @@
   border: none;
 }
 
-.AOlynxKI tbody tr {
+.drAOlynxgi tbody tr {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.AOlynxKI tbody tr:hover {
+.drAOlynxgi tbody tr:hover {
   background-color: #f7fafc;
 }
 
-.AOantelopeKI:nth-child(even) {
+.drAOantelopegi:nth-child(even) {
   background-color: #f8f9fa;
 }
 
-.AObearKI {
+.drAObeargi {
   background-color: #ffffff !important;
   border: 1px solid #e2e8f0;
 }
 
-.AObearKI:hover {
+.drAObeargi:hover {
   background-color: #ffffff !important;
 }
 
-.AOwolfKI {
+.drAOwolfgi {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -417,12 +417,12 @@
   font-size: 18px;
 }
 
-.AOgazelleKI {
+.drAOgazellegi {
   color: #3182ce;
   font-weight: 500;
 }
 
-.AOdeerKI {
+.drAOdeergi {
   display: inline-block;
   padding: 2px 8px;
   background-color: #fef3c7;
@@ -432,30 +432,30 @@
   font-weight: 500;
 }
 
-.AOmooseKI {
+.drAOmoosegi {
   display: flex;
   gap: 5px;
   justify-content: center;
 }
 
-.AOyakKI td {
+.drAOyakgi td {
   padding: 40px 0;
 }
 
-.AOcamelKI {
+.drAOcamelgi {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.AOllamaKI {
+.drAOllamagi {
   font-size: 14px;
   color: #a0aec0;
 }
 
 /* Form inputs */
-.AOfoxKI {
+.drAOfoxgi {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid #ced4da;
@@ -467,17 +467,17 @@
   background-color: #ffffff;
 }
 
-.AOfoxKI:focus {
+.drAOfoxgi:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-.AOfoxKI.readonly {
+.drAOfoxgi.readonly {
   background-color: #e9ecef;
   cursor: not-allowed;
 }
 
-.AOrabbitKI {
+.drAOrabbitgi {
   width: 16px;
   height: 16px;
   cursor: pointer;
@@ -500,26 +500,26 @@
 
 /* Responsive styles */
 @media (max-width: 768px) {
-  .AOlynxKI {
+  .drAOlynxgi {
     font-size: 11px;
   }
 
-  .AOlynxKI th,
-  .AOlynxKI td {
+  .drAOlynxgi th,
+  .drAOlynxgi td {
     padding: 8px 10px;
   }
 
-  .AOfoxKI {
+  .drAOfoxgi {
     min-width: 100px;
     font-size: 11px;
   }
 
-  .AOrhinoKI {
+  .drAOrhinogi {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .AOsearchContainerKI {
+  .drAOsearchContainergi {
     flex-direction: column;
     align-items: stretch;
   }

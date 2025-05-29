@@ -219,7 +219,8 @@ const POEntry = ({ onClose }) => {
       {/* Work Order Form Section - Always show one form */}
       <div className="AOformSectionKI">
         <div className="AOformHeaderKI">
-          <h4>Work Order Details</h4>
+          <h4>Work Order Entry</h4>
+          
         </div>
 
         {/* Form Grid Layout */}

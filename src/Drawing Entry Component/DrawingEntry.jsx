@@ -1,19 +1,16 @@
-import { useState, useEffect } from "react"
-import axios from "axios"
+import { useState } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { FiRefreshCw, FiSearch } from "react-icons/fi"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { TiEdit } from "react-icons/ti"
 import { MdDelete, MdSave, MdAdd } from "react-icons/md"
 import { FaCheck } from "react-icons/fa"
-import { ToastContainer, toast } from "react-toastify"
+import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import '../Drawing Entry Component/DrawingEntry.css'
 
-const API_BASE_URL = "http://localhost:5522/api/V2.0"
-
 const DrawingEntry = () => {
-  // Bits Header Table State
+  // Work Order Header Table State
   const [headerRows, setHeaderRows] = useState([])
   const [formRows, setFormRows] = useState([])
   const [loading, setLoading] = useState(false)
@@ -25,21 +22,19 @@ const DrawingEntry = () => {
 
   // Search State
   const [searchTerm, setSearchTerm] = useState("")
-  const [searchType, setSearchType] = useState("servicecode")
+  const [searchType, setSearchType] = useState("sectioncode")
 
-  // Load service data on component mount
-  useEffect(() => {
-    loadServiceData()
-  }, [])
-
-  const loadServiceData = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/getAllBitsLines/details`)
-      setServiceRows(response.data)
-    } catch (error) {
-      console.error("Error loading service data:", error)
-    }
-  }
+  // Section Code options for dropdown
+  const sectionCodeOptions = [
+    { value: "SEC001", label: "SEC001 - Main Structure" },
+    { value: "SEC002", label: "SEC002 - Support Beam" },
+    { value: "SEC003", label: "SEC003 - Column Base" },
+    { value: "SEC004", label: "SEC004 - Roof Truss" },
+    { value: "SEC005", label: "SEC005 - Wall Panel" },
+    { value: "SEC006", label: "SEC006 - Foundation" },
+    { value: "SEC007", label: "SEC007 - Staircase" },
+    { value: "SEC008", label: "SEC008 - Platform" },
+  ]
 
   const createNewFormRow = () => ({
     id: Date.now() + Math.random(),
@@ -47,27 +42,29 @@ const DrawingEntry = () => {
     plantLocation: "",
     department: "",
     workLocation: "",
-    workOrderDate: "",
-    completionDate: "",
-    ldApplicable: false,
+    drawingNo: "",
+    markNo: "",
+    markQty: "",
+    drawingIssueDate: "",
+    status: "Pending",
   })
 
   const createNewServiceRow = () => ({
     id: Date.now() + Math.random(),
-    serNo: "",
-    serviceCode: "",
-    serviceDesc: "",
-    qty: "",
-    uom: "",
-    rate: "", // Changed from unitPrice to rate
-    amount: "", // Changed from totalPrice to amount
+    itemNo: "",
+    sectionCode: "",
+    sectionName: "",
+    secWeight: "",
+    width: "",
+    length: "",
+    itemQty: "",
+    itemWeight: "",
+    status: "Pending",
   })
 
   const handleFormInputChange = (rowId, e) => {
-    const { name, value, type, checked } = e.target
-    setFormRows((prev) =>
-      prev.map((row) => (row.id === rowId ? { ...row, [name]: type === "checkbox" ? checked : value } : row)),
-    )
+    const { name, value } = e.target
+    setFormRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, [name]: value } : row)))
   }
 
   const handleServiceInputChange = (rowId, e) => {
@@ -76,12 +73,26 @@ const DrawingEntry = () => {
       prev.map((row) => {
         if (row.id === rowId) {
           const updatedRow = { ...row, [name]: value }
-          // Auto calculate total price (amount)
-          if (name === "qty" || name === "rate") {
-            const qty = Number.parseFloat(name === "qty" ? value : updatedRow.qty) || 0
-            const rate = Number.parseFloat(name === "rate" ? value : updatedRow.rate) || 0
-            updatedRow.amount = (qty * rate).toFixed(2)
+
+          // Auto-populate section name based on section code
+          if (name === "sectionCode") {
+            const selectedOption = sectionCodeOptions.find((option) => option.value === value)
+            if (selectedOption) {
+              updatedRow.sectionName = selectedOption.label.split(" - ")[1]
+            }
           }
+
+          // Auto calculate item weight based on dimensions and quantity
+          if (name === "width" || name === "length" || name === "itemQty" || name === "secWeight") {
+            const width = Number.parseFloat(name === "width" ? value : updatedRow.width) || 0
+            const length = Number.parseFloat(name === "length" ? value : updatedRow.length) || 0
+            const itemQty = Number.parseFloat(name === "itemQty" ? value : updatedRow.itemQty) || 0
+            const secWeight = Number.parseFloat(name === "secWeight" ? value : updatedRow.secWeight) || 0
+
+            // Simple calculation: width * length * secWeight * itemQty
+            updatedRow.itemWeight = (width * length * secWeight * itemQty).toFixed(2)
+          }
+
           return updatedRow
         }
         return row
@@ -99,9 +110,9 @@ const DrawingEntry = () => {
 
   const showSuccessToast = (message) => {
     toast.success(
-      <div className="AOsuccessToastKI">
-        <FaCheck className="AOtoastIconKI" />
-        <span className="AOtoastTextKI">{message}</span>
+      <div className="drAOsuccessToastgi">
+        <FaCheck className="drAOtoastIcongi" />
+        <span className="drAOtoastTextgi">{message}</span>
       </div>,
       {
         position: "top-center",
@@ -110,7 +121,7 @@ const DrawingEntry = () => {
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-        className: "AOcustomToastKI",
+        className: "drAOcustomToastgi",
       },
     )
   }
@@ -119,31 +130,23 @@ const DrawingEntry = () => {
     try {
       setLoading(true)
 
-      // Simulate 1 second loading
+      // Simulate saving process
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const savedRows = []
+      // Add form rows to header rows with generated IDs
+      const savedRows = formRows.map((row) => ({
+        ...row,
+        id: Date.now() + Math.random(),
+        status: "Completed",
+      }))
 
-      for (const formData of formRows) {
-        const { id, ...dataToSave } = formData
-        const response = await axios.post(`${API_BASE_URL}/createBitsHeader/details`, dataToSave, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-        savedRows.push(response.data)
-      }
-
-      // Add the new records to the beginning of the array to show latest first
       setHeaderRows((prev) => [...savedRows, ...prev])
-
-      // Clear form rows
       setFormRows([])
 
-      showSuccessToast(`${savedRows.length} Bits Header(s) successfully stored!`)
+      showSuccessToast(`${savedRows.length} Work Order(s) successfully saved!`)
     } catch (error) {
       console.error("Error saving header:", error)
-      toast.error("Failed to save header")
+      toast.error("Failed to save work orders")
     } finally {
       setLoading(false)
     }
@@ -153,37 +156,20 @@ const DrawingEntry = () => {
     try {
       setServiceLoading(true)
 
-      // Simulate 1 second loading
+      // Simulate saving process
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const savedRows = []
+      // Add form rows to service rows with generated IDs
+      const savedRows = serviceFormRows.map((row) => ({
+        ...row,
+        id: Date.now() + Math.random(),
+        status: "Completed",
+      }))
 
-      for (const formData of serviceFormRows) {
-        const { id, ...dataToSave } = formData
-
-        // Convert string values to numbers for qty, rate, and amount
-        const processedData = {
-          ...dataToSave,
-          qty: dataToSave.qty ? Number.parseFloat(dataToSave.qty) : null,
-          rate: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null,
-          amount: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null,
-        }
-
-        const response = await axios.post(`${API_BASE_URL}/createBitsLine/details`, processedData, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-        savedRows.push(response.data)
-      }
-
-      // Add the new records to the beginning of the array to show latest first
       setServiceRows((prev) => [...savedRows, ...prev])
-
-      // Clear form rows
       setServiceFormRows([])
 
-      showSuccessToast(`${savedRows.length} Service Detail(s) successfully stored!`)
+      showSuccessToast(`${savedRows.length} Service Detail(s) successfully saved!`)
     } catch (error) {
       console.error("Error saving service details:", error)
       toast.error("Failed to save service details")
@@ -200,110 +186,97 @@ const DrawingEntry = () => {
     setServiceFormRows((prev) => prev.filter((row) => row.id !== rowId))
   }
 
-  const handleDeleteService = async (lineId) => {
-    try {
-      await axios.delete(`${API_BASE_URL}/deleteBitsLine/details?id=${lineId}`)
-      setServiceRows((prev) => prev.filter((row) => row.lineId !== lineId))
-      showSuccessToast("Service deleted successfully!")
-    } catch (error) {
-      console.error("Error deleting service:", error)
-      toast.error("Failed to delete service")
-    }
+  const handleDeleteHeader = (rowId) => {
+    setHeaderRows((prev) => prev.filter((row) => row.id !== rowId))
+    showSuccessToast("Work order deleted successfully!")
   }
 
-  const handleSearch = async () => {
+  const handleDeleteService = (rowId) => {
+    setServiceRows((prev) => prev.filter((row) => row.id !== rowId))
+    showSuccessToast("Service detail deleted successfully!")
+  }
+
+  const handleSearch = () => {
     if (!searchTerm.trim()) {
-      loadServiceData()
       return
     }
 
-    try {
-      let endpoint = ""
+    const filteredRows = serviceRows.filter((row) => {
       switch (searchType) {
-        case "serno":
-          endpoint = `${API_BASE_URL}/searchBitsLinesBySerNo/details?serNo=${encodeURIComponent(searchTerm)}`
-          break
-        case "servicecode":
-          endpoint = `${API_BASE_URL}/searchBitsLinesByServiceCode/details?serviceCode=${encodeURIComponent(searchTerm)}`
-          break
-        case "servicedesc":
-          endpoint = `${API_BASE_URL}/searchBitsLinesByServiceDesc/details?serviceDesc=${encodeURIComponent(searchTerm)}`
-          break
+        case "itemno":
+          return row.itemNo.toLowerCase().includes(searchTerm.toLowerCase())
+        case "sectioncode":
+          return row.sectionCode.toLowerCase().includes(searchTerm.toLowerCase())
+        case "sectionname":
+          return row.sectionName.toLowerCase().includes(searchTerm.toLowerCase())
         default:
-          endpoint = `${API_BASE_URL}/getAllBitsLines/details`
+          return true
       }
+    })
 
-      const response = await axios.get(endpoint)
-      setServiceRows(response.data)
-    } catch (error) {
-      console.error("Error searching:", error)
-      toast.error("Search failed")
-    }
+    // For demo purposes, just show a toast
+    toast.info(`Found ${filteredRows.length} matching records`)
   }
 
   const handleRefresh = () => {
-    // Reset to initial state - clear all data
     setHeaderRows([])
     setFormRows([])
+    setServiceRows([])
     setServiceFormRows([])
     setSearchTerm("")
-    loadServiceData()
     toast.info("Data refreshed")
   }
 
   return (
-    <div className="AOelephantKI">
+    <div className="drAOelephantgi">
       {/* Header */}
-      <div className="AOlionKI">
-        <div className="AOtigerKI">
-          <h3>Bits Header Entry</h3>
+      <div className="drAOliongi">
+        <div className="drAOtigergi">
+          <h3>Drawing Entry</h3>
         </div>
-        <button className="AOgiraffeKI" onClick={handleRefresh}>
-          <FiRefreshCw className="AOrefreshIconKI" />
-          <span>Refresh</span>
-        </button>
+         
       </div>
 
       {/* Search Bar */}
-      <div className="AOsearchSectionKI">
-        <div className="AOsearchContainerKI">
-          
+      <div className="drAOsearchSectiongi">
+        <div className="drAOsearchContainergi">
+           
           <input
             type="text"
-            placeholder={`Search by ${searchType === "serno" ? "Serial No" : searchType === "servicecode" ? "Service Code" : "Service Description"}...`}
+            placeholder={`Search by ${searchType === "itemno" ? "Item No" : searchType === "sectioncode" ? "Section Code" : "Section Name"}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="AOsearchInputKI"
+            className="drAOsearchInputgi"
             onKeyPress={(e) => e.key === "Enter" && handleSearch()}
           />
-          <button onClick={handleSearch} className="AOsearchButtonKI">
-            <FiSearch className="AOsearchIconKI" />
+          <button onClick={handleSearch} className="drAOsearchButtongi">
+            <FiSearch className="drAOsearchIcongi" />
             <span>Search</span>
           </button>
         </div>
       </div>
 
-      {/* Bits Header Table */}
-      <div className="AOzebraKI">
-        <div className="AOhippoKI">
-          <div className="AOrhinoKI">
+      {/* Work Order Details Table */}
+      <div className="drAOzebragi">
+        <div className="drAOhippogi">
+          <div className="drAOrhinogi">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "white" }}>Work Order Details</h4>
+              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "Black" }}>Work Order Entry</h4>
               <div style={{ display: "flex", gap: "10px" }}>
-                <button className="AOcheetahKI AOaddBtnKI" onClick={handleAddHeader}>
-                  <MdAdd className="AObuttonIconKI" />
+                <button className="drAOcheetahgi drAOaddBtngi" onClick={handleAddHeader}>
+                  <MdAdd className="drAObuttonIcongi" />
                   <span>Add</span>
                 </button>
                 {formRows.length > 0 && (
-                  <button className="AOcheetahKI AOsaveBtnKI" onClick={handleSaveHeader} disabled={loading}>
+                  <button className="drAOcheetahgi drAOsaveBtngi" onClick={handleSaveHeader} disabled={loading}>
                     {loading ? (
                       <>
-                        <AiOutlineLoading3Quarters className="AOspinIconKI" />
+                        <AiOutlineLoading3Quarters className="drAOspinIcongi" />
                         <span>Saving...</span>
                       </>
                     ) : (
                       <>
-                        <MdSave className="AObuttonIconKI" />
+                        <MdSave className="drAObuttonIcongi" />
                         <span>Save</span>
                       </>
                     )}
@@ -315,17 +288,17 @@ const DrawingEntry = () => {
         </div>
       </div>
 
-      <div className="AOleopardKI">
+      <div className="drAOleopardgi">
         {loading && (
-          <div className="AOpantherKI">
-            <div className="AOjaguarKI">
+          <div className="drAOpanthergi">
+            <div className="drAOjaguargi">
               <AiOutlineLoading3Quarters />
             </div>
-            <div className="AOcougarKI">Saving data...</div>
+            <div className="drAOcougargi">Saving data...</div>
           </div>
         )}
 
-        <table className="AOlynxKI">
+        <table className="drAOlynxgi">
           <thead>
             <tr>
               <th>Order #</th>
@@ -335,17 +308,17 @@ const DrawingEntry = () => {
               <th>Work Location</th>
               <th>Drawing No</th>
               <th>Mark No</th>
-              <th>Mark  Qty</th>
+              <th>Mark Qty</th>
               <th>Drawing Issue Date</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {formRows.map((formData, index) => (
-              <tr key={formData.id} className="AObearKI">
+            {formRows.map((formData) => (
+              <tr key={formData.id} className="drAObeargi">
                 <td>
-                  <div className="AOwolfKI">
+                  <div className="drAOwolfgi">
                     <IoMdOpen />
                   </div>
                 </td>
@@ -355,7 +328,7 @@ const DrawingEntry = () => {
                     name="workOrder"
                     value={formData.workOrder}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOfoxKI"
+                    className="drAOfoxgi"
                     placeholder="Work Order"
                   />
                 </td>
@@ -365,7 +338,7 @@ const DrawingEntry = () => {
                     name="plantLocation"
                     value={formData.plantLocation}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOfoxKI"
+                    className="drAOfoxgi"
                     placeholder="Plant Location"
                   />
                 </td>
@@ -375,7 +348,7 @@ const DrawingEntry = () => {
                     name="department"
                     value={formData.department}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOfoxKI"
+                    className="drAOfoxgi"
                     placeholder="Department"
                   />
                 </td>
@@ -385,44 +358,56 @@ const DrawingEntry = () => {
                     name="workLocation"
                     value={formData.workLocation}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOfoxKI"
+                    className="drAOfoxgi"
                     placeholder="Work Location"
                   />
                 </td>
                 <td>
                   <input
-                    type="date"
-                    name="workOrderDate"
-                    value={formData.workOrderDate}
+                    type="text"
+                    name="drawingNo"
+                    value={formData.drawingNo}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOfoxKI"
+                    className="drAOfoxgi"
+                    placeholder="Drawing No"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    name="markNo"
+                    value={formData.markNo}
+                    onChange={(e) => handleFormInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                    placeholder="Mark No"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    name="markQty"
+                    value={formData.markQty}
+                    onChange={(e) => handleFormInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                    placeholder="Mark Qty"
                   />
                 </td>
                 <td>
                   <input
                     type="date"
-                    name="completionDate"
-                    value={formData.completionDate}
+                    name="drawingIssueDate"
+                    value={formData.drawingIssueDate}
                     onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOfoxKI"
+                    className="drAOfoxgi"
                   />
                 </td>
                 <td>
-                  <input
-                    type="checkbox"
-                    name="ldApplicable"
-                    checked={formData.ldApplicable}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="AOrabbitKI"
-                  />
+                  <span className="drAOdeergi">Pending</span>
                 </td>
                 <td>
-                  <span className="AOdeerKI">Pending</span>
-                </td>
-                <td>
-                  <div className="AOmooseKI">
+                  <div className="drAOmoosegi">
                     <button
-                      className="AOelkKI AObisonKI"
+                      className="drAOelkgi drAObisongi"
                       onClick={() => handleRemoveFormRow(formData.id)}
                       title="Remove"
                       disabled={loading}
@@ -433,31 +418,32 @@ const DrawingEntry = () => {
                 </td>
               </tr>
             ))}
-            {headerRows.map((row, index) => (
-              <tr key={row.id || index} className="AOantelopeKI">
+            {headerRows.map((row) => (
+              <tr key={row.id} className="drAOantelopegi">
                 <td>
-                  <div className="AOwolfKI">
+                  <div className="drAOwolfgi">
                     <IoMdOpen />
                   </div>
                 </td>
-                <td className="AOgazelleKI">{row.workOrder}</td>
+                <td className="drAOgazellegi">{row.workOrder}</td>
                 <td>{row.plantLocation}</td>
                 <td>{row.department}</td>
                 <td>{row.workLocation}</td>
-                <td>{row.workOrderDate}</td>
-                <td>{row.completionDate}</td>
-                <td>{row.ldApplicable ? "Yes" : "No"}</td>
+                <td>{row.drawingNo}</td>
+                <td>{row.markNo}</td>
+                <td>{row.markQty}</td>
+                <td>{row.drawingIssueDate}</td>
                 <td>
-                  <span className="AOdeerKI" style={{ backgroundColor: "#c6f6d5", color: "#22543d" }}>
+                  <span className="drAOdeergi" style={{ backgroundColor: "#c6f6d5", color: "#22543d" }}>
                     Completed
                   </span>
                 </td>
                 <td>
-                  <div className="AOmooseKI">
-                    <button className="AOelkKI AOimpalaKI" title="Edit">
+                  <div className="drAOmoosegi">
+                    <button className="drAOelkgi drAOimpalagi" title="Edit">
                       <TiEdit />
                     </button>
-                    <button className="AOelkKI AObisonKI" title="Delete">
+                    <button className="drAOelkgi drAObisongi" title="Delete" onClick={() => handleDeleteHeader(row.id)}>
                       <MdDelete />
                     </button>
                   </div>
@@ -465,10 +451,10 @@ const DrawingEntry = () => {
               </tr>
             ))}
             {headerRows.length === 0 && formRows.length === 0 && (
-              <tr className="AOyakKI">
-                <td colSpan="10">
-                  <div className="AOcamelKI">
-                    <div className="AOllamaKI">No records found.</div>
+              <tr className="drAOyakgi">
+                <td colSpan="11">
+                  <div className="drAOcamelgi">
+                    <div className="drAOllamagi">No work order records found.</div>
                   </div>
                 </td>
               </tr>
@@ -478,28 +464,28 @@ const DrawingEntry = () => {
       </div>
 
       {/* Service Details Table */}
-      <div className="AOzebraKI AOserviceSectionKI">
-        <div className="AOhippoKI">
-          <div className="AOrhinoKI">
+      <div className="drAOzebragi drAOserviceSectiongi">
+        <div className="drAOhippogi">
+          <div className="drAOrhinogi">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "white" }}>
-                Service Details Management
+              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "Black" }}>
+                Service Entry
               </h4>
               <div style={{ display: "flex", gap: "10px" }}>
-                <button className="AOcheetahKI AOaddBtnKI" onClick={handleAddService}>
-                  <MdAdd className="AObuttonIconKI" />
+                <button className="drAOcheetahgi drAOaddBtngi" onClick={handleAddService}>
+                  <MdAdd className="drAObuttonIcongi" />
                   <span>Add</span>
                 </button>
                 {serviceFormRows.length > 0 && (
-                  <button className="AOcheetahKI AOsaveBtnKI" onClick={handleSaveService} disabled={serviceLoading}>
+                  <button className="drAOcheetahgi drAOsaveBtngi" onClick={handleSaveService} disabled={serviceLoading}>
                     {serviceLoading ? (
                       <>
-                        <AiOutlineLoading3Quarters className="AOspinIconKI" />
+                        <AiOutlineLoading3Quarters className="drAOspinIcongi" />
                         <span>Saving...</span>
                       </>
                     ) : (
                       <>
-                        <MdSave className="AObuttonIconKI" />
+                        <MdSave className="drAObuttonIcongi" />
                         <span>Save</span>
                       </>
                     )}
@@ -511,22 +497,22 @@ const DrawingEntry = () => {
         </div>
       </div>
 
-      <div className="AOleopardKI">
+      <div className="drAOleopardgi">
         {serviceLoading && (
-          <div className="AOpantherKI">
-            <div className="AOjaguarKI">
+          <div className="drAOpanthergi">
+            <div className="drAOjaguargi">
               <AiOutlineLoading3Quarters />
             </div>
-            <div className="AOcougarKI">Saving data...</div>
+            <div className="drAOcougargi">Saving data...</div>
           </div>
         )}
 
-        <table className="AOlynxKI">
+        <table className="drAOlynxgi">
           <thead>
             <tr>
               <th>Order #</th>
               <th>Item No</th>
-              <th>Section Code </th>
+              <th>Section Code</th>
               <th>Section Name</th>
               <th>Sec. Wty</th>
               <th>Width</th>
@@ -538,92 +524,110 @@ const DrawingEntry = () => {
             </tr>
           </thead>
           <tbody>
-            {serviceFormRows.map((formData, index) => (
-              <tr key={formData.id} className="AObearKI">
+            {serviceFormRows.map((formData) => (
+              <tr key={formData.id} className="drAObeargi">
                 <td>
-                  <div className="AOwolfKI">
+                  <div className="drAOwolfgi">
                     <IoMdOpen />
                   </div>
                 </td>
                 <td>
                   <input
                     type="text"
-                    name="serNo"
-                    value={formData.serNo}
+                    name="itemNo"
+                    value={formData.itemNo}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="AOfoxKI"
-                    placeholder="Serial No"
+                    className="drAOfoxgi"
+                    placeholder="Item No"
                   />
+                </td>
+                <td>
+                  <select
+                    name="sectionCode"
+                    value={formData.sectionCode}
+                    onChange={(e) => handleServiceInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                  >
+                    <option value="">Select Section Code</option>
+                    {sectionCodeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td>
                   <input
                     type="text"
-                    name="serviceCode"
-                    value={formData.serviceCode}
+                    name="sectionName"
+                    value={formData.sectionName}
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="AOfoxKI"
-                    placeholder="Service Code"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="serviceDesc"
-                    value={formData.serviceDesc}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="AOfoxKI"
-                    placeholder="Service Description"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    name="qty"
-                    value={formData.qty}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="AOfoxKI"
-                    placeholder="QTY"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="uom"
-                    value={formData.uom}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="AOfoxKI"
-                    placeholder="UOM"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="rate"
-                    value={formData.rate}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="AOfoxKI"
-                    placeholder="Unit Price"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="amount"
-                    value={formData.amount}
-                    className="AOfoxKI readonly"
-                    placeholder="Total Price"
+                    className="drAOfoxgi readonly"
+                    placeholder="Section Name"
                     readOnly
                   />
                 </td>
                 <td>
-                  <span className="AOdeerKI">Pending</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="secWeight"
+                    value={formData.secWeight}
+                    onChange={(e) => handleServiceInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                    placeholder="Sec. Weight"
+                  />
                 </td>
                 <td>
-                  <div className="AOmooseKI">
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="width"
+                    value={formData.width}
+                    onChange={(e) => handleServiceInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                    placeholder="Width"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="length"
+                    value={formData.length}
+                    onChange={(e) => handleServiceInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                    placeholder="Length"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    name="itemQty"
+                    value={formData.itemQty}
+                    onChange={(e) => handleServiceInputChange(formData.id, e)}
+                    className="drAOfoxgi"
+                    placeholder="Item Qty"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="itemWeight"
+                    value={formData.itemWeight}
+                    className="drAOfoxgi readonly"
+                    placeholder="Item Weight"
+                    readOnly
+                  />
+                </td>
+                <td>
+                  <span className="drAOdeergi">Pending</span>
+                </td>
+                <td>
+                  <div className="drAOmoosegi">
                     <button
-                      className="AOelkKI AObisonKI"
+                      className="drAOelkgi drAObisongi"
                       onClick={() => handleRemoveServiceRow(formData.id)}
                       title="Remove"
                       disabled={serviceLoading}
@@ -634,34 +638,35 @@ const DrawingEntry = () => {
                 </td>
               </tr>
             ))}
-            {serviceRows.map((row, index) => (
-              <tr key={row.lineId || index} className="AOantelopeKI">
+            {serviceRows.map((row) => (
+              <tr key={row.id} className="drAOantelopegi">
                 <td>
-                  <div className="AOwolfKI">
+                  <div className="drAOwolfgi">
                     <IoMdOpen />
                   </div>
                 </td>
-                <td>{row.serNo}</td>
-                <td className="AOgazelleKI">{row.serviceCode}</td>
-                <td>{row.serviceDesc}</td>
-                <td>{row.qty}</td>
-                <td>{row.uom}</td>
-                <td>{row.rate}</td>
-                <td>{row.amount}</td>
+                <td>{row.itemNo}</td>
+                <td className="drAOgazellegi">{row.sectionCode}</td>
+                <td>{row.sectionName}</td>
+                <td>{row.secWeight}</td>
+                <td>{row.width}</td>
+                <td>{row.length}</td>
+                <td>{row.itemQty}</td>
+                <td>{row.itemWeight}</td>
                 <td>
-                  <span className="AOdeerKI" style={{ backgroundColor: "#c6f6d5", color: "#22543d" }}>
+                  <span className="drAOdeergi" style={{ backgroundColor: "#c6f6d5", color: "#22543d" }}>
                     Completed
                   </span>
                 </td>
                 <td>
-                  <div className="AOmooseKI">
-                    <button className="AOelkKI AOimpalaKI" title="Edit">
+                  <div className="drAOmoosegi">
+                    <button className="drAOelkgi drAOimpalagi" title="Edit">
                       <TiEdit />
                     </button>
                     <button
-                      className="AOelkKI AObisonKI"
+                      className="drAOelkgi drAObisongi"
                       title="Delete"
-                      onClick={() => handleDeleteService(row.lineId)}
+                      onClick={() => handleDeleteService(row.id)}
                     >
                       <MdDelete />
                     </button>
@@ -670,10 +675,10 @@ const DrawingEntry = () => {
               </tr>
             ))}
             {serviceRows.length === 0 && serviceFormRows.length === 0 && (
-              <tr className="AOyakKI">
-                <td colSpan="10">
-                  <div className="AOcamelKI">
-                    <div className="AOllamaKI">No service records found.</div>
+              <tr className="drAOyakgi">
+                <td colSpan="11">
+                  <div className="drAOcamelgi">
+                    <div className="drAOllamagi">No service records found.</div>
                   </div>
                 </td>
               </tr>
