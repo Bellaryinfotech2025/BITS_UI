@@ -24,77 +24,6 @@
   color: #2c3e50;
 }
 
-/* Search Section */
-.drAOsearchSectiongi {
-  padding: 15px 20px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e1e7ef;
-}
-
-.drAOsearchContainergi {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  max-width: 800px;
-}
-
-.drAOsearchSelectgi {
-  padding: 10px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  font-size: 14px;
-  background-color: white;
-  min-width: 150px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.drAOsearchSelectgi:focus {
-  border-color: #2c5282;
-  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
-}
-
-.drAOsearchInputgi {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.drAOsearchInputgi:focus {
-  border-color: #2c5282;
-  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
-}
-
-.drAOsearchButtongi {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #2c5282;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(44, 82, 130, 0.3);
-}
-
-.drAOsearchButtongi:hover {
-  background-color: #2a4365;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(44, 82, 130, 0.4);
-}
-
-.drAOsearchIcongi {
-  font-size: 16px;
-}
-
 /* Enhanced button styles */
 .drAOaddBtngi {
   display: flex;
@@ -456,7 +385,7 @@
 
 /* Form inputs */
 .drAOfoxgi {
-  width: 100%;
+  width: 140px;
   padding: 8px 10px;
   border: 1px solid #ced4da;
   border-radius: 4px;
@@ -515,11 +444,6 @@
   }
 
   .drAOrhinogi {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .drAOsearchContainergi {
     flex-direction: column;
     align-items: stretch;
   }

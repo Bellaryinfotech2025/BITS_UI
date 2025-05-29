@@ -444,7 +444,7 @@ const POEntry = ({ onClose }) => {
         <table className="AOlynxKI">
           <thead>
             <tr>
-              <th>Order #</th>
+              <th>Service #</th>
               <th>Serial No</th>
               <th>Service Code</th>
               <th>Service Description</th>

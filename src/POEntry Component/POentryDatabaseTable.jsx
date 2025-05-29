@@ -185,7 +185,7 @@ const PoentrydatabseseTable = () => {
         <table className="KiWorkOrderTableJi">
           <thead>
             <tr>
-              <th>Order #</th>
+              <th>Actions</th>
               <th>Work Order</th>
               <th>Plant Location</th>
               <th>Department</th>
