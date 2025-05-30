@@ -34,6 +34,20 @@ const DrawingEntry = () => {
     fetchSectionCodes()
   }, [])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.drAOsearchableSelectgi')) {
+        setShowDropdowns({})
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   // Fetch work orders from API
   const fetchWorkOrders = async () => {
     try {
@@ -180,8 +194,13 @@ const DrawingEntry = () => {
     }
   }
 
+  // Generate unique ID for new rows
+  const generateUniqueId = () => {
+    return `row_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }
+
   const createNewFormRow = () => ({
-    id: Date.now() + Math.random(),
+    id: generateUniqueId(),
     workOrder: "",
     plantLocation: "",
     department: "",
@@ -193,7 +212,7 @@ const DrawingEntry = () => {
   })
 
   const createNewServiceRow = () => {
-    const newId = Date.now() + Math.random()
+    const newId = generateUniqueId()
     // Initialize search state for new row
     setSearchTerms(prev => ({ ...prev, [newId]: "" }))
     setFilteredSectionCodes(prev => ({ ...prev, [newId]: sectionCodeOptions }))
@@ -277,42 +296,200 @@ const DrawingEntry = () => {
     )
   }
 
+  // Save data to bits_drawing_entry table
+  const saveToBitsDrawingEntry = async (formData, serviceData) => {
+    try {
+      // Parse markQty as integer and ensure it's a valid number
+      const markQty = parseInt(formData.markQty, 10)
+      
+      // Validate markQty
+      if (isNaN(markQty) || markQty <= 0) {
+        throw new Error(`Invalid Mark Qty: ${formData.markQty}. Must be a positive number.`)
+      }
+
+      console.log(`Processing Mark Qty: ${markQty} (type: ${typeof markQty})`)
+
+      const drawingEntryData = {
+        drawingNo: formData.drawingNo || "",
+        markNo: formData.markNo || "",
+        markedQty: markQty, // Use the validated integer
+        totalMarkedWgt: parseFloat(serviceData?.itemWeight) || 0,
+        sessionCode: serviceData?.sectionCode || "",
+        sessionName: serviceData?.sectionName || "",
+        sessionWeight: parseFloat(serviceData?.secWeight) || 0,
+        width: parseFloat(serviceData?.width) || 0,
+        length: parseFloat(serviceData?.length) || 0,
+        itemQty: parseFloat(serviceData?.itemQty) || 0,
+        itemWeight: parseFloat(serviceData?.itemWeight) || 0,
+        tenantId: "DEFAULT_TENANT",
+        createdBy: "system",
+        lastUpdatedBy: "system",
+        attribute1V: formData.workOrder || "",
+        attribute2V: formData.plantLocation || "",
+        attribute3V: formData.department || "",
+        attribute4V: formData.workLocation || "",
+        attribute5V: formData.lineNumber || "",
+        attribute1N: parseFloat(serviceData?.itemNo) || null,
+        attribute2N: null,
+        attribute3N: null,
+        attribute4N: null,
+        attribute5N: null,
+        attribute1D: null,
+        attribute2D: null,
+        attribute3D: null,
+        attribute4D: null,
+        attribute5D: null
+      }
+
+      console.log('Sending data to API:', drawingEntryData)
+
+      const response = await fetch(`${API_BASE_URL}/createBitsDrawingEntry/details`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(drawingEntryData)
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('API Response:', result)
+        
+        // Validate the response
+        if (Array.isArray(result)) {
+          if (result.length !== markQty) {
+            console.warn(`Expected ${markQty} entries, but got ${result.length} entries`)
+          }
+        }
+        
+        return result
+      } else {
+        const errorText = await response.text()
+        console.error('API Error Response:', errorText)
+        throw new Error(`Failed to save to database: ${response.status} - ${errorText}`)
+      }
+    } catch (error) {
+      console.error('Error saving to bits_drawing_entry:', error)
+      throw error
+    }
+  }
+
   const handleSaveAll = async () => {
     try {
       setLoading(true)
+      let totalSavedEntries = 0
+      let savedHeaderRows = []
+      let savedServiceRows = []
 
-      // Simulate saving process
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Validate that we have data to save
+      if (formRows.length === 0 && serviceFormRows.length === 0) {
+        toast.info("No new records to save")
+        return
+      }
 
-      // Save header rows if any
-      if (formRows.length > 0) {
-        const savedHeaderRows = formRows.map((row) => ({
-          ...row,
-          id: Date.now() + Math.random(),
-        }))
+      // Process each form row
+      for (const formRow of formRows) {
+        // Validate required fields
+        if (!formRow.drawingNo || !formRow.markNo || !formRow.markQty) {
+          toast.error(`Please fill in Drawing No, Mark No, and Mark Qty for all rows`)
+          return
+        }
+
+        // Validate markQty is a positive integer
+        const markQty = parseInt(formRow.markQty, 10)
+        if (isNaN(markQty) || markQty <= 0) {
+          toast.error(`Mark Qty must be a positive number. Current value: ${formRow.markQty}`)
+          return
+        }
+
+        // Find corresponding service row (if any)
+        const correspondingServiceRow = serviceFormRows.find(serviceRow => 
+          serviceRow.itemNo === formRow.lineNumber || serviceFormRows.length === 1
+        ) || serviceFormRows[0] || {}
+
+        try {
+          // Save to bits_drawing_entry table
+          const savedEntries = await saveToBitsDrawingEntry(formRow, correspondingServiceRow)
+          
+          // Count the number of entries created (based on markQty)
+          const entriesCount = Array.isArray(savedEntries) ? savedEntries.length : 1
+          totalSavedEntries += entriesCount
+
+          // Add to saved header rows for display
+          savedHeaderRows.push({
+            ...formRow,
+            id: generateUniqueId(), // Use unique ID
+          })
+
+          console.log(`Successfully saved ${entriesCount} entries for drawing ${formRow.drawingNo}`)
+
+        } catch (error) {
+          console.error(`Error saving form row:`, error)
+          toast.error(`Failed to save drawing entry: ${error.message}`)
+          return
+        }
+      }
+
+      // Process service rows that don't have corresponding form rows
+      for (const serviceRow of serviceFormRows) {
+        const hasCorrespondingFormRow = formRows.some(formRow => 
+          formRow.lineNumber === serviceRow.itemNo
+        )
+
+        if (!hasCorrespondingFormRow && serviceRow.sectionCode) {
+          // Create a minimal form data for service-only entries with itemQty as markQty
+          const serviceMarkQty = parseInt(serviceRow.itemQty, 10) || 1
+          
+          const minimalFormData = {
+            drawingNo: serviceRow.itemNo || "SERVICE_ENTRY",
+            markNo: serviceRow.sectionCode || "SERVICE_MARK",
+            markQty: serviceMarkQty.toString(), // Convert back to string for consistency
+            workOrder: "",
+            plantLocation: "",
+            department: "",
+            workLocation: "",
+            lineNumber: serviceRow.itemNo || ""
+          }
+
+          try {
+            const savedEntries = await saveToBitsDrawingEntry(minimalFormData, serviceRow)
+            const entriesCount = Array.isArray(savedEntries) ? savedEntries.length : 1
+            totalSavedEntries += entriesCount
+
+            savedServiceRows.push({
+              ...serviceRow,
+              id: generateUniqueId(), // Use unique ID
+            })
+
+            console.log(`Successfully saved ${entriesCount} service entries for section code ${serviceRow.sectionCode}`)
+
+          } catch (error) {
+            console.error(`Error saving service row:`, error)
+            toast.error(`Failed to save service entry: ${error.message}`)
+            return
+          }
+        }
+      }
+
+      // Update the display tables
+      if (savedHeaderRows.length > 0) {
         setHeaderRows((prev) => [...savedHeaderRows, ...prev])
         setFormRows([])
       }
 
-      // Save service rows if any
-      if (serviceFormRows.length > 0) {
-        const savedServiceRows = serviceFormRows.map((row) => ({
-          ...row,
-          id: Date.now() + Math.random(),
-        }))
+      if (savedServiceRows.length > 0) {
         setServiceRows((prev) => [...savedServiceRows, ...prev])
         setServiceFormRows([])
       }
 
-      const totalSaved = formRows.length + serviceFormRows.length
-      if (totalSaved > 0) {
-        showSuccessToast(`${totalSaved} record(s) successfully saved!`)
-      } else {
-        toast.info("No new records to save")
+      // Show success message
+      if (totalSavedEntries > 0) {
+        showSuccessToast(`${totalSavedEntries} database record(s) successfully saved!`)
       }
+
     } catch (error) {
-      console.error("Error saving data:", error)
-      toast.error("Failed to save data")
+      console.error("Error in handleSaveAll:", error)
+      toast.error("Failed to save data: " + error.message)
     } finally {
       setLoading(false)
     }
@@ -394,156 +571,163 @@ const DrawingEntry = () => {
           </div>
         )}
 
-        <table className="drAOlynxgi">
-          <thead>
-            <tr>
-              <th>Order #</th>
-              <th>Work Order</th>
-              <th>Plant Location</th>
-              <th>Department</th>
-              <th>Work Location</th>
-              <th>Line Number</th>
-              <th>Drawing No</th>
-              <th>Mark No</th>
-              <th>Mark Qty</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {formRows.map((formData) => (
-              <tr key={formData.id} className="drAObeargi">
-                <td>
-                  <div className="drAOwolfgi">
-                    <IoMdOpen />
-                  </div>
-                </td>
-                <td>
-                  <select
-                    name="workOrder"
-                    value={formData.workOrder}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOworkOrderSelectgi"
-                  >
-                    <option value="">Select Work Order</option>
-                    {workOrderOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="plantLocation"
-                    value={formData.plantLocation}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi readonly"
-                    placeholder="Plant Location"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="department"
-                    value={formData.department}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi readonly"
-                    placeholder="Department"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="workLocation"
-                    value={formData.workLocation}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi readonly"
-                    placeholder="Work Location"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="lineNumber"
-                    value={formData.lineNumber}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
-                    placeholder="Line Number"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="drawingNo"
-                    value={formData.drawingNo}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
-                    placeholder="Drawing No"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="markNo"
-                    value={formData.markNo}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
-                    placeholder="Mark No"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    name="markQty"
-                    value={formData.markQty}
-                    onChange={(e) => handleFormInputChange(formData.id, e)}
-                    className="drAOfoxgi"
-                    placeholder="Mark Qty"
-                  />
-                </td>
-                <td>
-                  <button 
-                    onClick={() => handleRemoveFormRow(formData.id)}
-                    className="drAOremoveBtngi"
-                  >
-                    Remove
-                  </button>
-                </td>
+        <div className="drAOtableWrappergi">
+          <table className="drAOlynxgi">
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Work Order</th>
+                <th>Plant Location</th>
+                <th>Department</th>
+                <th>Work Location</th>
+                <th>Line Number</th>
+                <th>Drawing No</th>
+                <th>Mark No</th>
+                <th>Mark Qty</th>
+                <th>Actions</th>
               </tr>
-            ))}
-            {headerRows.map((row) => (
-              <tr key={row.id} className="drAOantelopegi">
-                <td>
-                  <div className="drAOwolfgi">
-                    <IoMdOpen />
-                  </div>
-                </td>
-                <td className="drAOgazellegi">{row.workOrder}</td>
-                <td>{row.plantLocation}</td>
-                <td>{row.department}</td>
-                <td>{row.workLocation}</td>
-                <td>{row.lineNumber}</td>
-                <td>{row.drawingNo}</td>
-                <td>{row.markNo}</td>
-                <td>{row.markQty}</td>
-                <td></td>
-              </tr>
-            ))}
-            {headerRows.length === 0 && formRows.length === 0 && (
-              <tr className="drAOyakgi">
-                <td colSpan="10">
-                  <div className="drAOcamelgi">
-                    <div className="drAOllamagi">No work order records found.</div>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {formRows.map((formData) => (
+                <tr key={formData.id} className="drAObeargi">
+                  <td>
+                    <div className="drAOwolfgi">
+                      <IoMdOpen />
+                    </div>
+                  </td>
+                  <td>
+                    <select
+                      name="workOrder"
+                      value={formData.workOrder}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOworkOrderSelectgi"
+                    >
+                      <option value="">Select Work Order</option>
+                      {workOrderOptions.map((option) => (
+                        <option key={`wo_${option.value}_${formData.id}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="plantLocation"
+                      value={formData.plantLocation}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi readonly"
+                      placeholder="Plant Location"
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="department"
+                      value={formData.department}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi readonly"
+                      placeholder="Department"
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="workLocation"
+                      value={formData.workLocation}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi readonly"
+                      placeholder="Work Location"
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="lineNumber"
+                      value={formData.lineNumber}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Line Number"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="drawingNo"
+                      value={formData.drawingNo}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Drawing No"
+                      required
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="markNo"
+                      value={formData.markNo}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Mark No"
+                      required
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="markQty"
+                      value={formData.markQty}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Mark Qty"
+                      min="1"
+                      max="1000"
+                      required
+                    />
+                  </td>
+                  <td>
+                    <button 
+                      onClick={() => handleRemoveFormRow(formData.id)}
+                      className="drAOremoveBtngi"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {headerRows.map((row) => (
+                <tr key={`header_${row.id}`} className="drAOantelopegi">
+                  <td>
+                    <div className="drAOwolfgi">
+                      <IoMdOpen />
+                    </div>
+                  </td>
+                  <td className="drAOgazellegi">{row.workOrder}</td>
+                  <td>{row.plantLocation}</td>
+                  <td>{row.department}</td>
+                  <td>{row.workLocation}</td>
+                  <td>{row.lineNumber}</td>
+                  <td>{row.drawingNo}</td>
+                  <td>{row.markNo}</td>
+                  <td>{row.markQty}</td>
+                  <td></td>
+                </tr>
+              ))}
+              {headerRows.length === 0 && formRows.length === 0 && (
+                <tr className="drAOyakgi">
+                  <td colSpan="10">
+                    <div className="drAOcamelgi">
+                      <div className="drAOllamagi">No work order records found.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Service Details Table */}
@@ -566,169 +750,173 @@ const DrawingEntry = () => {
       </div>
 
       <div className="drAOleopardgi">
-        <table className="drAOlynxgi drAOserviceTablegi">
-          <thead>
-            <tr>
-              <th>Service #</th>
-              <th>Item No</th>
-              <th>Section Code</th>
-              <th>Section Name</th>
-              <th>Section Weight</th>
-              <th>Width</th>
-              <th>Length</th>
-              <th>Item Qty</th>
-              <th>Item Weight</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {serviceFormRows.map((formData) => (
-              <tr key={formData.id} className="drAObeargi">
-                <td>
-                  <div className="drAOwolfgi">
-                    <IoMdOpen />
-                  </div>
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="itemNo"
-                    value={formData.itemNo}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOserviceInputgi"
-                    placeholder="Item No"
-                  />
-                </td>
-                <td>
-                  <div className="drAOsearchableSelectgi">
+        <div className="drAOtableWrappergi">
+          <table className="drAOlynxgi drAOserviceTablegi">
+            <thead>
+              <tr>
+                <th>Service #</th>
+                <th>Item No</th>
+                <th>Section Code</th>
+                <th>Section Name</th>
+                <th>Section Weight</th>
+                <th>Width</th>
+                <th>Length</th>
+                <th>Item Qty</th>
+                <th>Item Weight</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {serviceFormRows.map((formData) => (
+                <tr key={formData.id} className="drAObeargi">
+                  <td>
+                    <div className="drAOwolfgi">
+                      <IoMdOpen />
+                    </div>
+                  </td>
+                  <td>
                     <input
                       type="text"
-                      placeholder="Search or select section code..."
-                      value={searchTerms[formData.id] || ""}
-                      onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
-                      onFocus={() => setShowDropdowns(prev => ({ ...prev, [formData.id]: true }))}
-                      className="drAOsearchInputgi"
+                      name="itemNo"
+                      value={formData.itemNo}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi"
+                      placeholder="Item No"
                     />
-                    {showDropdowns[formData.id] && (
-                      <div className="drAOdropdownListgi">
-                        {(filteredSectionCodes[formData.id] || sectionCodeOptions).map((option) => (
-                          <div
-                            key={option.value}
-                            className="drAOdropdownItemgi"
-                            onClick={() => handleSectionCodeSelect(formData.id, option.value)}
-                          >
-                            {option.label}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    name="sectionName"
-                    value={formData.sectionName}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOserviceInputgi readonly"
-                    placeholder="Section Name"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="secWeight"
-                    value={formData.secWeight}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOserviceInputgi readonly"
-                    placeholder="Sec. Weight"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="width"
-                    value={formData.width}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOserviceInputgi"
-                    placeholder="Width"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="length"
-                    value={formData.length}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOserviceInputgi"
-                    placeholder="Length"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    name="itemQty"
-                    value={formData.itemQty}
-                    onChange={(e) => handleServiceInputChange(formData.id, e)}
-                    className="drAOfoxgi drAOserviceInputgi"
-                    placeholder="Item Qty"
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.001"
-                    name="itemWeight"
-                    value={formData.itemWeight}
-                    className="drAOfoxgi drAOserviceInputgi readonly"
-                    placeholder="Item Weight"
-                    readOnly
-                  />
-                </td>
-                <td>
-                  <button 
-                    onClick={() => handleRemoveServiceRow(formData.id)}
-                    className="drAOremoveBtngi"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {serviceRows.map((row) => (
-              <tr key={row.id} className="drAOantelopegi">
-                <td>
-                  <div className="drAOwolfgi">
-                    <IoMdOpen />
-                  </div>
-                </td>
-                <td>{row.itemNo}</td>
-                <td className="drAOgazellegi">{row.sectionCode}</td>
-                <td>{row.sectionName}</td>
-                <td>{row.secWeight}</td>
-                <td>{row.width}</td>
-                <td>{row.length}</td>
-                <td>{row.itemQty}</td>
-                <td>{row.itemWeight}</td>
-                <td></td>
-              </tr>
-            ))}
-            {serviceRows.length === 0 && serviceFormRows.length === 0 && (
-              <tr className="drAOyakgi">
-                <td colSpan="10">
-                  <div className="drAOcamelgi">
-                    <div className="drAOllamagi">No service records found.</div>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </td>
+                  <td className="drAOdropdownCellgi">
+                    <div className="drAOsearchableSelectgi">
+                      <input
+                        type="text"
+                        placeholder="Search or select section code..."
+                        value={searchTerms[formData.id] || ""}
+                        onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
+                        onFocus={() => setShowDropdowns(prev => ({ ...prev, [formData.id]: true }))}
+                        className="drAOsearchInputgi"
+                      />
+                      {showDropdowns[formData.id] && (
+                        <div className="drAOdropdownListgi">
+                          {(filteredSectionCodes[formData.id] || sectionCodeOptions).map((option, index) => (
+                            <div
+                              key={`${formData.id}_${option.value}_${index}`}
+                              className="drAOdropdownItemgi"
+                              onClick={() => handleSectionCodeSelect(formData.id, option.value)}
+                            >
+                              {option.label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="sectionName"
+                      value={formData.sectionName}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi readonly"
+                      placeholder="Section Name"
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="secWeight"
+                      value={formData.secWeight}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi readonly"
+                      placeholder="Sec. Weight"
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="width"
+                      value={formData.width}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi"
+                      placeholder="Width"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="length"
+                      value={formData.length}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi"
+                      placeholder="Length"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="itemQty"
+                      value={formData.itemQty}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi"
+                      placeholder="Item Qty"
+                      min="1"
+                      max="1000"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.001"
+                      name="itemWeight"
+                      value={formData.itemWeight}
+                      className="drAOfoxgi drAOserviceInputgi readonly"
+                      placeholder="Item Weight"
+                      readOnly
+                    />
+                  </td>
+                  <td>
+                    <button 
+                      onClick={() => handleRemoveServiceRow(formData.id)}
+                      className="drAOremoveBtngi"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {serviceRows.map((row) => (
+                <tr key={`service_${row.id}`} className="drAOantelopegi">
+                  <td>
+                    <div className="drAOwolfgi">
+                      <IoMdOpen />
+                    </div>
+                  </td>
+                  <td>{row.itemNo}</td>
+                  <td className="drAOgazellegi">{row.sectionCode}</td>
+                  <td>{row.sectionName}</td>
+                  <td>{row.secWeight}</td>
+                  <td>{row.width}</td>
+                  <td>{row.length}</td>
+                  <td>{row.itemQty}</td>
+                  <td>{row.itemWeight}</td>
+                  <td></td>
+                </tr>
+              ))}
+              {serviceRows.length === 0 && serviceFormRows.length === 0 && (
+                <tr className="drAOyakgi">
+                  <td colSpan="10">
+                    <div className="drAOcamelgi">
+                      <div className="drAOllamagi">No service records found.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <ToastContainer />
