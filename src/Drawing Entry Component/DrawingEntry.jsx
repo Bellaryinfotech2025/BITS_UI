@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
@@ -5,7 +7,7 @@ import { MdSave, MdAdd } from "react-icons/md"
 import { FaCheck } from "react-icons/fa"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import '../Drawing Entry Component/DrawingEntry.css'
+import "../Drawing Entry Component/DrawingEntry.css"
 
 const DrawingEntry = () => {
   // API Base URL
@@ -24,27 +26,29 @@ const DrawingEntry = () => {
   // API Data State
   const [workOrderOptions, setWorkOrderOptions] = useState([])
   const [sectionCodeOptions, setSectionCodeOptions] = useState([])
+  const [lineNumberOptions, setLineNumberOptions] = useState([]) // Line numbers from bits_po_entry_lines
   const [searchTerms, setSearchTerms] = useState({}) // Store search terms per row
   const [filteredSectionCodes, setFilteredSectionCodes] = useState({}) // Store filtered codes per row
   const [showDropdowns, setShowDropdowns] = useState({}) // Control dropdown visibility per row
 
-  // Fetch work orders and section codes on component mount
+  // Fetch work orders, section codes, and line numbers on component mount
   useEffect(() => {
     fetchWorkOrders()
     fetchSectionCodes()
+    fetchLineNumbers() // Fetch line numbers from bits_po_entry_lines
   }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.drAOsearchableSelectgi')) {
+      if (!event.target.closest(".drAOsearchableSelectgi")) {
         setShowDropdowns({})
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside)
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [])
 
@@ -54,18 +58,18 @@ const DrawingEntry = () => {
       const response = await fetch(`${API_BASE_URL}/getworkorder/number`)
       if (response.ok) {
         const data = await response.json()
-        const formattedOptions = data.map(workOrder => ({
+        const formattedOptions = data.map((workOrder) => ({
           value: workOrder,
-          label: workOrder
+          label: workOrder,
         }))
         setWorkOrderOptions(formattedOptions)
       } else {
-        console.error('Failed to fetch work orders')
-        toast.error('Failed to fetch work orders')
+        console.error("Failed to fetch work orders")
+        toast.error("Failed to fetch work orders")
       }
     } catch (error) {
-      console.error('Error fetching work orders:', error)
-      toast.error('Error fetching work orders')
+      console.error("Error fetching work orders:", error)
+      toast.error("Error fetching work orders")
     }
   }
 
@@ -75,18 +79,41 @@ const DrawingEntry = () => {
       const response = await fetch(`${API_BASE_URL}/service_code_entry/codes`)
       if (response.ok) {
         const data = await response.json()
-        const formattedOptions = data.map(code => ({
+        const formattedOptions = data.map((code) => ({
           value: code,
-          label: code
+          label: code,
         }))
         setSectionCodeOptions(formattedOptions)
       } else {
-        console.error('Failed to fetch section codes')
-        toast.error('Failed to fetch section codes')
+        console.error("Failed to fetch section codes")
+        toast.error("Failed to fetch section codes")
       }
     } catch (error) {
-      console.error('Error fetching section codes:', error)
-      toast.error('Error fetching section codes')
+      console.error("Error fetching section codes:", error)
+      toast.error("Error fetching section codes")
+    }
+  }
+
+  // Fetch line numbers from bits_po_entry_lines table
+  const fetchLineNumbers = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/getAllBitsLines/details`)
+      if (response.ok) {
+        const data = await response.json()
+        const formattedOptions = data.map((line) => ({
+          value: line.lineId, // Store line_id as value
+          label: line.lineNumber ? line.lineNumber.toString() : `Line ${line.lineId}`, // Display line_number
+          lineData: line, // Store complete line data for reference
+        }))
+        setLineNumberOptions(formattedOptions)
+        console.log("Fetched line numbers:", formattedOptions)
+      } else {
+        console.error("Failed to fetch line numbers")
+        toast.error("Failed to fetch line numbers")
+      }
+    } catch (error) {
+      console.error("Error fetching line numbers:", error)
+      toast.error("Error fetching line numbers")
     }
   }
 
@@ -96,24 +123,26 @@ const DrawingEntry = () => {
       const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrder}`)
       if (response.ok) {
         const data = await response.json()
-        setFormRows(prev => prev.map(row => {
-          if (row.id === rowId) {
-            return {
-              ...row,
-              plantLocation: data.plantLocation || "",
-              department: data.department || "",
-              workLocation: data.workLocation || ""
+        setFormRows((prev) =>
+          prev.map((row) => {
+            if (row.id === rowId) {
+              return {
+                ...row,
+                plantLocation: data.plantLocation || "",
+                department: data.department || "",
+                workLocation: data.workLocation || "",
+              }
             }
-          }
-          return row
-        }))
+            return row
+          }),
+        )
       } else {
-        console.error('Failed to fetch work order details')
-        toast.error('Failed to fetch work order details')
+        console.error("Failed to fetch work order details")
+        toast.error("Failed to fetch work order details")
       }
     } catch (error) {
-      console.error('Error fetching work order details:', error)
-      toast.error('Error fetching work order details')
+      console.error("Error fetching work order details:", error)
+      toast.error("Error fetching work order details")
     }
   }
 
@@ -123,71 +152,73 @@ const DrawingEntry = () => {
       const response = await fetch(`${API_BASE_URL}/service_code_entry/code/${sectionCode}`)
       if (response.ok) {
         const data = await response.json()
-        setServiceFormRows(prev => prev.map(row => {
-          if (row.id === rowId) {
-            const updatedRow = {
-              ...row,
-              sectionName: data.name || "",
-              secWeight: data.wgt || 0
+        setServiceFormRows((prev) =>
+          prev.map((row) => {
+            if (row.id === rowId) {
+              const updatedRow = {
+                ...row,
+                sectionName: data.name || "",
+                secWeight: data.wgt || 0,
+              }
+
+              // Recalculate item weight if all required fields are present
+              if (updatedRow.width && updatedRow.length && updatedRow.itemQty) {
+                const width = Number.parseFloat(updatedRow.width) || 0
+                const length = Number.parseFloat(updatedRow.length) || 0
+                const itemQty = Number.parseFloat(updatedRow.itemQty) || 0
+                const secWeight = Number.parseFloat(data.wgt) || 0
+
+                updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight * itemQty).toFixed(3)
+              }
+
+              return updatedRow
             }
-            
-            // Recalculate item weight if all required fields are present
-            if (updatedRow.width && updatedRow.length && updatedRow.itemQty) {
-              const width = Number.parseFloat(updatedRow.width) || 0
-              const length = Number.parseFloat(updatedRow.length) || 0
-              const itemQty = Number.parseFloat(updatedRow.itemQty) || 0
-              const secWeight = Number.parseFloat(data.wgt) || 0
-              
-              updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight * itemQty).toFixed(3)
-            }
-            
-            return updatedRow
-          }
-          return row
-        }))
+            return row
+          }),
+        )
       } else {
-        console.error('Failed to fetch section code details')
-        toast.error('Failed to fetch section code details')
+        console.error("Failed to fetch section code details")
+        toast.error("Failed to fetch section code details")
       }
     } catch (error) {
-      console.error('Error fetching section code details:', error)
-      toast.error('Error fetching section code details')
+      console.error("Error fetching section code details:", error)
+      toast.error("Error fetching section code details")
     }
   }
 
   // Handle search input for section codes
   const handleSectionCodeSearch = (rowId, term) => {
-    setSearchTerms(prev => ({ ...prev, [rowId]: term }))
-    
+    setSearchTerms((prev) => ({ ...prev, [rowId]: term }))
+
     if (!term) {
-      setFilteredSectionCodes(prev => ({ ...prev, [rowId]: sectionCodeOptions }))
+      setFilteredSectionCodes((prev) => ({ ...prev, [rowId]: sectionCodeOptions }))
     } else {
-      const filtered = sectionCodeOptions.filter(option => 
-        option.value.toLowerCase().includes(term.toLowerCase())
-      )
-      setFilteredSectionCodes(prev => ({ ...prev, [rowId]: filtered }))
+      const filtered = sectionCodeOptions.filter((option) => option.value.toLowerCase().includes(term.toLowerCase()))
+      setFilteredSectionCodes((prev) => ({ ...prev, [rowId]: filtered }))
     }
-    
+
     // Show dropdown when typing
-    setShowDropdowns(prev => ({ ...prev, [rowId]: true }))
+    setShowDropdowns((prev) => ({ ...prev, [rowId]: true }))
   }
 
   // Handle section code selection
   const handleSectionCodeSelect = (rowId, sectionCode) => {
     // Update the form data
-    setServiceFormRows(prev => prev.map(row => {
-      if (row.id === rowId) {
-        return { ...row, sectionCode: sectionCode }
-      }
-      return row
-    }))
-    
+    setServiceFormRows((prev) =>
+      prev.map((row) => {
+        if (row.id === rowId) {
+          return { ...row, sectionCode: sectionCode }
+        }
+        return row
+      }),
+    )
+
     // Update search term to show selected value
-    setSearchTerms(prev => ({ ...prev, [rowId]: sectionCode }))
-    
+    setSearchTerms((prev) => ({ ...prev, [rowId]: sectionCode }))
+
     // Hide dropdown
-    setShowDropdowns(prev => ({ ...prev, [rowId]: false }))
-    
+    setShowDropdowns((prev) => ({ ...prev, [rowId]: false }))
+
     // Fetch section code details
     if (sectionCode) {
       fetchSectionCodeDetails(sectionCode, rowId)
@@ -205,7 +236,8 @@ const DrawingEntry = () => {
     plantLocation: "",
     department: "",
     workLocation: "",
-    lineNumber: "",
+    lineNumber: "", // This will store line_id from bits_po_entry_lines
+    lineNumberDisplay: "", // This will store the display value (line_number)
     drawingNo: "",
     markNo: "",
     markQty: "",
@@ -214,10 +246,10 @@ const DrawingEntry = () => {
   const createNewServiceRow = () => {
     const newId = generateUniqueId()
     // Initialize search state for new row
-    setSearchTerms(prev => ({ ...prev, [newId]: "" }))
-    setFilteredSectionCodes(prev => ({ ...prev, [newId]: sectionCodeOptions }))
-    setShowDropdowns(prev => ({ ...prev, [newId]: false }))
-    
+    setSearchTerms((prev) => ({ ...prev, [newId]: "" }))
+    setFilteredSectionCodes((prev) => ({ ...prev, [newId]: sectionCodeOptions }))
+    setShowDropdowns((prev) => ({ ...prev, [newId]: false }))
+
     return {
       id: newId,
       itemNo: "",
@@ -233,16 +265,32 @@ const DrawingEntry = () => {
 
   const handleFormInputChange = (rowId, e) => {
     const { name, value } = e.target
-    setFormRows((prev) => prev.map((row) => {
-      if (row.id === rowId) {
-        // If work order is changed, fetch the related details
-        if (name === "workOrder" && value) {
-          fetchWorkOrderDetails(value, rowId)
+    setFormRows((prev) =>
+      prev.map((row) => {
+        if (row.id === rowId) {
+          const updatedRow = { ...row, [name]: value }
+
+          // If work order is changed, fetch the related details
+          if (name === "workOrder" && value) {
+            fetchWorkOrderDetails(value, rowId)
+          }
+
+          // If line number is changed, update display value
+          if (name === "lineNumber") {
+            const selectedLine = lineNumberOptions.find((option) => option.value.toString() === value)
+            if (selectedLine) {
+              updatedRow.lineNumberDisplay = selectedLine.label
+              console.log("Selected line:", selectedLine)
+            } else {
+              updatedRow.lineNumberDisplay = ""
+            }
+          }
+
+          return updatedRow
         }
-        return { ...row, [name]: value }
-      }
-      return row
-    }))
+        return row
+      }),
+    )
   }
 
   const handleServiceInputChange = (rowId, e) => {
@@ -300,8 +348,8 @@ const DrawingEntry = () => {
   const saveToBitsDrawingEntry = async (formData, serviceData) => {
     try {
       // Parse markQty as integer and ensure it's a valid number
-      const markQty = parseInt(formData.markQty, 10)
-      
+      const markQty = Number.parseInt(formData.markQty, 10)
+
       // Validate markQty
       if (isNaN(markQty) || markQty <= 0) {
         throw new Error(`Invalid Mark Qty: ${formData.markQty}. Must be a positive number.`)
@@ -313,23 +361,24 @@ const DrawingEntry = () => {
         drawingNo: formData.drawingNo || "",
         markNo: formData.markNo || "",
         markedQty: markQty, // Use the validated integer
-        totalMarkedWgt: parseFloat(serviceData?.itemWeight) || 0,
+        totalMarkedWgt: Number.parseFloat(serviceData?.itemWeight) || 0,
         sessionCode: serviceData?.sectionCode || "",
         sessionName: serviceData?.sectionName || "",
-        sessionWeight: parseFloat(serviceData?.secWeight) || 0,
-        width: parseFloat(serviceData?.width) || 0,
-        length: parseFloat(serviceData?.length) || 0,
-        itemQty: parseFloat(serviceData?.itemQty) || 0,
-        itemWeight: parseFloat(serviceData?.itemWeight) || 0,
+        sessionWeight: Number.parseFloat(serviceData?.secWeight) || 0,
+        width: Number.parseFloat(serviceData?.width) || 0,
+        length: Number.parseFloat(serviceData?.length) || 0,
+        itemQty: Number.parseFloat(serviceData?.itemQty) || 0,
+        itemWeight: Number.parseFloat(serviceData?.itemWeight) || 0,
         tenantId: "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
+        poLineReferenceId: formData.lineNumber ? Number.parseInt(formData.lineNumber, 10) : null, // Store the line_id from bits_po_entry_lines
         attribute1V: formData.workOrder || "",
         attribute2V: formData.plantLocation || "",
         attribute3V: formData.department || "",
         attribute4V: formData.workLocation || "",
-        attribute5V: formData.lineNumber || "",
-        attribute1N: parseFloat(serviceData?.itemNo) || null,
+        attribute5V: formData.lineNumberDisplay || "", // Store display value for reference
+        attribute1N: Number.parseFloat(serviceData?.itemNo) || null,
         attribute2N: null,
         attribute3N: null,
         attribute4N: null,
@@ -338,38 +387,38 @@ const DrawingEntry = () => {
         attribute2D: null,
         attribute3D: null,
         attribute4D: null,
-        attribute5D: null
+        attribute5D: null,
       }
 
-      console.log('Sending data to API:', drawingEntryData)
+      console.log("Sending data to API:", drawingEntryData)
 
       const response = await fetch(`${API_BASE_URL}/createBitsDrawingEntry/details`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(drawingEntryData)
+        body: JSON.stringify(drawingEntryData),
       })
 
       if (response.ok) {
         const result = await response.json()
-        console.log('API Response:', result)
-        
+        console.log("API Response:", result)
+
         // Validate the response
         if (Array.isArray(result)) {
           if (result.length !== markQty) {
             console.warn(`Expected ${markQty} entries, but got ${result.length} entries`)
           }
         }
-        
+
         return result
       } else {
         const errorText = await response.text()
-        console.error('API Error Response:', errorText)
+        console.error("API Error Response:", errorText)
         throw new Error(`Failed to save to database: ${response.status} - ${errorText}`)
       }
     } catch (error) {
-      console.error('Error saving to bits_drawing_entry:', error)
+      console.error("Error saving to bits_drawing_entry:", error)
       throw error
     }
   }
@@ -378,8 +427,8 @@ const DrawingEntry = () => {
     try {
       setLoading(true)
       let totalSavedEntries = 0
-      let savedHeaderRows = []
-      let savedServiceRows = []
+      const savedHeaderRows = []
+      const savedServiceRows = []
 
       // Validate that we have data to save
       if (formRows.length === 0 && serviceFormRows.length === 0) {
@@ -396,21 +445,24 @@ const DrawingEntry = () => {
         }
 
         // Validate markQty is a positive integer
-        const markQty = parseInt(formRow.markQty, 10)
+        const markQty = Number.parseInt(formRow.markQty, 10)
         if (isNaN(markQty) || markQty <= 0) {
           toast.error(`Mark Qty must be a positive number. Current value: ${formRow.markQty}`)
           return
         }
 
         // Find corresponding service row (if any)
-        const correspondingServiceRow = serviceFormRows.find(serviceRow => 
-          serviceRow.itemNo === formRow.lineNumber || serviceFormRows.length === 1
-        ) || serviceFormRows[0] || {}
+        const correspondingServiceRow =
+          serviceFormRows.find(
+            (serviceRow) => serviceRow.itemNo === formRow.lineNumber || serviceFormRows.length === 1,
+          ) ||
+          serviceFormRows[0] ||
+          {}
 
         try {
           // Save to bits_drawing_entry table
           const savedEntries = await saveToBitsDrawingEntry(formRow, correspondingServiceRow)
-          
+
           // Count the number of entries created (based on markQty)
           const entriesCount = Array.isArray(savedEntries) ? savedEntries.length : 1
           totalSavedEntries += entriesCount
@@ -422,7 +474,6 @@ const DrawingEntry = () => {
           })
 
           console.log(`Successfully saved ${entriesCount} entries for drawing ${formRow.drawingNo}`)
-
         } catch (error) {
           console.error(`Error saving form row:`, error)
           toast.error(`Failed to save drawing entry: ${error.message}`)
@@ -430,46 +481,9 @@ const DrawingEntry = () => {
         }
       }
 
-      // Process service rows that don't have corresponding form rows
-      for (const serviceRow of serviceFormRows) {
-        const hasCorrespondingFormRow = formRows.some(formRow => 
-          formRow.lineNumber === serviceRow.itemNo
-        )
-
-        if (!hasCorrespondingFormRow && serviceRow.sectionCode) {
-          // Create a minimal form data for service-only entries with itemQty as markQty
-          const serviceMarkQty = parseInt(serviceRow.itemQty, 10) || 1
-          
-          const minimalFormData = {
-            drawingNo: serviceRow.itemNo || "SERVICE_ENTRY",
-            markNo: serviceRow.sectionCode || "SERVICE_MARK",
-            markQty: serviceMarkQty.toString(), // Convert back to string for consistency
-            workOrder: "",
-            plantLocation: "",
-            department: "",
-            workLocation: "",
-            lineNumber: serviceRow.itemNo || ""
-          }
-
-          try {
-            const savedEntries = await saveToBitsDrawingEntry(minimalFormData, serviceRow)
-            const entriesCount = Array.isArray(savedEntries) ? savedEntries.length : 1
-            totalSavedEntries += entriesCount
-
-            savedServiceRows.push({
-              ...serviceRow,
-              id: generateUniqueId(), // Use unique ID
-            })
-
-            console.log(`Successfully saved ${entriesCount} service entries for section code ${serviceRow.sectionCode}`)
-
-          } catch (error) {
-            console.error(`Error saving service row:`, error)
-            toast.error(`Failed to save service entry: ${error.message}`)
-            return
-          }
-        }
-      }
+      // Service rows are only used to supplement form row data
+      // They should not create separate database entries
+      console.log("Service rows processed as supplements to form rows only")
 
       // Update the display tables
       if (savedHeaderRows.length > 0) {
@@ -477,16 +491,13 @@ const DrawingEntry = () => {
         setFormRows([])
       }
 
-      if (savedServiceRows.length > 0) {
-        setServiceRows((prev) => [...savedServiceRows, ...prev])
-        setServiceFormRows([])
-      }
+      // Clear service form rows but don't add them to display
+      setServiceFormRows([])
 
       // Show success message
       if (totalSavedEntries > 0) {
         showSuccessToast(`${totalSavedEntries} database record(s) successfully saved!`)
       }
-
     } catch (error) {
       console.error("Error in handleSaveAll:", error)
       toast.error("Failed to save data: " + error.message)
@@ -502,17 +513,17 @@ const DrawingEntry = () => {
   const handleRemoveServiceRow = (rowId) => {
     setServiceFormRows((prev) => prev.filter((row) => row.id !== rowId))
     // Clean up search state for removed row
-    setSearchTerms(prev => {
+    setSearchTerms((prev) => {
       const newState = { ...prev }
       delete newState[rowId]
       return newState
     })
-    setFilteredSectionCodes(prev => {
+    setFilteredSectionCodes((prev) => {
       const newState = { ...prev }
       delete newState[rowId]
       return newState
     })
-    setShowDropdowns(prev => {
+    setShowDropdowns((prev) => {
       const newState = { ...prev }
       delete newState[rowId]
       return newState
@@ -644,14 +655,19 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td>
-                    <input
-                      type="text"
+                    <select
                       name="lineNumber"
                       value={formData.lineNumber}
                       onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Line Number"
-                    />
+                      className="drAOfoxgi drAOlineNumberSelectgi"
+                    >
+                      <option value="">Select Line Number</option>
+                      {lineNumberOptions.map((option) => (
+                        <option key={`line_${option.value}_${formData.id}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td>
                     <input
@@ -689,10 +705,7 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td>
-                    <button 
-                      onClick={() => handleRemoveFormRow(formData.id)}
-                      className="drAOremoveBtngi"
-                    >
+                    <button onClick={() => handleRemoveFormRow(formData.id)} className="drAOremoveBtngi">
                       Remove
                     </button>
                   </td>
@@ -709,7 +722,7 @@ const DrawingEntry = () => {
                   <td>{row.plantLocation}</td>
                   <td>{row.department}</td>
                   <td>{row.workLocation}</td>
-                  <td>{row.lineNumber}</td>
+                  <td>{row.lineNumberDisplay || row.lineNumber}</td>
                   <td>{row.drawingNo}</td>
                   <td>{row.markNo}</td>
                   <td>{row.markQty}</td>
@@ -735,9 +748,7 @@ const DrawingEntry = () => {
         <div className="drAOhippogi">
           <div className="drAOrhinogi">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "black" }}>
-                Service Entry
-              </h4>
+              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "black" }}>Service Entry</h4>
               <div style={{ display: "flex", gap: "10px" }}>
                 <button className="drAOcheetahgi drAOaddBtngi" onClick={handleAddService}>
                   <MdAdd className="drAObuttonIcongi" />
@@ -791,7 +802,7 @@ const DrawingEntry = () => {
                         placeholder="Search or select section code..."
                         value={searchTerms[formData.id] || ""}
                         onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
-                        onFocus={() => setShowDropdowns(prev => ({ ...prev, [formData.id]: true }))}
+                        onFocus={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: true }))}
                         className="drAOsearchInputgi"
                       />
                       {showDropdowns[formData.id] && (
@@ -878,10 +889,7 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td>
-                    <button 
-                      onClick={() => handleRemoveServiceRow(formData.id)}
-                      className="drAOremoveBtngi"
-                    >
+                    <button onClick={() => handleRemoveServiceRow(formData.id)} className="drAOremoveBtngi">
                       Remove
                     </button>
                   </td>
