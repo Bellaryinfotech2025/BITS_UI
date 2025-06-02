@@ -1,7 +1,8 @@
+"use client"
+
 import { useState, useRef, useEffect } from "react"
 import {
   LayoutDashboard,
-  BarChart,
   CreditCard,
   TrendingUp,
   Sliders,
@@ -20,26 +21,20 @@ import {
   Upload,
   Clipboard,
   PenTool,
+  BarChart,
 } from "lucide-react"
 
 import "../Design Component/Dashboard.css"
-import POEntry from "../POEntry Component/PoEntry"
 import DrawingEntry from "../Drawing Entry Component/DrawingEntry"
 import PoentrydatabseseTable from "../POEntry Component/POentryDatabaseTable"
- 
 
 // Import other existing components
 import SettingsPopup from "../Main Mech Component/Settings"
-import OrderDetails from "../Main Mech Component/OrderDetails"
-import OrderDatabaseSearch from "../Main Mech Component/OrderDatabaseSearch"
-import LinesDatabaseSearch from "../Mech Lines Component/LinesDatabaseSearch"
-import LinesChildDatabaseSearch from "../Mech Lines Component/LinesChildDatabaseSearch"
 import LookupTable from "../Main Mech Component/LookUpTable"
-import LinesAddParent from "../Mech Lines Component/LinesAddParent"
-import LinesAddChild from "../Mech Lines Component/LineAddChild"
-import OrderNumberDetails from "../Main Mech Component/OrderNumberDetails"
-import TabFabricationTable from "../Fabrication Component/TabFabricationTable"
-import TabErectionTable from "../Erection Component/ErectionTable"
+ 
+import FabricationDatabasesearch from "../FabricationNewComponent/FabricationDatabasesearch"
+import ErectionDatabasesearch from "../ErectionNewComponent/ErectionDatabasesearch"
+ 
 import AlignmentTable from "../Alignment Component/AlignmentTable"
 import BillingTable from "../Billing Component/BillingTable"
 
@@ -110,14 +105,14 @@ const MainDashboard = () => {
     home: [],
     poentry: [], // No submenus for PO Entry
     drawingentry: [], // No submenus for Drawing Entry
-    orders: ["Orders", "Lines", "Fabrication", "Erection", "Alignment", "Billing"],
-    fabrication: ["Overview", "Schedule", "Materials", "Quality"],
-    erection: ["Overview", "Schedule", "Resources", "Safety"],
-    alignment: ["Overview", "Measurements", "Adjustments", "Reports"],
-    billing: ["Invoices", "Payments", "Reports", "Settings"],
-    reports: ["Financial", "Operational", "Custom", "Scheduled"],
-    requests: ["Pending", "Approved", "Rejected", "Archive"],
-    import: ["Upload", "History", "Settings"],
+    // orders: ["Orders", "Lines", "Fabrication", "Erection", "Alignment", "Billing"],
+    fabrication: [], // No submenus for Fabrication
+    erection: [], // No submenus for Fabrication
+    alignment: [], // No submenus for Fabrication
+    billing: [], // No submenus for Fabrication
+    reports: [], // No submenus for Fabrication
+    requests: [], // No submenus for Fabrication
+    import: [], // No submenus for Fabrication
   }
 
   // Add this useEffect to get the username when the component mounts
@@ -159,57 +154,18 @@ const MainDashboard = () => {
     setTimeout(() => {
       if (menu === "logout") {
         setShowLogoutPopup(true)
-      } else if (menu === "home") {
-        setActiveMenu(menu)
-        setSidebarCollapsed(false)
-        setActiveSubmenu("")
-        setShowContent(true)
-        setShowCoreLookup(false)
-        setShowOrderDetails(false)
-        setShowLinesAddParent(false)
-        setShowLinesAddChild(false)
-        setSelectedOrder(null)
-        setShowSecondSidebar(false)
-        setShowOrderNumberDetails(false)
-        setShowChildLines(false)
-      } else if (menu === "poentry" || menu === "drawingentry") {
-        // Handle PO Entry and Drawing Entry - no submenus needed
-        setActiveMenu(menu)
-        setSidebarCollapsed(false)
-        setActiveSubmenu("")
-        setShowContent(true)
-        setShowCoreLookup(false)
-        setShowOrderDetails(false)
-        setShowLinesAddParent(false)
-        setShowLinesAddChild(false)
-        setSelectedOrder(null)
-        setShowSecondSidebar(false)
-        setShowOrderNumberDetails(false)
-        setShowChildLines(false)
-      } else if (menu === "orders") {
-        setActiveMenu(menu)
-        // For orders, we want to show the OrderDatabaseSearch component directly
-        setActiveSubmenu("Orders")
-        setShowContent(true)
-        setShowCoreLookup(false)
-        setShowOrderDetails(false)
-        setShowLinesAddParent(false)
-        setShowLinesAddChild(false)
-        setSelectedOrder(null)
-        setShowSecondSidebar(false)
-        setShowOrderNumberDetails(false)
-        setShowChildLines(false)
       } else {
+        // Handle all menus the same way - no secondary sidebar
         setActiveMenu(menu)
-        setSidebarCollapsed(true)
-        setActiveSubmenu(submenus[menu][0] || "")
+        setSidebarCollapsed(false)
+        setActiveSubmenu("")
         setShowContent(true)
         setShowCoreLookup(false)
         setShowOrderDetails(false)
         setShowLinesAddParent(false)
         setShowLinesAddChild(false)
         setSelectedOrder(null)
-        setShowSecondSidebar(true)
+        setShowSecondSidebar(false) // Always hide secondary sidebar
         setShowOrderNumberDetails(false)
         setShowChildLines(false)
       }
@@ -462,92 +418,66 @@ const MainDashboard = () => {
       return <DrawingEntry />
     }
 
-    // Handle different submenu content
-    if (activeSubmenu === "Orders") {
-      if (showOrderDetails) {
-        return <OrderDetails onCancel={handleBackToOrderSearch} />
-      }
-      if (showOrderNumberDetails && selectedOrder) {
-        return (
-          <OrderNumberDetails
-            order={selectedOrder}
-            onCancel={() => {
-              setShowOrderNumberDetails(false)
-              // Don't reset selectedOrder here to keep it for Lines menu
-            }}
-            getLookupMeaning={(lookupType, lookupCode) => {
-              // Simple implementation to avoid errors
-              return lookupCode || "-"
-            }}
-            formatDate={(dateString) => {
-              if (!dateString) return "-"
-              const date = new Date(dateString)
-              return date.toLocaleDateString()
-            }}
-          />
-        )
-      }
-      return (
-        <OrderDatabaseSearch
-          onAddOrderClick={handleAddOrderClick}
-          onOrderNumberClick={handleOrderNumberClick}
-          selectedOrder={selectedOrder}
-        />
-      )
+    // Handle Fabrication
+    if (activeMenu === "fabrication") {
+      return <FabricationDatabasesearch />
     }
 
-    if (activeSubmenu === "Lines") {
-      if (showLinesAddParent) {
-        return <LinesAddParent onCancel={handleLinesAddParentCancel} selectedOrder={selectedOrder} />
-      }
-      if (showLinesAddChild) {
-        return <LinesAddChild onCancel={handleLinesAddChildCancel} parentLine={selectedParentLine} />
-      }
-      if (showChildLines && selectedParentLine) {
-        console.log("Rendering LinesChildDatabaseSearch with parent:", selectedParentLine)
-        return (
-          <LinesChildDatabaseSearch
-            parentLine={selectedParentLine}
-            onBack={handleBackToParentLines}
-            selectedOrder={selectedOrder}
-            refreshData={refreshChildLinesData}
-            onDataRefreshed={handleChildDataRefreshed}
-          />
-        )
-      }
-      return (
-        <LinesDatabaseSearch
-          onAddParentClick={handleAddParentClick}
-          onAddChildClick={handleAddChildClick}
-          onLineClick={handleLineClick}
-          selectedOrder={selectedOrder}
-          refreshData={refreshLinesData}
-          onDataRefreshed={handleDataRefreshed}
-        />
-      )
+    // Handle Erection
+    if (activeMenu === "erection") {
+      return <ErectionDatabasesearch />
     }
 
-    if (activeSubmenu === "Erection") {
-      return <TabErectionTable />
-    }
-
-    if (activeSubmenu === "Alignment") {
+    // Handle Alignment
+    if (activeMenu === "alignment") {
       return <AlignmentTable />
     }
 
-    // Display FabricationTable when Fabrication submenu is selected
-    if (activeSubmenu === "Fabrication") {
-      return <TabFabricationTable />
-    }
-
-    if (activeSubmenu === "Billing") {
+    // Handle Billing
+    if (activeMenu === "billing") {
       return <BillingTable />
     }
 
-    // Default content for other menus/submenus
+    // Handle Reports
+    if (activeMenu === "reports") {
+      return (
+        <div className="empty-state">
+          <p>Hi Viewers, Reports content will be displayed here.</p>
+        </div>
+      )
+    }
+
+    // Handle Requests
+    if (activeMenu === "requests") {
+      return (
+        <div className="empty-state">
+          <p>Hi Viewers, Requests content will be displayed here.</p>
+        </div>
+      )
+    }
+
+    // Handle Import
+    if (activeMenu === "import") {
+      return (
+        <div className="empty-state">
+          <p>Hi Viewers, Import content will be displayed here.</p>
+        </div>
+      )
+    }
+
+    // Handle Notifications
+    if (activeMenu === "notifications") {
+      return (
+        <div className="empty-state">
+          <p>Hi Viewers, Notifications content will be displayed here.</p>
+        </div>
+      )
+    }
+
+    // Default content for home and other menus
     return (
       <div className="empty-state">
-        <p>Hi Viewers, {activeSubmenu || activeMenu} content will be displayed here.</p>
+        <p>Hi Viewers, {activeMenu} content will be displayed here.</p>
       </div>
     )
   }
@@ -627,7 +557,8 @@ const MainDashboard = () => {
               </a>
             </li>
 
-            <li>
+            {/* Orders menu is commented out */}
+            {/* <li>
               <a
                 href="#"
                 className={`nav-link ${activeMenu === "orders" ? "active" : ""}`}
@@ -636,7 +567,7 @@ const MainDashboard = () => {
                 {getMenuIcon("orders")}
                 {!sidebarCollapsed && <span>Orders</span>}
               </a>
-            </li>
+            </li> */}
 
             <li>
               <a
@@ -734,8 +665,8 @@ const MainDashboard = () => {
         </div>
       </div>
 
-      {/* Secondary Sidebar - Shows when a menu item is selected or order number is clicked */}
-      {showSecondSidebar && (
+      {/* Secondary Sidebar - Hidden */}
+      {/* {showSecondSidebar && (
         <div className="secondary-sidebar">
           <div className="secondary-sidebar-header">
             <h2>{activeMenu.charAt(0).toUpperCase() + activeMenu.slice(1)}</h2>
@@ -757,7 +688,7 @@ const MainDashboard = () => {
             </ul>
           </nav>
         </div>
-      )}
+      )} */}
 
       {/* Content Area */}
       <div className="content-wrapper">
@@ -771,12 +702,14 @@ const MainDashboard = () => {
               {activeMenu === "home" && (username ? `Hi ${username}` : "Welcome")}
               {activeMenu === "poentry" && "PO Entry"}
               {activeMenu === "drawingentry" && "Drawing Entry"}
-              {activeSubmenu
-                ? activeSubmenu
-                : activeMenu !== "home" && activeMenu !== "poentry" && activeMenu !== "drawingentry"
-                  ? activeMenu
-                  : ""}
-              {showChildLines && selectedParentLine && ` - Fabrication ${selectedParentLine.lineNumber}`}
+              {activeMenu === "fabrication" && "Fabrication"}
+              {activeMenu === "erection" && "Erection"}
+              {activeMenu === "alignment" && "Alignment"}
+              {activeMenu === "billing" && "Billing"}
+              {activeMenu === "reports" && "Reports"}
+              {activeMenu === "requests" && "Requests"}
+              {activeMenu === "import" && "Import"}
+              {activeMenu === "notifications" && "Notifications"}
             </h1>
           </div>
           <div className="header-right">

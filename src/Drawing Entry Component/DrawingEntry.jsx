@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"

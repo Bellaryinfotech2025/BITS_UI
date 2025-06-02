@@ -389,3 +389,225 @@
 .piUpdateContainerol * {
   transition: all 0.2s ease;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Add these styles to your existing UpdatePoentryTable.css file */
+
+/* Service Grid Container */
+.piServiceGridContainerol {
+  margin-top: 20px;
+}
+
+.piServiceGridol {
+  position: relative;
+  border: 2px solid #e1e7ef;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #fafbfc;
+  overflow-x: auto;
+}
+
+/* Service Table */
+.piServiceTableol {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.piServiceTableol th {
+  background-color: #2d3748;
+  color: white;
+  text-align: left;
+  padding: 10px 15px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.piServiceTableol td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.piServiceTableol tr:hover {
+  background-color: #f7fafc;
+}
+
+/* Service Input Fields */
+.piServiceInputol {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.piServiceInputol:focus {
+  border-color: #2c5282;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.1);
+}
+
+/* Service Actions */
+.piServiceActionsol {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.piServiceEditol,
+.piServiceDeleteol,
+.piServiceSaveol,
+.piServiceCancelol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.piServiceEditol {
+  background-color: #4299e1;
+}
+
+.piServiceEditol:hover:not(:disabled) {
+  background-color: #3182ce;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.piServiceDeleteol {
+  background-color: #f56565;
+}
+
+.piServiceDeleteol:hover:not(:disabled) {
+  background-color: #e53e3e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.piServiceSaveol {
+  background-color: #48bb78;
+}
+
+.piServiceSaveol:hover:not(:disabled) {
+  background-color: #38a169;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.piServiceCancelol {
+  background-color: #a0aec0;
+}
+
+.piServiceCancelol:hover:not(:disabled) {
+  background-color: #718096;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.piServiceEditol:disabled,
+.piServiceDeleteol:disabled,
+.piServiceSaveol:disabled,
+.piServiceCancelol:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* No Service Data */
+.piNoServiceDataol {
+  text-align: center;
+  padding: 30px 0;
+  color: #718096;
+  font-style: italic;
+}
+
+/* Service Loading */
+.piServiceLoadingol {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 5;
+}
+
+.piServiceLoadingol .piLoadingSpinnerol {
+  font-size: 24px;
+  color: #2c5282;
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .piServiceTableol {
+    font-size: 12px;
+  }
+  
+  .piServiceTableol th,
+  .piServiceTableol td {
+    padding: 8px 10px;
+  }
+  
+  .piServiceInputol {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .piServiceGridol {
+    padding: 15px;
+  }
+  
+  .piServiceTableol {
+    font-size: 11px;
+  }
+  
+  .piServiceTableol th,
+  .piServiceTableol td {
+    padding: 6px 8px;
+  }
+  
+  .piServiceActionsol {
+    flex-direction: column;
+    gap: 3px;
+  }
+  
+  .piServiceEditol,
+  .piServiceDeleteol,
+  .piServiceSaveol,
+  .piServiceCancelol {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}

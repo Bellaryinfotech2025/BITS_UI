@@ -18,24 +18,13 @@ const POEntry = ({ onClose }) => {
   const [loading, setLoading] = useState(false)
 
   // Service Details Table State
-  const [serviceRows, setServiceRows] = useState([])
   const [serviceFormRows, setServiceFormRows] = useState([])
   const [serviceLoading, setServiceLoading] = useState(false)
 
-  // Initialize with one form row and load service data
+  // Initialize with one form row
   useEffect(() => {
     setFormRows([createNewFormRow()])
-    loadServiceData()
   }, [])
-
-  const loadServiceData = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/getAllBitsLines/details`)
-      setServiceRows(response.data)
-    } catch (error) {
-      console.error("Error loading service data:", error)
-    }
-  }
 
   const createNewFormRow = () => ({
     id: Date.now() + Math.random(),
@@ -106,63 +95,73 @@ const POEntry = ({ onClose }) => {
     )
   }
 
-  const handleSaveHeader = async () => {
+  // Combined save function for both Work Order and Service Order
+  const handleSaveBoth = async () => {
     try {
       setLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const savedRows = []
+      // First save the work order header
+      const savedHeaders = []
       for (const formData of formRows) {
         const { id, ...dataToSave } = formData
+        console.log("Saving work order:", dataToSave);
+        
         const response = await axios.post(`${API_BASE_URL}/createBitsHeader/details`, dataToSave, {
           headers: {
             "Content-Type": "application/json",
           },
         })
-        savedRows.push(response.data)
+        
+        if (response.data) {
+          console.log("Saved work order response:", response.data);
+          savedHeaders.push(response.data)
+        }
       }
 
-      setHeaderRows((prev) => [...savedRows, ...prev])
-      setFormRows([createNewFormRow()]) // Reset to one empty form
-      showSuccessToast(`${savedRows.length} Work Order Data successfully stored!`)
+      // If we have service rows to save and we successfully saved a header
+      if (serviceFormRows.length > 0 && savedHeaders.length > 0) {
+        const workOrderId = savedHeaders[0]?.orderId
+        const workOrderNo = savedHeaders[0]?.workOrder
+
+        console.log("Work Order ID:", workOrderId, "Work Order No:", workOrderNo);
+
+        // Only proceed if we have a valid workOrderNo
+        if (workOrderNo) {
+          // Save each service row with reference to the work order
+          for (const formData of serviceFormRows) {
+            const { id, ...dataToSave } = formData
+            const processedData = {
+              ...dataToSave,
+              qty: dataToSave.qty ? Number.parseFloat(dataToSave.qty) : null,
+              rate: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null,
+              amount: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null,
+              workOrderRef: workOrderNo, // Set the work order reference properly
+            }
+
+            console.log("Saving service order with data:", processedData);
+
+            const serviceResponse = await axios.post(`${API_BASE_URL}/createBitsLine/details`, processedData, {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+            
+            console.log("Saved service order response:", serviceResponse.data);
+          }
+        }
+      }
+
+      // Reset forms
+      setFormRows([createNewFormRow()])
+      setServiceFormRows([])
+      
+      showSuccessToast("Work Order and Service Order data successfully saved!")
     } catch (error) {
-      console.error("Error saving header:", error)
-      toast.error("Failed to save header")
+      console.error("Error saving data:", error)
+      toast.error("Failed to save data")
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSaveService = async () => {
-    try {
-      setServiceLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const savedRows = []
-      for (const formData of serviceFormRows) {
-        const { id, ...dataToSave } = formData
-        const processedData = {
-          ...dataToSave,
-          qty: dataToSave.qty ? Number.parseFloat(dataToSave.qty) : null,
-          rate: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null,
-          amount: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null,
-        }
-
-        const response = await axios.post(`${API_BASE_URL}/createBitsLine/details`, processedData, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-        savedRows.push(response.data)
-      }
-
-      setServiceRows((prev) => [...savedRows, ...prev])
-      setServiceFormRows([])
-      showSuccessToast(`${savedRows.length} Service Data successfully stored!`)
-    } catch (error) {
-      console.error("Error saving service details:", error)
-      toast.error("Failed to save service details")
-    } finally {
       setServiceLoading(false)
     }
   }
@@ -171,33 +170,35 @@ const POEntry = ({ onClose }) => {
     setServiceFormRows((prev) => prev.filter((row) => row.id !== rowId))
   }
 
-  const handleDeleteService = async (lineId) => {
-    try {
-      await axios.delete(`${API_BASE_URL}/deleteBitsLine/details?id=${lineId}`)
-      setServiceRows((prev) => prev.filter((row) => row.lineId !== lineId))
-      showSuccessToast("Service deleted successfully!")
-    } catch (error) {
-      console.error("Error deleting service:", error)
-      toast.error("Failed to delete service")
-    }
-  }
-
   const handleCancel = () => {
     if (onClose) {
       onClose()
     }
   }
 
+  // Check if formRows has elements before accessing workOrder
+  const isSaveDisabled = () => {
+    return loading || 
+           serviceLoading || 
+           formRows.length === 0 || 
+           !formRows[0] || 
+           !formRows[0].workOrder;
+  }
+
   return (
     <div className="AOelephantKI">
-      {/* Header with Cancel Button */}
+      {/* Header with Save and Cancel Buttons */}
       <div className="AOlionKI">
         <div className="AOtigerKI">
           <h3>Work Order Entry Form</h3>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
-          <button className="AOcheetahKI AOsaveBtnKI" onClick={handleSaveHeader} disabled={loading}>
-            {loading ? (
+          <button 
+            className="AOcheetahKI AOsaveBtnKI" 
+            onClick={handleSaveBoth} 
+            disabled={isSaveDisabled()}
+          >
+            {loading || serviceLoading ? (
               <>
                 <AiOutlineLoading3Quarters className="AOspinIconKI" />
                 <span>Saving...</span>
@@ -205,7 +206,7 @@ const POEntry = ({ onClose }) => {
             ) : (
               <>
                 <MdSave className="AObuttonIconKI" />
-                <span>Save</span>
+                <span>Save All</span>
               </>
             )}
           </button>
@@ -220,7 +221,6 @@ const POEntry = ({ onClose }) => {
       <div className="AOformSectionKI">
         <div className="AOformHeaderKI">
           <h4>Work Order Entry</h4>
-          
         </div>
 
         {/* Form Grid Layout */}
@@ -316,87 +316,6 @@ const POEntry = ({ onClose }) => {
         ))}
       </div>
 
-      {/* Bits Header Table */}
-      {/* <div className="AOzebraKI">
-        <div className="AOhippoKI">
-          <div className="AOrhinoKI">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "white" }}>Work Order Details</h4>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
-      {/* <div className="AOleopardKI">
-        {loading && (
-          <div className="AOpantherKI">
-            <div className="AOjaguarKI">
-              <AiOutlineLoading3Quarters />
-            </div>
-            <div className="AOcougarKI">Saving data...</div>
-          </div>
-        )}
-
-        <table className="AOlynxKI">
-          <thead>
-            <tr>
-              <th>Order #</th>
-              <th>Work Order</th>
-              <th>Plant Location</th>
-              <th>Department</th>
-              <th>Work Location</th>
-              <th>Work Order Date</th>
-              <th>Completion Date</th>
-              <th>LD Applicable</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {headerRows.map((row, index) => (
-              <tr key={row.id || index} className="AOantelopeKI">
-                <td>
-                  <div className="AOwolfKI">
-                    <IoMdOpen />
-                  </div>
-                </td>
-                <td className="AOgazelleKI">{row.workOrder}</td>
-                <td>{row.plantLocation}</td>
-                <td>{row.department}</td>
-                <td>{row.workLocation}</td>
-                <td>{row.workOrderDate}</td>
-                <td>{row.completionDate}</td>
-                <td>{row.ldApplicable ? "Yes" : "No"}</td>
-                <td>
-                  <span className="AOdeerKI" style={{ backgroundColor: "#c6f6d5", color: "#22543d" }}>
-                    Completed
-                  </span>
-                </td>
-                <td>
-                  <div className="AOmooseKI">
-                    <button className="AOelkKI AOimpalaKI" title="Edit">
-                      <TiEdit />
-                    </button>
-                    <button className="AOelkKI AObisonKI" title="Delete">
-                      <MdDelete />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {headerRows.length === 0 && (
-              <tr className="AOyakKI">
-                <td colSpan="10">
-                  <div className="AOcamelKI">
-                    <div className="AOllamaKI">No records found.</div>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div> */}
-
       {/* Service Details Table */}
       <div className="AOzebraKI AOserviceSectionKI">
         <div className="AOhippoKI">
@@ -410,21 +329,6 @@ const POEntry = ({ onClose }) => {
                   <MdAdd className="AObuttonIconKI" />
                   <span>Add</span>
                 </button>
-                {serviceFormRows.length > 0 && (
-                  <button className="AOcheetahKI AOsaveBtnKI" onClick={handleSaveService} disabled={serviceLoading}>
-                    {serviceLoading ? (
-                      <>
-                        <AiOutlineLoading3Quarters className="AOspinIconKI" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <MdSave className="AObuttonIconKI" />
-                        <span>Save</span>
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -553,46 +457,11 @@ const POEntry = ({ onClose }) => {
                 </td>
               </tr>
             ))}
-            {serviceRows.map((row, index) => (
-              <tr key={row.lineId || index} className="AOantelopeKI">
-                <td>
-                  <div className="AOwolfKI">
-                    <IoMdOpen />
-                  </div>
-                </td>
-                <td>{row.serNo}</td>
-                <td className="AOgazelleKI">{row.serviceCode}</td>
-                <td>{row.serviceDesc}</td>
-                <td>{row.qty}</td>
-                <td>{row.uom}</td>
-                <td>{row.rate}</td>
-                <td>{row.amount}</td>
-                <td>
-                  <span className="AOdeerKI" style={{ backgroundColor: "#c6f6d5", color: "#22543d" }}>
-                    Completed
-                  </span>
-                </td>
-                <td>
-                  <div className="AOmooseKI">
-                    <button className="AOelkKI AOimpalaKI" title="Edit">
-                      <TiEdit />
-                    </button>
-                    <button
-                      className="AOelkKI AObisonKI"
-                      title="Delete"
-                      onClick={() => handleDeleteService(row.lineId)}
-                    >
-                      <MdDelete />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {serviceRows.length === 0 && serviceFormRows.length === 0 && (
+            {serviceFormRows.length === 0 && (
               <tr className="AOyakKI">
                 <td colSpan="10">
                   <div className="AOcamelKI">
-                    <div className="AOllamaKI">No service records found.</div>
+                    <div className="AOllamaKI">No service records. Click "Add" to create a new service order.</div>
                   </div>
                 </td>
               </tr>
