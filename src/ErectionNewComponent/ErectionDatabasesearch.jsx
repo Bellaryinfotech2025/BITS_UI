@@ -334,7 +334,7 @@ const ErectionDatabasesearch = () => {
           <h3>Search for Erection Details</h3>
         </div>
         <button className="erect-button-kangaroo erect-move-to-alignment-btn" onClick={handleMoveToAlignment}>
-          <span>Move to Alignment</span>
+          <span>Completed</span>
         </button>
       </div>
 

@@ -326,7 +326,7 @@ const FabricationDatabasesearch = () => {
           <h3>Search for Fabrication Details</h3>
         </div>
         <button className="fab-button-giraffe fab-move-to-erection-btn" onClick={handleMoveToErection}>
-          <span>Move to Erection</span>
+          <span>Completed</span>
         </button>
       </div>
 
