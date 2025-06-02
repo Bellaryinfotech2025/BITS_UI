@@ -42,9 +42,9 @@
 }
 
 .fab-move-to-erection-btn:hover {
-  background-color: #218838;
+  background-color: #2c5282;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 4px 8px #2c5282;
 }
 
 /* Filter section */
