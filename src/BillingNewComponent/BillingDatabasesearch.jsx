@@ -4,9 +4,9 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdEdit, MdDelete } from "react-icons/md"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import "../ErectionNewComponent/ErectionDatabasesearch.css"
+import "../BillingNewComponent/BillingDatabasesearch.css"
 
-const ErectionDatabasesearch = () => {
+const BillingDatabasesearch = () => {
   // API Base URL
   const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
@@ -21,10 +21,10 @@ const ErectionDatabasesearch = () => {
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
 
-  // Move to Alignment popup states
-  const [showMoveToAlignmentPopup, setShowMoveToAlignmentPopup] = useState(false)
-  const [selectedMarkNosForAlignment, setSelectedMarkNosForAlignment] = useState([])
-  const [availableMarkNosForAlignment, setAvailableMarkNosForAlignment] = useState([])
+  // Move to Completion popup states
+  const [showMoveToCompletionPopup, setShowMoveToCompletionPopup] = useState(false)
+  const [selectedMarkNosForCompletion, setSelectedMarkNosForCompletion] = useState([])
+  const [availableMarkNosForCompletion, setAvailableMarkNosForCompletion] = useState([])
 
   // Edit states
   const [editingRow, setEditingRow] = useState(null)
@@ -40,14 +40,14 @@ const ErectionDatabasesearch = () => {
     filterData()
   }, [selectedDrawingNo, selectedMarkNo, tableData])
 
-  // Fetch all erection entries and populate dropdowns
+  // Fetch all billing entries and populate dropdowns
   const fetchAllData = async () => {
     try {
       setLoading(true)
 
-      // Use the getAllErectionDrawingEntries endpoint to get complete data
+      // Use the getAllBillingDrawingEntries endpoint to get complete data
       const response = await fetch(
-        `${API_BASE_URL}/getAllErectionDrawingEntries/details?page=0&size=1000&sortBy=creationDate&sortDir=desc`,
+        `${API_BASE_URL}/getAllBillingDrawingEntries/details?page=0&size=1000&sortBy=creationDate&sortDir=desc`,
       )
 
       if (!response.ok) {
@@ -62,7 +62,7 @@ const ErectionDatabasesearch = () => {
       const result = await response.json()
       const data = result.content || result // Handle both paginated and non-paginated responses
 
-      console.log("Fetched erection data:", data)
+      console.log("Fetched billing data:", data)
       console.log("Sample row:", data[0])
 
       // Set table data
@@ -83,7 +83,7 @@ const ErectionDatabasesearch = () => {
   // Fetch distinct drawing numbers for dropdown
   const fetchDistinctDrawingNumbers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/getDistinctErectionDrawingEntryDrawingNumbers/details`)
+      const response = await fetch(`${API_BASE_URL}/getDistinctBillingDrawingEntryDrawingNumbers/details`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -101,7 +101,7 @@ const ErectionDatabasesearch = () => {
   // Fetch distinct mark numbers for dropdown
   const fetchDistinctMarkNumbers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/getDistinctErectionDrawingEntryMarkNumbers/details`)
+      const response = await fetch(`${API_BASE_URL}/getDistinctBillingDrawingEntryMarkNumbers/details`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -109,7 +109,7 @@ const ErectionDatabasesearch = () => {
 
       const markNos = await response.json()
       setMarkNumbers(markNos.sort())
-      setAvailableMarkNosForAlignment(markNos.sort())
+      setAvailableMarkNosForCompletion(markNos.sort())
       console.log("Mark Numbers:", markNos)
     } catch (error) {
       console.error("Error fetching mark numbers:", error)
@@ -138,7 +138,7 @@ const ErectionDatabasesearch = () => {
       setLoading(true)
 
       // Build the search URL based on selected filters
-      let searchUrl = `${API_BASE_URL}/searchErectionDrawingEntries/details?`
+      let searchUrl = `${API_BASE_URL}/searchBillingDrawingEntries/details?`
 
       if (selectedDrawingNo) {
         searchUrl += `drawingNo=${encodeURIComponent(selectedDrawingNo)}&`
@@ -153,7 +153,7 @@ const ErectionDatabasesearch = () => {
       }
 
       // Add other parameters as null
-      searchUrl += `sessionCode=&tenantId=&status=erection&page=0&size=100`
+      searchUrl += `sessionCode=&tenantId=&status=billing&page=0&size=100`
 
       const response = await fetch(searchUrl)
 
@@ -222,7 +222,7 @@ const ErectionDatabasesearch = () => {
         totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || 0,
         sessionWeight: Number.parseFloat(editFormData.sessionWeight) || 0,
         lastUpdatedBy: "system",
-        status: "erection",
+        status: "billing",
         // Include attribute fields
         attribute1V: editFormData.attribute1V || "",
         attribute2V: editFormData.attribute2V || "",
@@ -238,7 +238,7 @@ const ErectionDatabasesearch = () => {
 
       console.log("Sending update data:", updateData)
 
-      const response = await fetch(`${API_BASE_URL}/updateErectionDrawingEntry/details?lineId=${editingRow}`, {
+      const response = await fetch(`${API_BASE_URL}/updateBillingDrawingEntry/details?lineId=${editingRow}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -276,7 +276,7 @@ const ErectionDatabasesearch = () => {
       try {
         setLoading(true)
 
-        const response = await fetch(`${API_BASE_URL}/deleteErectionDrawingEntry/details?lineId=${lineId}`, {
+        const response = await fetch(`${API_BASE_URL}/deleteBillingDrawingEntry/details?lineId=${lineId}`, {
           method: "DELETE",
         })
 
@@ -295,14 +295,14 @@ const ErectionDatabasesearch = () => {
     }
   }
 
-  // Handle Move to Alignment button click
-  const handleMoveToAlignment = () => {
-    setShowMoveToAlignmentPopup(true)
+  // Handle Move to Completion button click
+  const handleMoveToCompletion = () => {
+    setShowMoveToCompletionPopup(true)
   }
 
   // Handle mark number selection in popup
   const handleMarkNoSelection = (markNo) => {
-    setSelectedMarkNosForAlignment((prev) => {
+    setSelectedMarkNosForCompletion((prev) => {
       if (prev.includes(markNo)) {
         return prev.filter((m) => m !== markNo)
       } else {
@@ -311,9 +311,9 @@ const ErectionDatabasesearch = () => {
     })
   }
 
-  // Handle save to alignment
-  const handleSaveToAlignment = async () => {
-    if (selectedMarkNosForAlignment.length === 0) {
+  // Handle save to completion
+  const handleSaveToCompletion = async () => {
+    if (selectedMarkNosForCompletion.length === 0) {
       toast.warning("Please select at least one Mark No.")
       return
     }
@@ -325,7 +325,7 @@ const ErectionDatabasesearch = () => {
       const entriesToMove = []
 
       // For each selected mark number, find the first entry with that mark number
-      for (const markNo of selectedMarkNosForAlignment) {
+      for (const markNo of selectedMarkNosForCompletion) {
         const entry = tableData.find((item) => item.markNo === markNo)
         if (entry) {
           entriesToMove.push(entry)
@@ -337,10 +337,10 @@ const ErectionDatabasesearch = () => {
         return
       }
 
-      // Create alignment entries with proper data format
-      const alignmentEntries = entriesToMove.map((item) => ({
-        // Generate a unique lineId for each alignment entry
-        lineId: "A" + Math.floor(Math.random() * 1000000),
+      // Create completion entries with proper data format
+      const completionEntries = entriesToMove.map((item) => ({
+        // Generate a unique lineId for each completion entry
+        lineId: "C" + Math.floor(Math.random() * 1000000),
         drawingNo: item.drawingNo || "",
         markNo: item.markNo || "",
         markedQty: item.markedQty || 1,
@@ -355,7 +355,7 @@ const ErectionDatabasesearch = () => {
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
-        status: "alignment",
+        status: "completed",
         // Copy attributes
         attribute1V: item.attribute1V || null,
         attribute2V: item.attribute2V || null,
@@ -369,35 +369,32 @@ const ErectionDatabasesearch = () => {
         attribute5N: item.attribute5N || null,
       }))
 
-      console.log("Moving to alignment:", alignmentEntries)
+      console.log("Moving to completion:", completionEntries)
 
-      // Call the alignment API to store in alignment_drawing_entry table
-      const response = await fetch(`${API_BASE_URL}/createBulkAlignmentDrawingEntries/details`, {
+      // Call the completion API (assuming it exists)
+      const response = await fetch(`${API_BASE_URL}/createBulkCompletionDrawingEntries/details`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(alignmentEntries),
+        body: JSON.stringify(completionEntries),
       })
 
       if (response.ok) {
         const result = await response.json()
         toast.success(
-          `${selectedMarkNosForAlignment.length} Mark No(s) moved to Alignment successfully! Created ${result.length} entries.`,
+          `${selectedMarkNosForCompletion.length} Mark No(s) moved to Completion successfully! Created ${result.length} entries.`,
         )
-        setShowMoveToAlignmentPopup(false)
-        setSelectedMarkNosForAlignment([])
-
-        // Optional: You can also delete or update the status of these entries in the erection table
-        // if that's part of your workflow
+        setShowMoveToCompletionPopup(false)
+        setSelectedMarkNosForCompletion([])
       } else {
         const errorText = await response.text()
-        console.error("Move to alignment failed:", errorText)
-        toast.error(`Failed to move to alignment: ${errorText}`)
+        console.error("Move to completion failed:", errorText)
+        toast.error(`Failed to move to completion: ${errorText}`)
       }
     } catch (error) {
-      console.error("Error moving to alignment:", error)
-      toast.error("Error moving to Alignment: " + error.message)
+      console.error("Error moving to completion:", error)
+      toast.error("Error moving to Completion: " + error.message)
     } finally {
       setLoading(false)
     }
@@ -424,26 +421,26 @@ const ErectionDatabasesearch = () => {
   }
 
   return (
-    <div className="erect-container-elephant">
+    <div className="billing-container-whale">
       {/* Header */}
-      <div className="erect-header-giraffe">
-        <div className="erect-title-lion">
-          <h3>Search for Erection Details</h3>
+      <div className="billing-header-dolphin">
+        <div className="billing-title-shark">
+          <h3>Search for Billing Details</h3>
         </div>
-        <button className="erect-button-kangaroo erect-move-to-alignment-btn" onClick={handleMoveToAlignment}>
+        <button className="billing-button-octopus billing-move-to-completion-btn" onClick={handleMoveToCompletion}>
           <span>Completed</span>
         </button>
       </div>
 
       {/* Filter Section */}
-      <div className="erect-filter-section-zebra">
-        <div className="erect-filter-container-tiger">
-          <div className="erect-filter-row-panda">
+      <div className="billing-filter-section-jellyfish">
+        <div className="billing-filter-container-seahorse">
+          <div className="billing-filter-row-starfish">
             {/* Drawing No Dropdown */}
             <select
               value={selectedDrawingNo}
               onChange={(e) => setSelectedDrawingNo(e.target.value)}
-              className="erect-dropdown-leopard"
+              className="billing-dropdown-crab"
             >
               <option value="">Select Drawing No</option>
               {drawingNumbers.map((drawingNo, index) => (
@@ -457,7 +454,7 @@ const ErectionDatabasesearch = () => {
             <select
               value={selectedMarkNo}
               onChange={(e) => setSelectedMarkNo(e.target.value)}
-              className="erect-dropdown-leopard"
+              className="billing-dropdown-crab"
             >
               <option value="">Select Mark No</option>
               {markNumbers.map((markNo, index) => (
@@ -468,7 +465,7 @@ const ErectionDatabasesearch = () => {
             </select>
 
             {/* Search Button */}
-            <button className="erect-search-button-cheetah" onClick={handleSearch} disabled={loading}>
+            <button className="billing-search-button-lobster" onClick={handleSearch} disabled={loading}>
               <span>Search</span>
             </button>
           </div>
@@ -476,18 +473,18 @@ const ErectionDatabasesearch = () => {
       </div>
 
       {/* Table Section */}
-      <div className="erect-table-container-rhino">
+      <div className="billing-table-container-turtle">
         {loading && (
-          <div className="erect-loading-overlay-hippo">
-            <div className="erect-loading-spinner-gazelle">
+          <div className="billing-loading-overlay-fish">
+            <div className="billing-loading-spinner-squid">
               <AiOutlineLoading3Quarters />
             </div>
-            <div className="erect-loading-text-antelope">Loading...</div>
+            <div className="billing-loading-text-shrimp">Loading...</div>
           </div>
         )}
 
-        <div className="erect-table-wrapper-buffalo">
-          <table className="erect-table-wildebeest">
+        <div className="billing-table-wrapper-manta">
+          <table className="billing-table-ray">
             <thead>
               <tr>
                 <th>Order #</th>
@@ -513,9 +510,9 @@ const ErectionDatabasesearch = () => {
             </thead>
             <tbody>
               {filteredData.map((row, index) => (
-                <tr key={`row_${row.lineId || index}`} className="erect-table-row-impala">
+                <tr key={`row_${row.lineId || index}`} className="billing-table-row-eel">
                   <td>
-                    <div className="erect-order-icon-kudu">
+                    <div className="billing-order-icon-coral">
                       <IoMdOpen />
                     </div>
                   </td>
@@ -535,7 +532,7 @@ const ErectionDatabasesearch = () => {
                         type="text"
                         value={editFormData.drawingNo}
                         onChange={(e) => handleEditInputChange("drawingNo", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.drawingNo)
@@ -547,7 +544,7 @@ const ErectionDatabasesearch = () => {
                         type="text"
                         value={editFormData.markNo}
                         onChange={(e) => handleEditInputChange("markNo", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.markNo)
@@ -559,7 +556,7 @@ const ErectionDatabasesearch = () => {
                         type="number"
                         value={editFormData.markedQty}
                         onChange={(e) => handleEditInputChange("markedQty", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.markedQty)
@@ -573,7 +570,7 @@ const ErectionDatabasesearch = () => {
                         type="text"
                         value={editFormData.sessionCode}
                         onChange={(e) => handleEditInputChange("sessionCode", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.sessionCode)
@@ -585,7 +582,7 @@ const ErectionDatabasesearch = () => {
                         type="text"
                         value={editFormData.sessionName}
                         onChange={(e) => handleEditInputChange("sessionName", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.sessionName)
@@ -599,7 +596,7 @@ const ErectionDatabasesearch = () => {
                         type="number"
                         value={editFormData.width}
                         onChange={(e) => handleEditInputChange("width", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.width)
@@ -611,7 +608,7 @@ const ErectionDatabasesearch = () => {
                         type="number"
                         value={editFormData.length}
                         onChange={(e) => handleEditInputChange("length", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.length)
@@ -623,7 +620,7 @@ const ErectionDatabasesearch = () => {
                         type="number"
                         value={editFormData.itemQty}
                         onChange={(e) => handleEditInputChange("itemQty", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.itemQty)
@@ -635,29 +632,29 @@ const ErectionDatabasesearch = () => {
                         type="number"
                         value={editFormData.itemWeight}
                         onChange={(e) => handleEditInputChange("itemWeight", e.target.value)}
-                        className="erect-edit-input-gemsbok"
+                        className="billing-edit-input-anemone"
                       />
                     ) : (
                       displayValue(row.itemWeight)
                     )}
                   </td>
                   <td>
-                    <span className="erect-status-badge-oryx">{displayValue(row.status, "Erection")}</span>
+                    <span className="billing-status-badge-clam">{displayValue(row.status, "Billing")}</span>
                   </td>
                   <td>
-                    <div className="erect-actions-container-springbok">
+                    <div className="billing-actions-container-barnacle">
                       {editingRow === row.lineId ? (
                         <>
                           <button
                             onClick={handleSaveEdit}
-                            className="erect-action-button-eland erect-save-button-nyala"
+                            className="billing-action-button-mussel billing-save-button-scallop"
                             title="Save"
                           >
                             <MdSave />
                           </button>
                           <button
                             onClick={handleCancelEdit}
-                            className="erect-action-button-eland erect-cancel-button-waterbuck"
+                            className="billing-action-button-mussel billing-cancel-button-oyster"
                             title="Cancel"
                           >
                             ✕
@@ -667,14 +664,14 @@ const ErectionDatabasesearch = () => {
                         <>
                           <button
                             onClick={() => handleEdit(row)}
-                            className="erect-action-button-eland erect-edit-button-nyala"
+                            className="billing-action-button-mussel billing-edit-button-scallop"
                             title="Modify"
                           >
                             <MdEdit />
                           </button>
                           <button
                             onClick={() => handleDelete(row.lineId)}
-                            className="erect-action-button-eland erect-delete-button-waterbuck"
+                            className="billing-action-button-mussel billing-delete-button-oyster"
                             title="Delete"
                           >
                             <MdDelete />
@@ -686,10 +683,10 @@ const ErectionDatabasesearch = () => {
                 </tr>
               ))}
               {filteredData.length === 0 && !loading && (
-                <tr className="erect-empty-row-hartebeest">
+                <tr className="billing-empty-row-kelp">
                   <td colSpan="19">
-                    <div className="erect-empty-state-gnu">
-                      <div className="erect-empty-text-duiker">No records found.</div>
+                    <div className="billing-empty-state-seaweed">
+                      <div className="billing-empty-text-algae">No records found.</div>
                     </div>
                   </td>
                 </tr>
@@ -699,49 +696,49 @@ const ErectionDatabasesearch = () => {
         </div>
       </div>
 
-      {/* Move to Alignment Popup */}
-      {showMoveToAlignmentPopup && (
-        <div className="erect-popup-overlay-crocodile">
-          <div className="erect-popup-container-alligator">
-            <div className="erect-popup-header-iguana">
+      {/* Move to Completion Popup */}
+      {showMoveToCompletionPopup && (
+        <div className="billing-popup-overlay-kraken">
+          <div className="billing-popup-container-leviathan">
+            <div className="billing-popup-header-narwhal">
               <h3>Mark No.</h3>
-              <button onClick={() => setShowMoveToAlignmentPopup(false)} className="erect-popup-close-lizard">
+              <button onClick={() => setShowMoveToCompletionPopup(false)} className="billing-popup-close-orca">
                 ✕
               </button>
             </div>
-            <div className="erect-popup-content-snake">
-              <div className="erect-multiselect-container-turtle">
-                <div className="erect-multiselect-label-tortoise">Select Mark No(s):</div>
-                <div className="erect-multiselect-options-chameleon">
-                  {availableMarkNosForAlignment.map((markNo, index) => (
-                    <label key={`popup_mark_${index}`} className="erect-checkbox-label-gecko">
+            <div className="billing-popup-content-manatee">
+              <div className="billing-multiselect-container-walrus">
+                <div className="billing-multiselect-label-seal">Select Mark No(s):</div>
+                <div className="billing-multiselect-options-penguin">
+                  {availableMarkNosForCompletion.map((markNo, index) => (
+                    <label key={`popup_mark_${index}`} className="billing-checkbox-label-polar">
                       <input
                         type="checkbox"
-                        checked={selectedMarkNosForAlignment.includes(markNo)}
+                        checked={selectedMarkNosForCompletion.includes(markNo)}
                         onChange={() => handleMarkNoSelection(markNo)}
-                        className="erect-checkbox-input-salamander"
+                        className="billing-checkbox-input-arctic"
                       />
-                      <span className="erect-checkbox-text-newt">{markNo}</span>
+                      <span className="billing-checkbox-text-beluga">{markNo}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="erect-popup-actions-frog">
+            <div className="billing-popup-actions-humpback">
               <button
-                onClick={() => setShowMoveToAlignmentPopup(false)}
-                className="erect-popup-button-toad erect-cancel-button-tadpole"
+                onClick={() => setShowMoveToCompletionPopup(false)}
+                className="billing-popup-button-blue billing-cancel-button-gray"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSaveToAlignment}
-                className="erect-popup-button-toad erect-save-button-bullfrog"
-                disabled={loading || selectedMarkNosForAlignment.length === 0}
+                onClick={handleSaveToCompletion}
+                className="billing-popup-button-blue billing-save-button-sperm"
+                disabled={loading || selectedMarkNosForCompletion.length === 0}
               >
                 {loading ? (
                   <>
-                    <AiOutlineLoading3Quarters className="erect-spin-icon-treefrog" />
+                    <AiOutlineLoading3Quarters className="billing-spin-icon-fin" />
                     <span>Saving...</span>
                   </>
                 ) : (
@@ -761,4 +758,4 @@ const ErectionDatabasesearch = () => {
   )
 }
 
-export default ErectionDatabasesearch;
+export default BillingDatabasesearch;

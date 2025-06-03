@@ -28,15 +28,18 @@ import "../Design Component/Dashboard.css"
 import DrawingEntry from "../Drawing Entry Component/DrawingEntry"
 import PoentrydatabseseTable from "../POEntry Component/POentryDatabaseTable"
 
-// Import other existing components
+
 import SettingsPopup from "../Main Mech Component/Settings"
 import LookupTable from "../Main Mech Component/LookUpTable"
  
 import FabricationDatabasesearch from "../FabricationNewComponent/FabricationDatabasesearch"
 import ErectionDatabasesearch from "../ErectionNewComponent/ErectionDatabasesearch"
  
-import AlignmentTable from "../Alignment Component/AlignmentTable"
-import BillingTable from "../Billing Component/BillingTable"
+ 
+import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabasesearch"
+
+ 
+import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
 import logo from "../assets/blogo.jpg"
 import "../Design Component/logout-popup.css"
@@ -430,12 +433,12 @@ const MainDashboard = () => {
 
     // Handle Alignment
     if (activeMenu === "alignment") {
-      return <AlignmentTable />
+      return <AlignmentDatabasesearch />
     }
 
     // Handle Billing
     if (activeMenu === "billing") {
-      return <BillingTable />
+      return <BillingDatabasesearch />
     }
 
     // Handle Reports
