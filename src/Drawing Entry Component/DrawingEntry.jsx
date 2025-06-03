@@ -100,7 +100,7 @@ const DrawingEntry = () => {
         const data = await response.json()
         const formattedOptions = data.map((line) => ({
           value: line.lineId, // Store line_id as value
-          label: line.lineNumber ? line.lineNumber.toString() : `Line ${line.lineId}`, // Display line_number
+          label: line.lineNumber ? line.lineNumber.toString() : `${line.lineId}`, // Display line_number
           lineData: line, // Store complete line data for reference
         }))
         setLineNumberOptions(formattedOptions)
