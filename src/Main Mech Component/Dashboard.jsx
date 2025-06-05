@@ -41,6 +41,8 @@ import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabases
  
 import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
+import Reports from "../ReportsNewComponent/Reports"
+
 import logo from "../assets/blogo.jpg"
 import "../Design Component/logout-popup.css"
 import "../Design Component/user-dropdown.css"
@@ -114,7 +116,8 @@ const MainDashboard = () => {
     alignment: [], // No submenus for Fabrication
     billing: [], // No submenus for Fabrication
     reports: [], // No submenus for Fabrication
-    requests: [], // No submenus for Fabrication
+    invoices: [], // No submenus for Fabrication
+    
     import: [], // No submenus for Fabrication
   }
 
@@ -390,7 +393,7 @@ const MainDashboard = () => {
         return <CreditCard size={20} />
       case "reports":
         return <FileText size={20} />
-      case "requests":
+      case "invoices":
         return <FileQuestion size={20} />
       case "notifications":
         return <Bell size={20} />
@@ -442,19 +445,17 @@ const MainDashboard = () => {
     }
 
     // Handle Reports
-    if (activeMenu === "reports") {
-      return (
-        <div className="empty-state">
-          <p>Hi Viewers, Reports content will be displayed here.</p>
-        </div>
-      )
+     
+      if (activeMenu === "reports") {
+      return <Reports />
     }
+    
 
     // Handle Requests
-    if (activeMenu === "requests") {
+    if (activeMenu === "invoices") {
       return (
         <div className="empty-state">
-          <p>Hi Viewers, Requests content will be displayed here.</p>
+          <p>Hi Viewers, invoices content will be displayed here.</p>
         </div>
       )
     }
@@ -625,11 +626,11 @@ const MainDashboard = () => {
             <li>
               <a
                 href="#"
-                className={`nav-link ${activeMenu === "requests" ? "active" : ""}`}
-                onClick={(e) => handleLinkClick(e, "requests")}
+                className={`nav-link ${activeMenu === "invoices" ? "active" : ""}`}
+                onClick={(e) => handleLinkClick(e, "invoices")}
               >
-                {getMenuIcon("requests")}
-                {!sidebarCollapsed && <span>Requests</span>}
+                {getMenuIcon("invoices")}
+                {!sidebarCollapsed && <span>Invoices</span>}
               </a>
             </li>
             <li>
@@ -710,7 +711,7 @@ const MainDashboard = () => {
               {activeMenu === "alignment" && "Alignment"}
               {activeMenu === "billing" && "Billing"}
               {activeMenu === "reports" && "Reports"}
-              {activeMenu === "requests" && "Requests"}
+              {activeMenu === "invoices" && "Invoices"}
               {activeMenu === "import" && "Import"}
               {activeMenu === "notifications" && "Notifications"}
             </h1>
