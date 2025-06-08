@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
@@ -50,77 +52,122 @@ const DrawingEntry = () => {
     }
   }, [])
 
-  // Fetch work orders from API
+  // Fetch work orders from bits_po_entry_header table
   const fetchWorkOrders = async () => {
     try {
+      console.log("Fetching work orders from bits_po_entry_header table...")
       const response = await fetch(`${API_BASE_URL}/getworkorder/number`)
+
       if (response.ok) {
         const data = await response.json()
-        const formattedOptions = data.map((workOrder) => ({
-          value: workOrder,
-          label: workOrder,
-        }))
-        setWorkOrderOptions(formattedOptions)
+        console.log("Raw work order data from database:", data)
+
+        if (Array.isArray(data) && data.length > 0) {
+          const formattedOptions = data.map((workOrder) => ({
+            value: workOrder,
+            label: workOrder,
+          }))
+          setWorkOrderOptions(formattedOptions)
+          console.log("Successfully fetched work orders from database:", formattedOptions)
+          toast.success(`Loaded ${formattedOptions.length} work orders from database`)
+        } else {
+          console.warn("No work orders found in database")
+          setWorkOrderOptions([])
+          toast.warning("No work orders found in database. Please add some work orders first.")
+        }
       } else {
-        console.error("Failed to fetch work orders")
-        toast.error("Failed to fetch work orders")
+        console.error("Failed to fetch work orders, status:", response.status)
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        setWorkOrderOptions([])
+        toast.error(`Failed to fetch work orders: ${response.status} - ${errorText}`)
       }
     } catch (error) {
       console.error("Error fetching work orders:", error)
-      toast.error("Error fetching work orders")
+      setWorkOrderOptions([])
+      toast.error(`Error connecting to server: ${error.message}`)
     }
   }
 
-  // Fetch section codes from API
+  // Fetch section codes from API with error handling
   const fetchSectionCodes = async () => {
     try {
+      console.log("Fetching section codes...")
       const response = await fetch(`${API_BASE_URL}/service_code_entry/codes`)
+
       if (response.ok) {
         const data = await response.json()
-        const formattedOptions = data.map((code) => ({
-          value: code,
-          label: code,
-        }))
-        setSectionCodeOptions(formattedOptions)
+        console.log("Raw section code data:", data)
+
+        if (Array.isArray(data) && data.length > 0) {
+          const formattedOptions = data.map((code) => ({
+            value: code,
+            label: code,
+          }))
+          setSectionCodeOptions(formattedOptions)
+          console.log("Successfully fetched section codes:", formattedOptions)
+        } else {
+          console.warn("No section codes found")
+          setSectionCodeOptions([])
+          toast.warning("No section codes found in database")
+        }
       } else {
-        console.error("Failed to fetch section codes")
-        toast.error("Failed to fetch section codes")
+        console.error("Failed to fetch section codes, status:", response.status)
+        setSectionCodeOptions([])
+        toast.error("Failed to fetch section codes from server")
       }
     } catch (error) {
       console.error("Error fetching section codes:", error)
-      toast.error("Error fetching section codes")
+      setSectionCodeOptions([])
+      toast.error(`Error fetching section codes: ${error.message}`)
     }
   }
 
-  // Fetch line numbers from bits_po_entry_lines table
+  // Fetch line numbers from bits_po_entry_lines table with error handling
   const fetchLineNumbers = async () => {
     try {
+      console.log("Fetching line numbers...")
       const response = await fetch(`${API_BASE_URL}/getAllBitsLines/details`)
+
       if (response.ok) {
         const data = await response.json()
-        const formattedOptions = data.map((line) => ({
-          value: line.lineId, // Store line_id as value
-          label: line.lineNumber ? line.lineNumber.toString() : `${line.lineId}`, // Display line_number
-          lineData: line, // Store complete line data for reference
-        }))
-        setLineNumberOptions(formattedOptions)
-        console.log("Fetched line numbers:", formattedOptions)
+        console.log("Raw line number data:", data)
+
+        if (Array.isArray(data) && data.length > 0) {
+          const formattedOptions = data.map((line) => ({
+            value: line.lineId, // Store line_id as value
+            label: line.lineNumber ? line.lineNumber.toString() : `${line.lineId}`, // Display line_number
+            lineData: line, // Store complete line data for reference
+          }))
+          setLineNumberOptions(formattedOptions)
+          console.log("Successfully fetched line numbers:", formattedOptions)
+        } else {
+          console.warn("No line numbers found")
+          setLineNumberOptions([])
+          toast.warning("No line numbers found in database")
+        }
       } else {
-        console.error("Failed to fetch line numbers")
-        toast.error("Failed to fetch line numbers")
+        console.error("Failed to fetch line numbers, status:", response.status)
+        setLineNumberOptions([])
+        toast.error("Failed to fetch line numbers from server")
       }
     } catch (error) {
       console.error("Error fetching line numbers:", error)
-      toast.error("Error fetching line numbers")
+      setLineNumberOptions([])
+      toast.error(`Error fetching line numbers: ${error.message}`)
     }
   }
 
   // Fetch work order details when a work order is selected
   const fetchWorkOrderDetails = async (workOrder, rowId) => {
     try {
+      console.log(`Fetching details for work order: ${workOrder}`)
       const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrder}`)
+
       if (response.ok) {
         const data = await response.json()
+        console.log("Work order details from database:", data)
+
         setFormRows((prev) =>
           prev.map((row) => {
             if (row.id === rowId) {
@@ -134,22 +181,27 @@ const DrawingEntry = () => {
             return row
           }),
         )
+        toast.success(`Loaded details for work order ${workOrder}`)
       } else {
         console.error("Failed to fetch work order details")
-        toast.error("Failed to fetch work order details")
+        toast.error(`Failed to fetch details for work order ${workOrder}`)
       }
     } catch (error) {
       console.error("Error fetching work order details:", error)
-      toast.error("Error fetching work order details")
+      toast.error(`Error fetching work order details: ${error.message}`)
     }
   }
 
   // Fetch section code details when a section code is selected
   const fetchSectionCodeDetails = async (sectionCode, rowId) => {
     try {
+      console.log(`Fetching details for section code: ${sectionCode}`)
       const response = await fetch(`${API_BASE_URL}/service_code_entry/code/${sectionCode}`)
+
       if (response.ok) {
         const data = await response.json()
+        console.log("Section code details:", data)
+
         setServiceFormRows((prev) =>
           prev.map((row) => {
             if (row.id === rowId) {
@@ -176,11 +228,11 @@ const DrawingEntry = () => {
         )
       } else {
         console.error("Failed to fetch section code details")
-        toast.error("Failed to fetch section code details")
+        toast.error(`Failed to fetch details for section code ${sectionCode}`)
       }
     } catch (error) {
       console.error("Error fetching section code details:", error)
-      toast.error("Error fetching section code details")
+      toast.error(`Error fetching section code details: ${error.message}`)
     }
   }
 
@@ -234,9 +286,13 @@ const DrawingEntry = () => {
     plantLocation: "",
     department: "",
     workLocation: "",
-    lineNumber: "", // This will store line_id from bits_po_entry_lines
-    lineNumberDisplay: "", // This will store the display value (line_number)
+    lineNumber: "", // Keep this for backend compatibility
+    lineNumberDisplay: "", // Keep this for backend compatibility
     drawingNo: "",
+    drawingWeight: "",
+    markWeight: "",
+    drawingReceivedDate: "",
+    targetDate: "",
     markNo: "",
     markQty: "",
   })
@@ -367,7 +423,7 @@ const DrawingEntry = () => {
         length: Number.parseFloat(serviceData?.length) || 0,
         itemQty: Number.parseFloat(serviceData?.itemQty) || 0,
         itemWeight: Number.parseFloat(serviceData?.itemWeight) || 0,
-        tenantId: "DEFAULT_TENANT",
+        tenantId: "DEFAULT", // Use DEFAULT as tenant ID
         createdBy: "system",
         lastUpdatedBy: "system",
         poLineReferenceId: formData.lineNumber ? Number.parseInt(formData.lineNumber, 10) : null, // Store the line_id from bits_po_entry_lines
@@ -386,6 +442,11 @@ const DrawingEntry = () => {
         attribute3D: null,
         attribute4D: null,
         attribute5D: null,
+        // Add new fields
+        drawingWeight: Number.parseFloat(formData.drawingWeight) || null,
+        markWeight: Number.parseFloat(formData.markWeight) || null,
+        drawingReceivedDate: formData.drawingReceivedDate || null,
+        targetDate: formData.targetDate || null,
       }
 
       console.log("Sending data to API:", drawingEntryData)
@@ -591,6 +652,10 @@ const DrawingEntry = () => {
                 <th>Work Location</th>
                 <th>Line Number</th>
                 <th>Drawing No</th>
+                <th>Drawing Weight</th>
+                <th>Mark Wgt</th>
+                <th>Drawing Received Date</th>
+                <th>Target Date</th>
                 <th>Mark No</th>
                 <th>Mark Qty</th>
                 <th>Actions</th>
@@ -680,6 +745,48 @@ const DrawingEntry = () => {
                   </td>
                   <td>
                     <input
+                      type="number"
+                      step="0.01"
+                      name="drawingWeight"
+                      value={formData.drawingWeight || ""}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Drawing Weight"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="markWeight"
+                      value={formData.markWeight || ""}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Mark Weight"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="date"
+                      name="drawingReceivedDate"
+                      value={formData.drawingReceivedDate || ""}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Received Date"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="date"
+                      name="targetDate"
+                      value={formData.targetDate || ""}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Target Date"
+                    />
+                  </td>
+                  <td>
+                    <input
                       type="text"
                       name="markNo"
                       value={formData.markNo}
@@ -722,6 +829,10 @@ const DrawingEntry = () => {
                   <td>{row.workLocation}</td>
                   <td>{row.lineNumberDisplay || row.lineNumber}</td>
                   <td>{row.drawingNo}</td>
+                  <td>{row.drawingWeight}</td>
+                  <td>{row.markWeight}</td>
+                  <td>{row.drawingReceivedDate}</td>
+                  <td>{row.targetDate}</td>
                   <td>{row.markNo}</td>
                   <td>{row.markQty}</td>
                   <td></td>
@@ -729,7 +840,7 @@ const DrawingEntry = () => {
               ))}
               {headerRows.length === 0 && formRows.length === 0 && (
                 <tr className="drAOyakgi">
-                  <td colSpan="10">
+                  <td colSpan="14">
                     <div className="drAOcamelgi">
                       <div className="drAOllamagi">No work order records found.</div>
                     </div>
