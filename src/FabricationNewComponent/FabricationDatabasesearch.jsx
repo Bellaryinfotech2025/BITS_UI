@@ -4,8 +4,8 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdEdit, MdDelete } from "react-icons/md"
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import "../FabricationNewComponent/FabricationDatabasesearch.css"
 import { ToastContainer } from "react-toastify"
+import '../FabricationNewComponent/FabricationDatabasesearch.css'
 
 const FabricationDatabasesearch = () => {
   // API Base URL
@@ -13,6 +13,7 @@ const FabricationDatabasesearch = () => {
 
   // State management
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [tableData, setTableData] = useState([])
   const [filteredData, setFilteredData] = useState([])
   const [drawingNumbers, setDrawingNumbers] = useState([])
@@ -31,6 +32,124 @@ const FabricationDatabasesearch = () => {
   const [editingRow, setEditingRow] = useState(null)
   const [editFormData, setEditFormData] = useState({})
 
+  // Fabrication process states - tracks checkbox states for each row
+  const [fabricationStages, setFabricationStages] = useState({})
+
+  // Fabrication stages in order
+  const FABRICATION_STAGES = ["cutting", "fitUp", "welding", "finishing"]
+  const STAGE_LABELS = {
+    cutting: "Cutting",
+    fitUp: "Fit Up",
+    welding: "Welding",
+    finishing: "Finishing",
+  }
+
+  // Backend field mapping
+  const STAGE_FIELD_MAPPING = {
+    cutting: "cuttingStage",
+    fitUp: "fitUpStage",
+    welding: "weldingStage",
+    finishing: "finishingStage",
+  }
+
+  // Initialize fabrication stages for a row from backend data
+  const initializeFabricationStagesFromData = (lineId, rowData) => {
+    setFabricationStages((prev) => ({
+      ...prev,
+      [lineId]: {
+        cutting: rowData.cuttingStage === "Y",
+        fitUp: rowData.fitUpStage === "Y",
+        welding: rowData.weldingStage === "Y",
+        finishing: rowData.finishingStage === "Y",
+      },
+    }))
+  }
+
+  // Handle fabrication stage checkbox change with sequential logic
+  const handleStageChange = (lineId, stage, checked) => {
+    setFabricationStages((prev) => {
+      const currentStages = prev[lineId] || {
+        cutting: false,
+        fitUp: false,
+        welding: false,
+        finishing: false,
+      }
+
+      const newStages = { ...currentStages }
+      const stageIndex = FABRICATION_STAGES.indexOf(stage)
+
+      if (checked) {
+        // If checking a stage, automatically check all previous stages
+        for (let i = 0; i <= stageIndex; i++) {
+          newStages[FABRICATION_STAGES[i]] = true
+        }
+      } else {
+        // If unchecking a stage, automatically uncheck all subsequent stages
+        for (let i = stageIndex; i < FABRICATION_STAGES.length; i++) {
+          newStages[FABRICATION_STAGES[i]] = false
+        }
+      }
+
+      return {
+        ...prev,
+        [lineId]: newStages,
+      }
+    })
+  }
+
+  // Save fabrication stages to backend
+  const handleSaveFabricationStages = async () => {
+    try {
+      setSaving(true)
+
+      // Prepare fabrication stage updates
+      const fabricationUpdates = Object.keys(fabricationStages).map((lineId) => {
+        const stages = fabricationStages[lineId]
+        return {
+          lineId: lineId,
+          cuttingStage: stages.cutting ? "Y" : "N",
+          fitUpStage: stages.fitUp ? "Y" : "N",
+          weldingStage: stages.welding ? "Y" : "N",
+          finishingStage: stages.finishing ? "Y" : "N",
+        }
+      })
+
+      if (fabricationUpdates.length === 0) {
+        toast.warning("No fabrication stages to save")
+        return
+      }
+
+      console.log("Saving fabrication stages:", fabricationUpdates)
+
+      const response = await fetch(`${API_BASE_URL}/updateFabricationStages/details`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fabricationStages: fabricationUpdates,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(`Successfully updated fabrication stages for ${result.updatedCount} entries!`)
+
+        // Refresh data to get updated values
+        fetchAllData()
+      } else {
+        const errorText = await response.text()
+        console.error("Save fabrication stages failed:", errorText)
+        toast.error(`Failed to save fabrication stages: ${errorText}`)
+      }
+    } catch (error) {
+      console.error("Error saving fabrication stages:", error)
+      toast.error("Error saving fabrication stages: " + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Fetch all data on component mount
   useEffect(() => {
     fetchAllData()
@@ -40,6 +159,13 @@ const FabricationDatabasesearch = () => {
   useEffect(() => {
     filterData()
   }, [selectedDrawingNo, selectedMarkNo, tableData])
+
+  // Initialize fabrication stages when filtered data changes
+  useEffect(() => {
+    filteredData.forEach((row) => {
+      initializeFabricationStagesFromData(row.lineId, row)
+    })
+  }, [filteredData])
 
   // Fetch unique drawing entries and populate dropdowns
   const fetchAllData = async () => {
@@ -325,9 +451,28 @@ const FabricationDatabasesearch = () => {
         <div className="fab-title-tiger">
           <h3>Search for Fabrication Details</h3>
         </div>
-        <button className="fab-button-giraffe fab-move-to-erection-btn" onClick={handleMoveToErection}>
-          <span>Completed</span>
-        </button>
+        <div className="fab-header-buttons">
+          <button 
+            className="fab-button-giraffe fab-save-stages-btn" 
+            onClick={handleSaveFabricationStages}
+            disabled={saving || loading}
+          >
+            {saving ? (
+              <>
+                <AiOutlineLoading3Quarters className="fab-spin-icon-polar" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <MdSave />
+                <span>Save</span>
+              </>
+            )}
+          </button>
+          <button className="fab-button-giraffe fab-move-to-erection-btn" onClick={handleMoveToErection}>
+            <span>Completed</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Section */}
@@ -350,17 +495,18 @@ const FabricationDatabasesearch = () => {
 
             {/* Mark No Dropdown */}
             <select
-              value={selectedMarkNo}
-              onChange={(e) => setSelectedMarkNo(e.target.value)}
-              className="fab-dropdown-cheetah"
-            >
-              <option value="">Select Mark No</option>
-              {markNumbers.map((markNo, index) => (
-                <option key={`mark_${index}`} value={markNo}>
-                  {markNo}
-                </option>
-              ))}
-            </select>
+  value={selectedMarkNo}
+  onChange={(e) => setSelectedMarkNo(e.target.value)}
+  className="fab-dropdown-cheetah"
+>
+  <option value="">Select Mark No</option>
+  {markNumbers?.map((markNo, index) => (
+    <option key={`mark_${index}`} value={markNo}>
+      {markNo}
+    </option>
+  ))}
+</select>
+
 
             {/* Search Button */}
             <button className="fab-search-button-leopard" onClick={handleSearch} disabled={loading}>
@@ -403,6 +549,11 @@ const FabricationDatabasesearch = () => {
                 <th>Item Qty</th>
                 <th>Item Weight</th>
                 <th>Status</th>
+                {/* New Fabrication Process Columns */}
+                <th className="fab-process-header">Cutting</th>
+                <th className="fab-process-header">Fit Up</th>
+                <th className="fab-process-header">Welding</th>
+                <th className="fab-process-header">Finishing</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -532,6 +683,28 @@ const FabricationDatabasesearch = () => {
                   <td>
                     <span className="fab-status-badge-moose">Fabrication</span>
                   </td>
+
+                  {/* New Fabrication Process Columns */}
+                  {FABRICATION_STAGES.map((stage) => (
+                    <td key={`${row.lineId}_${stage}`} className="fab-process-cell">
+                      <div className="fab-checkbox-container">
+                        <input
+                          type="checkbox"
+                          id={`${row.lineId}_${stage}`}
+                          checked={fabricationStages[row.lineId]?.[stage] || false}
+                          onChange={(e) => handleStageChange(row.lineId, stage, e.target.checked)}
+                          className="fab-process-checkbox"
+                          aria-label={`${STAGE_LABELS[stage]} for ${row.markNo || "item"}`}
+                        />
+                        <label
+                          htmlFor={`${row.lineId}_${stage}`}
+                          className="fab-checkbox-label"
+                          title={`Mark ${STAGE_LABELS[stage]} as ${fabricationStages[row.lineId]?.[stage] ? "incomplete" : "complete"}`}
+                        />
+                      </div>
+                    </td>
+                  ))}
+
                   <td>
                     <div className="fab-actions-container-yak">
                       {editingRow === row.lineId ? (
@@ -575,7 +748,7 @@ const FabricationDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="19">
+                  <td colSpan="23">
                     <div className="fab-empty-state-llama">
                       <div className="fab-empty-text-alpaca">No records found.</div>
                     </div>
