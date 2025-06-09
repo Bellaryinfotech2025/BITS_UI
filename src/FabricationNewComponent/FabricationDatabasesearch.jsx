@@ -5,7 +5,7 @@ import { MdSave, MdEdit, MdDelete } from "react-icons/md"
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { ToastContainer } from "react-toastify"
-import '../FabricationNewComponent/FabricationDatabasesearch.css'
+import "../FabricationNewComponent/FabricationDatabasesearch.css"
 
 const FabricationDatabasesearch = () => {
   // API Base URL
@@ -244,6 +244,11 @@ const FabricationDatabasesearch = () => {
       length: row.length || "",
       itemQty: row.itemQty || "",
       itemWeight: row.itemWeight || "",
+      // Add new fields for editing
+      drawingWeight: row.drawingWeight || "",
+      markWeight: row.markWeight || "",
+      drawingReceivedDate: row.drawingReceivedDate || "",
+      targetDate: row.targetDate || "",
     })
   }
 
@@ -263,8 +268,12 @@ const FabricationDatabasesearch = () => {
         length: Number.parseFloat(editFormData.length) || 0,
         itemQty: Number.parseFloat(editFormData.itemQty) || 0,
         itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
+        // Add new fields
+        drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
+        markWeight: Number.parseFloat(editFormData.markWeight) || null,
+        drawingReceivedDate: editFormData.drawingReceivedDate || null,
+        targetDate: editFormData.targetDate || null,
         lastUpdatedBy: "system",
-        // Don't send datetime fields - let backend handle them
       }
 
       console.log("Sending update data:", updateData)
@@ -396,6 +405,11 @@ const FabricationDatabasesearch = () => {
         attribute3N: item.attribute3N || null,
         attribute4N: item.attribute4N || null,
         attribute5N: item.attribute5N || null,
+        // Copy new fields
+        drawingWeight: item.drawingWeight || null,
+        markWeight: item.markWeight || null,
+        drawingReceivedDate: item.drawingReceivedDate || null,
+        targetDate: item.targetDate || null,
       }))
 
       console.log("Moving to erection:", erectionEntries)
@@ -444,6 +458,17 @@ const FabricationDatabasesearch = () => {
     }))
   }
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "-"
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString()
+    } catch (error) {
+      return dateString
+    }
+  }
+
   return (
     <div className="fab-container-mammoth">
       {/* Header */}
@@ -452,8 +477,8 @@ const FabricationDatabasesearch = () => {
           <h3>Search for Fabrication Details</h3>
         </div>
         <div className="fab-header-buttons">
-          <button 
-            className="fab-button-giraffe fab-save-stages-btn" 
+          <button
+            className="fab-button-giraffe fab-save-stages-btn"
             onClick={handleSaveFabricationStages}
             disabled={saving || loading}
           >
@@ -495,18 +520,17 @@ const FabricationDatabasesearch = () => {
 
             {/* Mark No Dropdown */}
             <select
-  value={selectedMarkNo}
-  onChange={(e) => setSelectedMarkNo(e.target.value)}
-  className="fab-dropdown-cheetah"
->
-  <option value="">Select Mark No</option>
-  {markNumbers?.map((markNo, index) => (
-    <option key={`mark_${index}`} value={markNo}>
-      {markNo}
-    </option>
-  ))}
-</select>
-
+              value={selectedMarkNo}
+              onChange={(e) => setSelectedMarkNo(e.target.value)}
+              className="fab-dropdown-cheetah"
+            >
+              <option value="">Select Mark No</option>
+              {markNumbers?.map((markNo, index) => (
+                <option key={`mark_${index}`} value={markNo}>
+                  {markNo}
+                </option>
+              ))}
+            </select>
 
             {/* Search Button */}
             <button className="fab-search-button-leopard" onClick={handleSearch} disabled={loading}>
@@ -538,6 +562,10 @@ const FabricationDatabasesearch = () => {
                 <th>Work Location</th>
                 <th>Line Number</th>
                 <th>Drawing No</th>
+                <th>Drawing Weight</th>
+                <th>Mark Wgt</th>
+                <th>Drawing Received Date</th>
+                <th>Target Date</th>
                 <th>Mark No</th>
                 <th>Mark Qty</th>
                 <th>Item No</th>
@@ -549,7 +577,7 @@ const FabricationDatabasesearch = () => {
                 <th>Item Qty</th>
                 <th>Item Weight</th>
                 <th>Status</th>
-                {/* New Fabrication Process Columns */}
+                {/* Fabrication Process Columns */}
                 <th className="fab-process-header">Cutting</th>
                 <th className="fab-process-header">Fit Up</th>
                 <th className="fab-process-header">Welding</th>
@@ -580,6 +608,56 @@ const FabricationDatabasesearch = () => {
                       />
                     ) : (
                       row.drawingNo || "-"
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editFormData.drawingWeight}
+                        onChange={(e) => handleEditInputChange("drawingWeight", e.target.value)}
+                        className="fab-edit-input-deer"
+                      />
+                    ) : (
+                      row.drawingWeight || "-"
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editFormData.markWeight}
+                        onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
+                        className="fab-edit-input-deer"
+                      />
+                    ) : (
+                      row.markWeight || "-"
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="date"
+                        value={editFormData.drawingReceivedDate}
+                        onChange={(e) => handleEditInputChange("drawingReceivedDate", e.target.value)}
+                        className="fab-edit-input-deer"
+                      />
+                    ) : (
+                      formatDate(row.drawingReceivedDate)
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="date"
+                        value={editFormData.targetDate}
+                        onChange={(e) => handleEditInputChange("targetDate", e.target.value)}
+                        className="fab-edit-input-deer"
+                      />
+                    ) : (
+                      formatDate(row.targetDate)
                     )}
                   </td>
                   <td>
@@ -684,7 +762,7 @@ const FabricationDatabasesearch = () => {
                     <span className="fab-status-badge-moose">Fabrication</span>
                   </td>
 
-                  {/* New Fabrication Process Columns */}
+                  {/* Fabrication Process Columns */}
                   {FABRICATION_STAGES.map((stage) => (
                     <td key={`${row.lineId}_${stage}`} className="fab-process-cell">
                       <div className="fab-checkbox-container">
@@ -748,7 +826,7 @@ const FabricationDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="23">
+                  <td colSpan="27">
                     <div className="fab-empty-state-llama">
                       <div className="fab-empty-text-alpaca">No records found.</div>
                     </div>

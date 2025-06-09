@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
@@ -26,16 +24,16 @@ const DrawingEntry = () => {
   // API Data State
   const [workOrderOptions, setWorkOrderOptions] = useState([])
   const [sectionCodeOptions, setSectionCodeOptions] = useState([])
-  const [lineNumberOptions, setLineNumberOptions] = useState([]) // Line numbers from bits_po_entry_lines
-  const [searchTerms, setSearchTerms] = useState({}) // Store search terms per row
-  const [filteredSectionCodes, setFilteredSectionCodes] = useState({}) // Store filtered codes per row
-  const [showDropdowns, setShowDropdowns] = useState({}) // Control dropdown visibility per row
+  const [lineNumberOptions, setLineNumberOptions] = useState([])
+  const [searchTerms, setSearchTerms] = useState({})
+  const [filteredSectionCodes, setFilteredSectionCodes] = useState({})
+  const [showDropdowns, setShowDropdowns] = useState({})
 
   // Fetch work orders, section codes, and line numbers on component mount
   useEffect(() => {
     fetchWorkOrders()
     fetchSectionCodes()
-    fetchLineNumbers() // Fetch line numbers from bits_po_entry_lines
+    fetchLineNumbers()
   }, [])
 
   // Close dropdown when clicking outside
@@ -69,7 +67,7 @@ const DrawingEntry = () => {
           }))
           setWorkOrderOptions(formattedOptions)
           console.log("Successfully fetched work orders from database:", formattedOptions)
-          toast.success(`Loaded ${formattedOptions.length} work orders from database`)
+          // toast.success(`Loaded ${formattedOptions.length} work orders from database`)
         } else {
           console.warn("No work orders found in database")
           setWorkOrderOptions([])
@@ -135,9 +133,9 @@ const DrawingEntry = () => {
 
         if (Array.isArray(data) && data.length > 0) {
           const formattedOptions = data.map((line) => ({
-            value: line.lineId, // Store line_id as value
-            label: line.lineNumber ? line.lineNumber.toString() : `${line.lineId}`, // Display line_number
-            lineData: line, // Store complete line data for reference
+            value: line.lineId,
+            label: line.lineNumber ? line.lineNumber.toString() : `${line.lineId}`,
+            lineData: line,
           }))
           setLineNumberOptions(formattedOptions)
           console.log("Successfully fetched line numbers:", formattedOptions)
@@ -286,8 +284,8 @@ const DrawingEntry = () => {
     plantLocation: "",
     department: "",
     workLocation: "",
-    lineNumber: "", // Keep this for backend compatibility
-    lineNumberDisplay: "", // Keep this for backend compatibility
+    lineNumber: "",
+    lineNumberDisplay: "",
     drawingNo: "",
     drawingWeight: "",
     markWeight: "",
@@ -414,7 +412,7 @@ const DrawingEntry = () => {
       const drawingEntryData = {
         drawingNo: formData.drawingNo || "",
         markNo: formData.markNo || "",
-        markedQty: markQty, // Use the validated integer
+        markedQty: markQty,
         totalMarkedWgt: Number.parseFloat(serviceData?.itemWeight) || 0,
         sessionCode: serviceData?.sectionCode || "",
         sessionName: serviceData?.sectionName || "",
@@ -423,15 +421,15 @@ const DrawingEntry = () => {
         length: Number.parseFloat(serviceData?.length) || 0,
         itemQty: Number.parseFloat(serviceData?.itemQty) || 0,
         itemWeight: Number.parseFloat(serviceData?.itemWeight) || 0,
-        tenantId: "DEFAULT", // Use DEFAULT as tenant ID
+        tenantId: "DEFAULT",
         createdBy: "system",
         lastUpdatedBy: "system",
-        poLineReferenceId: formData.lineNumber ? Number.parseInt(formData.lineNumber, 10) : null, // Store the line_id from bits_po_entry_lines
+        poLineReferenceId: formData.lineNumber ? Number.parseInt(formData.lineNumber, 10) : null,
         attribute1V: formData.workOrder || "",
         attribute2V: formData.plantLocation || "",
         attribute3V: formData.department || "",
         attribute4V: formData.workLocation || "",
-        attribute5V: formData.lineNumberDisplay || "", // Store display value for reference
+        attribute5V: formData.lineNumberDisplay || "",
         attribute1N: Number.parseFloat(serviceData?.itemNo) || null,
         attribute2N: null,
         attribute3N: null,
@@ -442,11 +440,16 @@ const DrawingEntry = () => {
         attribute3D: null,
         attribute4D: null,
         attribute5D: null,
-        // Add new fields
+        // Add new fields with proper date formatting
         drawingWeight: Number.parseFloat(formData.drawingWeight) || null,
         markWeight: Number.parseFloat(formData.markWeight) || null,
         drawingReceivedDate: formData.drawingReceivedDate || null,
         targetDate: formData.targetDate || null,
+        // Initialize fabrication stages to 'N'
+        cuttingStage: "N",
+        fitUpStage: "N",
+        weldingStage: "N",
+        finishingStage: "N",
       }
 
       console.log("Sending data to API:", drawingEntryData)
@@ -529,7 +532,7 @@ const DrawingEntry = () => {
           // Add to saved header rows for display
           savedHeaderRows.push({
             ...formRow,
-            id: generateUniqueId(), // Use unique ID
+            id: generateUniqueId(),
           })
 
           console.log(`Successfully saved ${entriesCount} entries for drawing ${formRow.drawingNo}`)
@@ -650,7 +653,7 @@ const DrawingEntry = () => {
                 <th>Plant Location</th>
                 <th>Department</th>
                 <th>Work Location</th>
-                <th>Line Number</th>
+                {/* <th>Line Number</th> */}
                 <th>Drawing No</th>
                 <th>Drawing Weight</th>
                 <th>Mark Wgt</th>
@@ -717,7 +720,7 @@ const DrawingEntry = () => {
                       readOnly
                     />
                   </td>
-                  <td>
+                  {/* <td>
                     <select
                       name="lineNumber"
                       value={formData.lineNumber}
@@ -731,7 +734,7 @@ const DrawingEntry = () => {
                         </option>
                       ))}
                     </select>
-                  </td>
+                  </td> */}
                   <td>
                     <input
                       type="text"

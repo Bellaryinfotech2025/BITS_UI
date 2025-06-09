@@ -8,7 +8,7 @@ import "../BillingNewComponent/BillingDatabasesearch.css"
 
 const BillingDatabasesearch = () => {
   // API Base URL
-  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
+  const API_BASE_URL = "http://localhost:5522/api/V2.0"
 
   // State management
   const [loading, setLoading] = useState(false)
@@ -189,6 +189,11 @@ const BillingDatabasesearch = () => {
       itemWeight: row.itemWeight || "",
       totalMarkedWgt: row.totalMarkedWgt || "",
       sessionWeight: row.sessionWeight || "",
+      // Add new fields for editing
+      drawingWeight: row.drawingWeight || "",
+      markWeight: row.markWeight || "",
+      drawingReceivedDate: row.drawingReceivedDate || "",
+      targetDate: row.targetDate || "",
       // Add attribute fields for editing
       attribute1V: row.attribute1V || "",
       attribute2V: row.attribute2V || "",
@@ -208,7 +213,7 @@ const BillingDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Prepare the update data with all fields including attributes
+      // Prepare the update data with all fields including attributes and new fields
       const updateData = {
         drawingNo: editFormData.drawingNo,
         markNo: editFormData.markNo,
@@ -223,6 +228,11 @@ const BillingDatabasesearch = () => {
         sessionWeight: Number.parseFloat(editFormData.sessionWeight) || 0,
         lastUpdatedBy: "system",
         status: "billing",
+        // Include new fields
+        drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
+        markWeight: Number.parseFloat(editFormData.markWeight) || null,
+        drawingReceivedDate: editFormData.drawingReceivedDate || null,
+        targetDate: editFormData.targetDate || null,
         // Include attribute fields
         attribute1V: editFormData.attribute1V || "",
         attribute2V: editFormData.attribute2V || "",
@@ -356,6 +366,16 @@ const BillingDatabasesearch = () => {
         createdBy: "system",
         lastUpdatedBy: "system",
         status: "completed",
+        // Include new fields
+        drawingWeight: item.drawingWeight || null,
+        markWeight: item.markWeight || null,
+        drawingReceivedDate: item.drawingReceivedDate || null,
+        targetDate: item.targetDate || null,
+        // Include fabrication stages
+        cuttingStage: item.cuttingStage || "N",
+        fitUpStage: item.fitUpStage || "N",
+        weldingStage: item.weldingStage || "N",
+        finishingStage: item.finishingStage || "N",
         // Copy attributes
         attribute1V: item.attribute1V || null,
         attribute2V: item.attribute2V || null,
@@ -418,6 +438,34 @@ const BillingDatabasesearch = () => {
       return value.toString()
     }
     return value
+  }
+
+  // Helper function to format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "-"
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString()
+    } catch (error) {
+      return dateString
+    }
+  }
+
+  // Helper function to render fabrication stage checkbox
+  const renderFabricationCheckbox = (stage, label) => {
+    const isChecked = stage === "Y"
+    return (
+      <div className="billing-fab-checkbox-container">
+        <input
+          type="checkbox"
+          checked={isChecked}
+          readOnly
+          className="billing-fab-checkbox"
+          title={`${label}: ${isChecked ? "Completed" : "Not Completed"}`}
+        />
+        <label className="billing-fab-checkbox-label">{isChecked ? "✓" : "✗"}</label>
+      </div>
+    )
   }
 
   return (
@@ -494,6 +542,11 @@ const BillingDatabasesearch = () => {
                 <th>Work Location</th>
                 <th>Line Number</th>
                 <th>Drawing No</th>
+                {/* NEW COLUMNS NEXT TO DRAWING NO */}
+                <th>Drawing Weight</th>
+                <th>Mark Wgt</th>
+                <th>Drawing Received Date</th>
+                <th>Target Date</th>
                 <th>Mark No</th>
                 <th>Mark Qty</th>
                 <th>Item No</th>
@@ -504,6 +557,11 @@ const BillingDatabasesearch = () => {
                 <th>Length</th>
                 <th>Item Qty</th>
                 <th>Item Weight</th>
+                {/* NEW FABRICATION STAGE COLUMNS NEXT TO ITEM WEIGHT */}
+                <th>Cutting</th>
+                <th>Fit Up</th>
+                <th>Welding</th>
+                <th>Finishing</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -536,6 +594,57 @@ const BillingDatabasesearch = () => {
                       />
                     ) : (
                       displayValue(row.drawingNo)
+                    )}
+                  </td>
+                  {/* NEW COLUMNS NEXT TO DRAWING NO */}
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editFormData.drawingWeight}
+                        onChange={(e) => handleEditInputChange("drawingWeight", e.target.value)}
+                        className="billing-edit-input-anemone"
+                      />
+                    ) : (
+                      displayValue(row.drawingWeight)
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editFormData.markWeight}
+                        onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
+                        className="billing-edit-input-anemone"
+                      />
+                    ) : (
+                      displayValue(row.markWeight)
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="date"
+                        value={editFormData.drawingReceivedDate}
+                        onChange={(e) => handleEditInputChange("drawingReceivedDate", e.target.value)}
+                        className="billing-edit-input-anemone"
+                      />
+                    ) : (
+                      formatDate(row.drawingReceivedDate)
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="date"
+                        value={editFormData.targetDate}
+                        onChange={(e) => handleEditInputChange("targetDate", e.target.value)}
+                        className="billing-edit-input-anemone"
+                      />
+                    ) : (
+                      formatDate(row.targetDate)
                     )}
                   </td>
                   <td>
@@ -638,6 +747,11 @@ const BillingDatabasesearch = () => {
                       displayValue(row.itemWeight)
                     )}
                   </td>
+                  {/* NEW FABRICATION STAGE COLUMNS NEXT TO ITEM WEIGHT */}
+                  <td>{renderFabricationCheckbox(row.cuttingStage, "Cutting")}</td>
+                  <td>{renderFabricationCheckbox(row.fitUpStage, "Fit Up")}</td>
+                  <td>{renderFabricationCheckbox(row.weldingStage, "Welding")}</td>
+                  <td>{renderFabricationCheckbox(row.finishingStage, "Finishing")}</td>
                   <td>
                     <span className="billing-status-badge-clam">{displayValue(row.status, "Billing")}</span>
                   </td>
@@ -684,7 +798,7 @@ const BillingDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="billing-empty-row-kelp">
-                  <td colSpan="19">
+                  <td colSpan="27">
                     <div className="billing-empty-state-seaweed">
                       <div className="billing-empty-text-algae">No records found.</div>
                     </div>
