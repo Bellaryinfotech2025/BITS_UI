@@ -308,7 +308,7 @@ const LoginPage = () => {
               </form>
 
               <div className="help-link">
-                <Link to="/registerpage">Dont have an Account ? Register or Sign Up?</Link>
+                <Link to="/">Dont have an Account ? Register or Sign Up?</Link>
                 <br />
                 <br />
               </div>

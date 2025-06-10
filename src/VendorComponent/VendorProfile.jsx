@@ -39,6 +39,18 @@ const VendorProfile = () => {
     }
   }, [])
 
+  const checkExistingVendor = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}`)
+      if (response.ok) {
+        const vendors = await response.json()
+        console.log("Existing vendors:", vendors)
+      }
+    } catch (error) {
+      console.error("Error fetching vendors:", error)
+    }
+  }
+
   useEffect(() => {
     // Load saved vendor data from localStorage if no ID is provided in URL
     const urlParams = new URLSearchParams(window.location.search)
@@ -54,6 +66,8 @@ const VendorProfile = () => {
           setIsEditing(false)
         }
       }
+      // Check existing vendors for debugging
+      checkExistingVendor()
     }
   }, [vendorId])
 
@@ -116,6 +130,7 @@ const VendorProfile = () => {
   }
 
   const validateForm = () => {
+    // Check required fields
     if (!vendorDetails.name.trim()) {
       showToastMessage("Name is required")
       return false
@@ -124,14 +139,43 @@ const VendorProfile = () => {
       showToastMessage("Vendor Code is required")
       return false
     }
-    if (vendorDetails.email && !/\S+@\S+\.\S+/.test(vendorDetails.email)) {
-      showToastMessage("Please enter a valid email address")
-      return false
+
+    // Validate email format if provided
+    if (vendorDetails.email && vendorDetails.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(vendorDetails.email.trim())) {
+        showToastMessage("Please enter a valid email address")
+        return false
+      }
     }
-    if (vendorDetails.phone && !/^\d{10}$/.test(vendorDetails.phone.replace(/\D/g, ""))) {
-      showToastMessage("Please enter a valid 10-digit phone number")
-      return false
+
+    // Validate phone format if provided
+    if (vendorDetails.phone && vendorDetails.phone.trim()) {
+      const phoneDigits = vendorDetails.phone.replace(/\D/g, "")
+      if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+        showToastMessage("Please enter a valid phone number (10-15 digits)")
+        return false
+      }
     }
+
+    // Validate PAN format if provided
+    if (vendorDetails.panNo && vendorDetails.panNo.trim()) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/
+      if (!panRegex.test(vendorDetails.panNo.trim())) {
+        showToastMessage("Please enter a valid PAN number (e.g., AAICB6129Q)")
+        return false
+      }
+    }
+
+    // Validate GST format if provided
+    if (vendorDetails.gstNo && vendorDetails.gstNo.trim()) {
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
+      if (!gstRegex.test(vendorDetails.gstNo.trim())) {
+        showToastMessage("Please enter a valid GST number (e.g., 29AAICB6129Q1ZY)")
+        return false
+      }
+    }
+
     return true
   }
 
@@ -140,21 +184,64 @@ const VendorProfile = () => {
 
     try {
       setLoading(true)
+
+      // Check for duplicate vendor code before saving (only for new vendors)
+      if (!vendorId) {
+        const codeCheckResponse = await fetch(`${API_BASE_URL}/exists/code/${vendorDetails.vendorCode}`)
+        if (codeCheckResponse.ok) {
+          const codeExists = await codeCheckResponse.json()
+          if (codeExists) {
+            showToastMessage("Vendor code already exists. Please use a different code.")
+            return
+          }
+        }
+      }
+
+      // Check for duplicate email if email is provided
+      if (vendorDetails.email && vendorDetails.email.trim()) {
+        const emailCheckResponse = await fetch(
+          `${API_BASE_URL}/exists/email/${encodeURIComponent(vendorDetails.email)}`,
+        )
+        if (emailCheckResponse.ok) {
+          const emailExists = await emailCheckResponse.json()
+          if (emailExists && !vendorId) {
+            showToastMessage("Email already exists. Please use a different email.")
+            return
+          }
+        }
+      }
+
       const url = vendorId ? `${API_BASE_URL}/${vendorId}` : API_BASE_URL
       const method = vendorId ? "PUT" : "POST"
+
+      // Prepare the data payload
+      const payload = {
+        vendorCode: vendorDetails.vendorCode.trim(),
+        name: vendorDetails.name.trim(),
+        address: vendorDetails.address?.trim() || "",
+        phone: vendorDetails.phone?.trim() || "",
+        email: vendorDetails.email?.trim() || "",
+        panNo: vendorDetails.panNo?.trim() || "",
+        gstNo: vendorDetails.gstNo?.trim() || "",
+        bankAccount: vendorDetails.bankAccount?.trim() || "",
+        status: "ACTIVE",
+      }
 
       const response = await fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(vendorDetails),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
         const data = await response.json()
         if (!vendorId) {
           setVendorId(data.id)
+          // Update URL to include the new vendor ID
+          const newUrl = `${window.location.pathname}?id=${data.id}`
+          window.history.pushState({ path: newUrl }, "", newUrl)
         }
 
         // Save the vendor data to localStorage
@@ -164,12 +251,27 @@ const VendorProfile = () => {
         setIsEditing(false)
         showToastMessage(vendorId ? "Vendor updated successfully!" : "Vendor created successfully!")
       } else {
-        const errorData = await response.json()
-        showToastMessage(errorData.message || "Failed to save vendor details")
+        // Handle different error status codes
+        let errorMessage = "Failed to save vendor details"
+
+        if (response.status === 400) {
+          try {
+            const errorData = await response.json()
+            errorMessage = errorData.message || "Invalid data provided. Please check all fields."
+          } catch (e) {
+            errorMessage = "Invalid data provided. Please check all fields."
+          }
+        } else if (response.status === 409) {
+          errorMessage = "Vendor code or email already exists."
+        } else if (response.status === 500) {
+          errorMessage = "Server error. Please try again later."
+        }
+
+        showToastMessage(errorMessage)
       }
     } catch (error) {
       console.error("Error saving vendor:", error)
-      showToastMessage("Error saving vendor details")
+      showToastMessage("Network error. Please check your connection and try again.")
     } finally {
       setLoading(false)
     }
@@ -336,7 +438,7 @@ const VendorProfile = () => {
                             />
                             <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
                           </svg>
-                          Full Name *
+                          Name *
                         </label>
                       </div>
                     </div>
@@ -534,7 +636,7 @@ const VendorProfile = () => {
                     <button className="ven-edit-btn" onClick={handleEdit}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path
-                          d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                          d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21কিন্তe071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
                           stroke="currentColor"
                           strokeWidth="2"
                         />
@@ -554,15 +656,15 @@ const VendorProfile = () => {
                       <span className="ven-detail-text">{vendorDetails.vendorCode}</span>
                     </div>
                     <div className="ven-detail-card">
-                      <span className="ven-detail-title">Full Name</span>
+                      <span className="ven-detail-title">Name</span>
                       <span className="ven-detail-text">{vendorDetails.name}</span>
                     </div>
                     <div className="ven-detail-card ven-full-width">
-                      <span className="ven-detail-title">Business Address</span>
+                      <span className="ven-detail-title">Address</span>
                       <span className="ven-detail-text">{vendorDetails.address}</span>
                     </div>
                     <div className="ven-detail-card">
-                      <span className="ven-detail-title">Phone</span>
+                      <span className="ven-detail-title">Phone No</span>
                       <span className="ven-detail-text">{vendorDetails.phone}</span>
                     </div>
                     <div className="ven-detail-card">
@@ -570,11 +672,11 @@ const VendorProfile = () => {
                       <span className="ven-detail-text">{vendorDetails.email}</span>
                     </div>
                     <div className="ven-detail-card">
-                      <span className="ven-detail-title">PAN Number</span>
+                      <span className="ven-detail-title">PAN NO</span>
                       <span className="ven-detail-text">{vendorDetails.panNo}</span>
                     </div>
                     <div className="ven-detail-card">
-                      <span className="ven-detail-title">GST Number</span>
+                      <span className="ven-detail-title">GST NO</span>
                       <span className="ven-detail-text">{vendorDetails.gstNo}</span>
                     </div>
                     <div className="ven-detail-card">
