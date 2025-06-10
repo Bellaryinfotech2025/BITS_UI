@@ -567,3 +567,33 @@ body {
     left: 10px;
   }
 }
+
+
+
+/*clear button*/
+/* Add this CSS to your existing VendorProfile.css file */
+.ven-button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.ven-clear-btn {
+  padding: 12px 20px;
+  background-color: #f8f9fa;
+  color: #212529;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ven-clear-btn:hover {
+  background-color: #e9ecef;
+}
+
+.ven-clear-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

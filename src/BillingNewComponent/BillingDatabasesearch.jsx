@@ -8,7 +8,7 @@ import "../BillingNewComponent/BillingDatabasesearch.css"
 
 const BillingDatabasesearch = () => {
   // API Base URL
-  const API_BASE_URL = "http://localhost:5522/api/V2.0"
+  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
   // State management
   const [loading, setLoading] = useState(false)

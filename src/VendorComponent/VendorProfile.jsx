@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react"
 import "../VendorComponent/VendorProfile.css"
- 
 
 const VendorProfile = () => {
   const [profileImage, setProfileImage] = useState("/placeholder.svg?height=120&width=120")
@@ -28,7 +27,7 @@ const VendorProfile = () => {
   const backgroundInputRef = useRef(null)
 
   // API Base URL
-  const API_BASE_URL = "http://localhost:5522/api/vendors"
+  const API_BASE_URL = "http://195.35.45.56:5522/api/vendors"
 
   useEffect(() => {
     // Load vendor data if editing existing vendor
@@ -39,6 +38,24 @@ const VendorProfile = () => {
       loadVendorData(id)
     }
   }, [])
+
+  useEffect(() => {
+    // Load saved vendor data from localStorage if no ID is provided in URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const id = urlParams.get("id")
+
+    if (!id && !vendorId) {
+      const savedVendorData = localStorage.getItem("vendorDetails")
+      if (savedVendorData) {
+        const parsedData = JSON.parse(savedVendorData)
+        setVendorDetails(parsedData)
+        if (parsedData.id) {
+          setVendorId(parsedData.id)
+          setIsEditing(false)
+        }
+      }
+    }
+  }, [vendorId])
 
   const loadVendorData = async (id) => {
     try {
@@ -139,6 +156,11 @@ const VendorProfile = () => {
         if (!vendorId) {
           setVendorId(data.id)
         }
+
+        // Save the vendor data to localStorage
+        const updatedVendorDetails = { ...data }
+        localStorage.setItem("vendorDetails", JSON.stringify(updatedVendorDetails))
+
         setIsEditing(false)
         showToastMessage(vendorId ? "Vendor updated successfully!" : "Vendor created successfully!")
       } else {
@@ -168,6 +190,33 @@ const VendorProfile = () => {
     return focusedField === field || vendorDetails[field] !== ""
   }
 
+  const handleClear = () => {
+    // Clear form data
+    setVendorDetails({
+      vendorCode: "",
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
+      panNo: "",
+      gstNo: "",
+      bankAccount: "",
+    })
+
+    // Reset state
+    setVendorId(null)
+    setIsEditing(true)
+
+    // Clear localStorage
+    localStorage.removeItem("vendorDetails")
+
+    // Reset profile image
+    setProfileImage("/placeholder.svg?height=120&width=120")
+
+    // Show confirmation message
+    showToastMessage("Form cleared successfully")
+  }
+
   return (
     <div className="ven-main-wrapper">
       <div className="ven-scrollable-container">
@@ -190,8 +239,8 @@ const VendorProfile = () => {
             </div>
 
             {/* Profile Section */}
-            <br/>
-            <br/>
+            <br />
+            <br />
             <div className="ven-profile-section">
               <div className="ven-profile-avatar" onClick={handleProfileImageClick}>
                 <img src={profileImage || "/placeholder.svg"} alt="Profile" className="ven-avatar-image" />
@@ -452,7 +501,16 @@ const VendorProfile = () => {
                         className={`ven-floating-label ${isFieldActive("bankAccount") ? "ven-active" : ""}`}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="currentColor" strokeWidth="2" />
+                          <rect
+                            x="1"
+                            y="4"
+                            width="22"
+                            height="16"
+                            rx="2"
+                            ry="2"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          />
                           <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" strokeWidth="2" />
                         </svg>
                         Bank Account Number
@@ -460,9 +518,14 @@ const VendorProfile = () => {
                     </div>
                   </div>
 
-                  <button className="ven-save-btn" onClick={handleSave} disabled={loading}>
-                    {loading ? "Saving..." : vendorId ? "Update Vendor Details" : "Save Vendor Details"}
-                  </button>
+                  <div className="ven-button-group">
+                    <button className="ven-save-btn" onClick={handleSave} disabled={loading}>
+                      {loading ? "Saving..." : vendorId ? "Update Vendor Details" : "Save Vendor Details"}
+                    </button>
+                    <button className="ven-clear-btn" onClick={handleClear} disabled={loading}>
+                      Clear
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="ven-details-container">
