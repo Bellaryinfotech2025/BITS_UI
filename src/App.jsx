@@ -8,6 +8,10 @@ import PoEntry from './POEntry Component/PoEntry';
 
 import PoentrydatabseseTable from './POEntry Component/POentryDatabaseTable';
 import VendorProfile from './VendorComponent/VendorProfile';
+import UserTabs from './VendorComponent/UserTabs';
+import CustomerProfile from './VendorComponent/CustomerProfile';
+
+import Kaaa from './VendorComponent/KKK';
 
  
  
@@ -30,7 +34,14 @@ function App() {
 
             <Route path="/poentryyyyy" element={<PoentrydatabseseTable/>}/>
 
+            
+            <Route path="/usertabs/puser/rofile/details" element={<UserTabs/>}/>
+
             <Route path="/vendor/puser/rofile/details" element={<VendorProfile/>}/>
+             
+            <Route path="/customer/puser/rofile/details" element={<CustomerProfile/>}/>
+
+            <Route path="/Kaaa" element={<Kaaa/>}/>
 
 
 
