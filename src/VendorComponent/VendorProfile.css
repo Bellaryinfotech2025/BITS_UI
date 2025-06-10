@@ -1,0 +1,569 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+}
+
+.ven-main-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+.ven-scrollable-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: auto;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+.ven-scrollable-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.ven-scrollable-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+
+.ven-scrollable-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+
+.ven-scrollable-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.ven-container {
+  width: 100%;
+  max-width: none;
+  padding: 20px;
+  min-height: calc(100vh + 200px);
+  display: flex;
+  flex-direction: column;
+}
+
+.ven-header-section {
+  text-align: center;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+.ven-app-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.ven-app-subtitle {
+  font-size: 1rem;
+  color: #6c757d;
+  font-weight: 400;
+}
+
+.ven-card {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 40px;
+}
+
+.ven-card-header {
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.ven-card-header:hover .ven-header-overlay {
+  opacity: 1;
+}
+
+.ven-header-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ven-upload-text {
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.ven-profile-section {
+  padding: 0 24px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: -40px;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.ven-profile-avatar {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ven-avatar-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid white;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.ven-avatar-image:hover {
+  transform: scale(1.05);
+}
+
+.ven-avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ven-profile-avatar:hover .ven-avatar-overlay {
+  opacity: 1;
+}
+
+.ven-profile-details {
+  flex: 1;
+  padding-top: 20px;
+}
+
+.ven-vendor-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.ven-vendor-code {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.ven-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #d4edda;
+  color: #155724;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.ven-status-dot {
+  width: 6px;
+  height: 6px;
+  background: #28a745;
+  border-radius: 50%;
+}
+
+.ven-quick-stats {
+  display: flex;
+  gap: 16px;
+  padding-top: 20px;
+}
+
+.ven-stat {
+  text-align: center;
+  min-width: 60px;
+}
+
+.ven-stat-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.ven-stat-label {
+  font-size: 0.7rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ven-content-area {
+  padding: 0 24px 24px;
+  border-top: 1px solid #e9ecef;
+  margin-top: 20px;
+  padding-top: 24px;
+  flex: 1;
+  min-height: 600px;
+}
+
+.ven-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.ven-section-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.ven-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.ven-edit-btn:hover {
+  background: #0056b3;
+}
+
+.ven-form-container {
+  width: 100%;
+}
+
+.ven-form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.ven-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Floating Label Styles */
+.ven-floating-input-group {
+  position: relative;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.ven-floating-input-group.ven-full-width {
+  grid-column: 1 / -1;
+}
+
+.ven-floating-input {
+  width: 100%;
+  padding: 16px 12px 8px 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  outline: none;
+}
+
+.ven-floating-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.ven-floating-input:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.ven-floating-label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  padding: 0 4px;
+  color: #6c757d;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ven-floating-label.ven-active {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  color: #007bff;
+  font-weight: 600;
+}
+
+.ven-floating-input:focus + .ven-floating-label {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  color: #007bff;
+  font-weight: 600;
+}
+
+/* Textarea specific styles */
+.ven-floating-input-group textarea.ven-floating-input {
+  min-height: 80px;
+  resize: vertical;
+  padding-top: 20px;
+}
+
+.ven-floating-input-group textarea.ven-floating-input + .ven-floating-label {
+  top: 20px;
+}
+
+.ven-floating-input-group textarea.ven-floating-input:focus + .ven-floating-label,
+.ven-floating-input-group textarea.ven-floating-input + .ven-floating-label.ven-active {
+  top: 0;
+}
+
+.ven-save-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.ven-save-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+.ven-save-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.ven-details-container {
+  width: 100%;
+}
+
+.ven-details-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.ven-detail-card {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #007bff;
+}
+
+.ven-detail-card.ven-full-width {
+  grid-column: 1 / -1;
+}
+
+.ven-detail-title {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ven-detail-text {
+  color: #2c3e50;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.ven-toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #28a745;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: ven-slideIn 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+@keyframes ven-slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .ven-container {
+    padding: 12px;
+  }
+
+  .ven-app-title {
+    font-size: 1.5rem;
+  }
+
+  .ven-app-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .ven-profile-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 16px 16px;
+  }
+
+  .ven-quick-stats {
+    justify-content: center;
+    padding-top: 16px;
+  }
+
+  .ven-content-area {
+    padding: 16px;
+    padding-top: 20px;
+  }
+
+  .ven-form-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .ven-details-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ven-section-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .ven-toast-notification {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ven-card-header {
+    height: 100px;
+  }
+
+  .ven-profile-section {
+    margin-top: -30px;
+  }
+
+  .ven-avatar-image {
+    width: 70px;
+    height: 70px;
+  }
+
+  .ven-vendor-name {
+    font-size: 1.3rem;
+  }
+
+  .ven-quick-stats {
+    gap: 12px;
+  }
+
+  .ven-stat-value {
+    font-size: 0.8rem;
+  }
+
+  .ven-stat-label {
+    font-size: 0.65rem;
+  }
+
+  .ven-floating-input {
+    padding: 14px 10px 6px 10px;
+  }
+
+  .ven-floating-label {
+    left: 10px;
+  }
+}

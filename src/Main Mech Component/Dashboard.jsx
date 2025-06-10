@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef, useEffect } from "react"
 import {
   LayoutDashboard,
@@ -23,6 +21,7 @@ import {
   PenTool,
   BarChart,
 } from "lucide-react"
+import { Link } from "react-router-dom"
 
 import "../Design Component/Dashboard.css"
 import DrawingEntry from "../Drawing Entry Component/DrawingEntry"
@@ -728,7 +727,9 @@ const MainDashboard = () => {
                 <div className="user-dropdown">
                   <div className="user-dropdown-item" onClick={() => handleProfileAction("my-profile")}>
                     <UserCircle size={18} />
+                    <Link to="/vendor/puser/rofile/details" style={{textDecoration:'none'}}>
                     <span>My Profile</span>
+                    </Link>
                   </div>
                   <div className="user-dropdown-item" onClick={() => handleProfileAction("edit-profile")}>
                     <Edit size={18} />

@@ -7,6 +7,7 @@ import MainDashboard from './Main Mech Component/Dashboard';
 import PoEntry from './POEntry Component/PoEntry';
 
 import PoentrydatabseseTable from './POEntry Component/POentryDatabaseTable';
+import VendorProfile from './VendorComponent/VendorProfile';
 
  
  
@@ -28,6 +29,10 @@ function App() {
             <Route path="/Poentry" element={<PoEntry/>}/>
 
             <Route path="/poentryyyyy" element={<PoentrydatabseseTable/>}/>
+
+            <Route path="/vendor/puser/rofile/details" element={<VendorProfile/>}/>
+
+
 
              
 
