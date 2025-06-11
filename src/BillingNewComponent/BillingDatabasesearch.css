@@ -29,7 +29,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1976d2;
+  background-color: #2d3748;
   color: white;
   border: none;
   border-radius: 6px;
@@ -42,7 +42,7 @@
 }
 
 .billing-move-to-completion-btn:hover {
-  background-color: #1565c0;
+  background-color: #2d3748;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(25, 118, 210, 0.4);
 }
@@ -81,7 +81,7 @@
 }
 
 .billing-dropdown-crab:focus {
-  border-color: #1976d2;
+  border-color: #2d3748;
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
 }
 
@@ -90,7 +90,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #2196f3;
+  background-color: #2d3748;
   color: white;
   border: none;
   border-radius: 6px;
@@ -103,7 +103,7 @@
 }
 
 .billing-search-button-lobster:hover:not(:disabled) {
-  background-color: #1976d2;
+  background-color: #2d3748;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
 }
@@ -176,7 +176,7 @@
 }
 
 .billing-table-ray thead {
-  background-color: #1976d2;
+  background-color: #2d3748;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -215,7 +215,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1976d2;
+  color: #2d3748;
   font-size: 16px;
 }
 
@@ -223,7 +223,7 @@
 .billing-status-badge-clam {
   display: inline-block;
   padding: 4px 8px;
-  background-color: #1976d2;
+  background-color: #2d3748;
   color: white;
   border-radius: 4px;
   font-size: 11px;
@@ -254,11 +254,11 @@
 }
 
 .billing-edit-button-scallop {
-  background-color: #2196f3;
+  background-color: #2d3748;
 }
 
 .billing-edit-button-scallop:hover {
-  background-color: #1976d2;
+  background-color: #2d3748;
   transform: scale(1.1);
 }
 
@@ -272,11 +272,11 @@
 }
 
 .billing-save-button-scallop {
-  background-color: #1976d2;
+  background-color: #2d3748;
 }
 
 .billing-save-button-scallop:hover {
-  background-color: #1565c0;
+  background-color: #2d3748;
   transform: scale(1.1);
 }
 
@@ -293,7 +293,7 @@
 .billing-edit-input-anemone {
   width: 100%;
   padding: 4px 6px;
-  border: 1px solid #1976d2;
+  border: 1px solid #2d3748;
   border-radius: 3px;
   font-size: 11px;
   outline: none;
@@ -301,7 +301,7 @@
 }
 
 .billing-edit-input-anemone:focus {
-  border-color: #1565c0;
+  border-color: #2d3748;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
 }
 
@@ -478,16 +478,16 @@
 }
 
 .billing-cancel-button-gray:hover {
-  background-color: #545b62;
+  background-color: #2d3748;
 }
 
 .billing-save-button-sperm {
-  background-color: #1976d2;
+  background-color: #2d3748;
   color: white;
 }
 
 .billing-save-button-sperm:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: #2d3748;
 }
 
 .billing-save-button-sperm:disabled {
@@ -530,12 +530,12 @@
 }
 
 .billing-table-wrapper-manta::-webkit-scrollbar-thumb {
-  background: #1976d2;
+  background: #2d3748;
   border-radius: 4px;
 }
 
 .billing-table-wrapper-manta::-webkit-scrollbar-thumb:hover {
-  background: #1565c0;
+  background: #2d3748;
 }
 
 /* Responsive styles */

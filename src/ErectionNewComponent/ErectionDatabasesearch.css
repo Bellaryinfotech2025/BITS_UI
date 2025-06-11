@@ -29,7 +29,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #2c5282;
+  background-color: #2d3748;
   color: white;
   border: none;
   border-radius: 6px;
@@ -42,7 +42,7 @@
 }
 
 .erect-move-to-alignment-btn:hover {
-  background-color: #5b4cbe;
+  background-color: #2d3748;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(106, 90, 205, 0.4);
 }
@@ -81,7 +81,7 @@
 }
 
 .erect-dropdown-leopard:focus {
-  border-color: #6a5acd;
+  border-color: #2d3748;
   box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.15);
 }
 
@@ -90,7 +90,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #6a5acd;
+  background-color: #2d3748;
   color: white;
   border: none;
   border-radius: 6px;
@@ -103,7 +103,7 @@
 }
 
 .erect-search-button-cheetah:hover:not(:disabled) {
-  background-color: #5b4cbe;
+  background-color: #2d3748;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(106, 90, 205, 0.4);
 }
@@ -142,7 +142,7 @@
 
 .erect-loading-spinner-gazelle {
   font-size: 30px;
-  color: #6a5acd;
+  color: #2d3748;
   animation: erect-spin-animation 1s linear infinite;
 }
 
@@ -176,7 +176,7 @@
 }
 
 .erect-table-wildebeest thead {
-  background-color: #483d8b;
+  background-color: #2d3748;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -215,7 +215,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6a5acd;
+  color: #2d3748;
   font-size: 16px;
 }
 
@@ -223,7 +223,7 @@
 .erect-status-badge-oryx {
   display: inline-block;
   padding: 4px 8px;
-  background-color: #6a5acd;
+  background-color: #2d3748;
   color: white;
   border-radius: 4px;
   font-size: 11px;
@@ -254,11 +254,11 @@
 }
 
 .erect-edit-button-nyala {
-  background-color: #6a5acd;
+  background-color: #2d3748;
 }
 
 .erect-edit-button-nyala:hover {
-  background-color: #5b4cbe;
+  background-color: #2d3748;
   transform: scale(1.1);
 }
 
@@ -272,11 +272,11 @@
 }
 
 .erect-save-button-nyala {
-  background-color: #6a5acd;
+  background-color: #2d3748;
 }
 
 .erect-save-button-nyala:hover {
-  background-color: #5b4cbe;
+  background-color: #2d3748;
   transform: scale(1.1);
 }
 
@@ -293,7 +293,7 @@
 .erect-edit-input-gemsbok {
   width: 100%;
   padding: 4px 6px;
-  border: 1px solid #6a5acd;
+  border: 1px solid #2d3748;
   border-radius: 3px;
   font-size: 11px;
   outline: none;
@@ -301,7 +301,7 @@
 }
 
 .erect-edit-input-gemsbok:focus {
-  border-color: #5b4cbe;
+  border-color: #2d3748;
   box-shadow: 0 0 0 2px rgba(106, 90, 205, 0.25);
 }
 
@@ -482,12 +482,12 @@
 }
 
 .erect-save-button-bullfrog {
-  background-color: #6a5acd;
+  background-color: #2d3748;
   color: white;
 }
 
 .erect-save-button-bullfrog:hover:not(:disabled) {
-  background-color: #5b4cbe;
+  background-color: #2d3748;
 }
 
 .erect-save-button-bullfrog:disabled {
@@ -560,12 +560,12 @@
 }
 
 .erect-table-wrapper-buffalo::-webkit-scrollbar-thumb {
-  background: #6a5acd;
+  background: #2d3748;
   border-radius: 4px;
 }
 
 .erect-table-wrapper-buffalo::-webkit-scrollbar-thumb:hover {
-  background: #5b4cbe;
+  background: #2d3748;
 }
 
 /* Enhanced button styles */

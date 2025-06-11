@@ -1,0 +1,595 @@
+/* Modern Report Styles */
+.modern-report-container {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
+}
+
+/* Header Styles */
+.modern-report-header {
+  background: #2d3748;
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 25px rgba(45, 55, 72, 0.2);
+}
+
+.modern-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modern-header-icon {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modern-report-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.025em;
+}
+
+.modern-report-header p {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.modern-filter-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.modern-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Dropdown Styles */
+.modern-dropdown-container {
+  position: relative;
+}
+
+.modern-dropdown-trigger {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+}
+
+.modern-dropdown-trigger:hover {
+  border-color: #2d3748;
+  background: #f1f5f9;
+}
+
+.modern-dropdown-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.modern-dropdown-icon {
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #2d3748;
+  border-radius: 6px;
+  color: white;
+}
+
+.modern-dropdown-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.modern-dropdown-label {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.modern-dropdown-count {
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.modern-dropdown-arrow {
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.modern-dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.modern-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: 4px;
+  max-height: 350px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modern-dropdown-search {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.modern-search-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.modern-search-input:focus {
+  border-color: #2d3748;
+}
+
+.modern-dropdown-header {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modern-dropdown-options {
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.modern-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  margin: 0;
+}
+
+.modern-checkbox-container:hover {
+  background: #f8fafc;
+}
+
+.modern-checkbox-container input[type="checkbox"] {
+  display: none;
+}
+
+.modern-checkbox-checkmark {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 3px;
+  position: relative;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.modern-checkbox-container input[type="checkbox"]:checked + .modern-checkbox-checkmark {
+  background: #2d3748;
+  border-color: #2d3748;
+}
+
+.modern-checkbox-container input[type="checkbox"]:checked + .modern-checkbox-checkmark::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.modern-checkbox-label {
+  font-size: 0.875rem;
+  color: #374151;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modern-clear-button {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.modern-clear-button:hover {
+  background: #dc2626;
+}
+
+.modern-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+/* Selected Summary */
+.modern-selected-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.modern-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 0.875rem;
+}
+
+.modern-summary-icon {
+  color: #64748b;
+}
+
+.modern-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.modern-summary-tag {
+  background: #2d3748;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.25rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.modern-summary-tag.work-order {
+  background: #2d3748;
+}
+.modern-summary-tag.building {
+  background: #2d3748;
+}
+.modern-summary-tag.drawing {
+  background: #2d3748;
+}
+.modern-summary-tag.mark {
+  background: #2d3748;
+}
+
+/* Table Section */
+.modern-table-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.modern-table-header {
+  background: #2d3748;
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 10px;
+}
+
+.modern-table-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.modern-table-icon {
+  opacity: 0.8;
+}
+
+.modern-search-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+}
+
+.modern-search-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.modern-table-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.modern-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.modern-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.modern-stat-label {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.modern-table-placeholder {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.modern-placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modern-placeholder-content svg {
+  opacity: 0.5;
+}
+
+.modern-table-wrapper {
+  overflow-x: auto;
+}
+
+.modern-data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.modern-data-table th {
+  background: #f8fafc;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.modern-th-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modern-th-content svg {
+  opacity: 0.5;
+}
+
+.modern-data-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.modern-data-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.modern-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modern-section-icon {
+  font-size: 1rem;
+}
+
+.modern-weight-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.modern-weight-value {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.modern-weight-unit {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.modern-no-data {
+  text-align: center;
+  padding: 3rem 1rem !important;
+}
+
+.modern-no-data-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+}
+
+.modern-no-data-icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* Loading and Error States */
+.modern-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.modern-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #2d3748;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.modern-loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #64748b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.modern-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem;
+  color: #ef4444;
+  background: #fef2f2;
+  margin: 1rem;
+  border-radius: 8px;
+}
+
+.modern-error-icon {
+  font-size: 1.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .modern-filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modern-table-stats {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .modern-report-container {
+    padding: 1rem;
+  }
+
+  .modern-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modern-header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .modern-table-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .modern-summary-tags {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modern-dropdown-trigger {
+    min-height: 50px;
+    padding: 0.5rem;
+  }
+
+  .modern-dropdown-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+
+  .modern-data-table th,
+  .modern-data-table td {
+    padding: 0.75rem 0.5rem;
+  }
+}

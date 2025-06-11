@@ -29,7 +29,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #28a745;
+  background-color: #2d3748;
   color: white;
   border: none;
   border-radius: 6px;
@@ -42,7 +42,7 @@
 }
 
 .align-move-to-completion-btn:hover {
-  background-color: #218838;
+  background-color: #2d3748;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
 }
@@ -81,7 +81,7 @@
 }
 
 .align-dropdown-leopard:focus {
-  border-color: #28a745;
+  border-color: #2d3748;
   box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.15);
 }
 
@@ -90,7 +90,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #007bff;
+  background-color: #2d3748;
   color: white;
   border: none;
   border-radius: 6px;
@@ -103,7 +103,7 @@
 }
 
 .align-search-button-cheetah:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: #2d3748;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
 }
@@ -176,7 +176,7 @@
 }
 
 .align-table-wildebeest thead {
-  background-color: #28a745;
+  background-color: #2d3748;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -223,7 +223,7 @@
 .align-status-badge-oryx {
   display: inline-block;
   padding: 4px 8px;
-  background-color: #28a745;
+  background-color: #2d3748;
   color: white;
   border-radius: 4px;
   font-size: 11px;
@@ -254,11 +254,11 @@
 }
 
 .align-edit-button-nyala {
-  background-color: #007bff;
+  background-color: #2d3748;
 }
 
 .align-edit-button-nyala:hover {
-  background-color: #0056b3;
+  background-color: #2d3748;
   transform: scale(1.1);
 }
 
@@ -276,7 +276,7 @@
 }
 
 .align-save-button-nyala:hover {
-  background-color: #218838;
+  background-color: #2d3748;
   transform: scale(1.1);
 }
 
@@ -293,7 +293,7 @@
 .align-edit-input-gemsbok {
   width: 100%;
   padding: 4px 6px;
-  border: 1px solid #28a745;
+  border: 1px solid #2d3748;
   border-radius: 3px;
   font-size: 11px;
   outline: none;
@@ -301,7 +301,7 @@
 }
 
 .align-edit-input-gemsbok:focus {
-  border-color: #218838;
+  border-color: #2d3748;
   box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
 }
 
@@ -530,12 +530,12 @@
 }
 
 .align-table-wrapper-buffalo::-webkit-scrollbar-thumb {
-  background: #28a745;
+  background: #2d3748;
   border-radius: 4px;
 }
 
 .align-table-wrapper-buffalo::-webkit-scrollbar-thumb:hover {
-  background: #218838;
+  background: #2d3748;
 }
 
 /* Responsive styles */

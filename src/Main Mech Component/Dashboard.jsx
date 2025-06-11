@@ -42,7 +42,7 @@ import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabases
  
 import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
-import Reports from "../ReportsNewComponent/Reports"
+import ReportTemplate from "../ReportsNewComponent/Reports";
 import RawMaterialEntry from "../RawMeterialEntry Component/RawMaterialEntry";
 
 import LedgerCreation from "../VendorComponent/LedgerCreation"
@@ -458,7 +458,7 @@ const MainDashboard = () => {
     // Handle Reports
      
       if (activeMenu === "reports") {
-      return <Reports />
+      return <ReportTemplate />
     }
     
 
