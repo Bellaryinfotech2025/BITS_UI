@@ -557,7 +557,7 @@ const FabricationDatabasesearch = () => {
               <tr>
                 <th>Order #</th>
                 <th>Work Order</th>
-                <th>Plant Location</th>
+                <th>Building Name</th>
                 <th>Department</th>
                 <th>Work Location</th>
                 <th>Line Number</th>

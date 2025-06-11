@@ -537,7 +537,7 @@ const ErectionDatabasesearch = () => {
               <tr>
                 <th>Order #</th>
                 <th>Work Order</th>
-                <th>Plant Location</th>
+                <th>Building Name</th>
                 <th>Department</th>
                 <th>Work Location</th>
                 <th>Line Number</th>
@@ -576,7 +576,7 @@ const ErectionDatabasesearch = () => {
                   </td>
                   {/* Work Order - attribute1V */}
                   <td>{displayValue(row.attribute1V)}</td>
-                  {/* Plant Location - attribute2V */}
+                  {/* Building Name - attribute2V */}
                   <td>{displayValue(row.attribute2V)}</td>
                   {/* Department - attribute3V */}
                   <td>{displayValue(row.attribute3V)}</td>
