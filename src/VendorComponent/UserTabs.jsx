@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import VendorProfile from "../VendorComponent/VendorProfile";
-import CustomerProfile from "../VendorComponent/CustomerProfile";
+import LedgerCreation from "../VendorComponent/LedgerCreation";
 import "../VendorComponent/UserTabs.css";
 
 const UserTabs = () => {
@@ -25,7 +25,7 @@ const UserTabs = () => {
       </div>
       <div className="tabs-content">
         {activeTab === "vendor" && <VendorProfile />}
-        {activeTab === "customer" && <CustomerProfile />}
+        {activeTab === "customer" && <LedgerCreation />}
       </div>
     </div>
   );

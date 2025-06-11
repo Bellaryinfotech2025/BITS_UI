@@ -187,7 +187,7 @@ const PoentrydatabseseTable = () => {
             <tr>
               <th>Actions</th>
               <th>Work Order</th>
-              <th>Plant Location</th>
+              <th>Building Name</th>
               <th>Department</th>
               <th>Work Location</th>
               <th>Work Order Date</th>

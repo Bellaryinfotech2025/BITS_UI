@@ -9,7 +9,7 @@ import PoEntry from './POEntry Component/PoEntry';
 import PoentrydatabseseTable from './POEntry Component/POentryDatabaseTable';
 import VendorProfile from './VendorComponent/VendorProfile';
 import UserTabs from './VendorComponent/UserTabs';
-import CustomerProfile from './VendorComponent/CustomerProfile';
+import LedgerCreation from './VendorComponent/LedgerCreation';
 
 import Kaaa from './VendorComponent/KKK';
 
@@ -39,7 +39,7 @@ function App() {
 
             <Route path="/vendor/puser/rofile/details" element={<VendorProfile/>}/>
              
-            <Route path="/customer/puser/rofile/details" element={<CustomerProfile/>}/>
+            <Route path="/customer/puser/rofile/details" element={<LedgerCreation/>}/>
 
             <Route path="/Kaaa" element={<Kaaa/>}/>
 

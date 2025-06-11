@@ -22,6 +22,8 @@ import {
   BarChart,
 } from "lucide-react"
 import { Link } from "react-router-dom"
+import { MdAccountCircle } from "react-icons/md";
+import { GiCardDraw } from "react-icons/gi";
 
 import "../Design Component/Dashboard.css"
 import DrawingEntry from "../Drawing Entry Component/DrawingEntry"
@@ -41,6 +43,9 @@ import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabases
 import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
 import Reports from "../ReportsNewComponent/Reports"
+import RawMaterialEntry from "../RawMeterialEntry Component/RawMaterialEntry";
+
+import LedgerCreation from "../VendorComponent/LedgerCreation"
 
 import logo from "../assets/blogo.jpg"
 import "../Design Component/logout-popup.css"
@@ -110,6 +115,7 @@ const MainDashboard = () => {
     poentry: [], // No submenus for PO Entry
     drawingentry: [], // No submenus for Drawing Entry
     // orders: ["Orders", "Lines", "Fabrication", "Erection", "Alignment", "Billing"],
+    rawmaterialentry:[], //for raw material entry
     fabrication: [], // No submenus for Fabrication
     erection: [], // No submenus for Fabrication
     alignment: [], // No submenus for Fabrication
@@ -117,7 +123,7 @@ const MainDashboard = () => {
     reports: [], // No submenus for Fabrication
     invoices: [], // No submenus for Fabrication
     
-    import: [], // No submenus for Fabrication
+    LedgerCreation: [], // No submenus for Fabrication
   }
 
   // Add this useEffect to get the username when the component mounts
@@ -380,6 +386,8 @@ const MainDashboard = () => {
         return <Clipboard size={20} />
       case "drawingentry":
         return <PenTool size={20} />
+        case "rawmaterialentry":
+          return <GiCardDraw size={20}/>
       case "orders":
         return <BarChart size={20} />
       case "fabrication":
@@ -400,8 +408,8 @@ const MainDashboard = () => {
         return <Settings size={20} />
       case "logout":
         return <LogOut size={20} />
-      case "import":
-        return <Upload size={20} />
+      case "LedgerCreation":
+        return <MdAccountCircle size={20} />
       default:
         return <FileText size={20} />
     }
@@ -421,6 +429,10 @@ const MainDashboard = () => {
     // Handle Drawing Entry
     if (activeMenu === "drawingentry") {
       return <DrawingEntry />
+    }
+
+    if (activeMenu ==="rawmaterialentry"){
+      return  <RawMaterialEntry/>
     }
 
     // Handle Fabrication
@@ -460,12 +472,8 @@ const MainDashboard = () => {
     }
 
     // Handle Import
-    if (activeMenu === "import") {
-      return (
-        <div className="empty-state">
-          <p>Hi Viewers, Import content will be displayed here.</p>
-        </div>
-      )
+    if (activeMenu === "LedgerCreation") {
+     return <LedgerCreation />
     }
 
     // Handle Notifications
@@ -560,6 +568,17 @@ const MainDashboard = () => {
               </a>
             </li>
 
+            <li>
+              <a
+                href="#"
+                className={`nav-link ${activeMenu === "rawmaterialentry" ? "active" : ""}`}
+                onClick={(e) => handleLinkClick(e, "rawmaterialentry")}
+              >
+                {getMenuIcon("rawmaterialentry")}
+                {!sidebarCollapsed && <span>Raw Material Entry</span>}
+              </a>
+            </li>
+
             {/* Orders menu is commented out */}
             {/* <li>
               <a
@@ -635,11 +654,11 @@ const MainDashboard = () => {
             <li>
               <a
                 href="#"
-                className={`nav-link ${activeMenu === "import" ? "active" : ""}`}
-                onClick={(e) => handleLinkClick(e, "import")}
+                className={`nav-link ${activeMenu === "LedgerCreation" ? "active" : ""}`}
+                onClick={(e) => handleLinkClick(e, "LedgerCreation")}
               >
-                {getMenuIcon("import")}
-                {!sidebarCollapsed && <span>Import</span>}
+                {getMenuIcon("LedgerCreation")}
+                {!sidebarCollapsed && <span>Ledger Creation</span>}
               </a>
             </li>
           </ul>
@@ -705,13 +724,14 @@ const MainDashboard = () => {
               {activeMenu === "home" && (username ? `Hi ${username}` : "Welcome")}
               {activeMenu === "poentry" && "PO Entry"}
               {activeMenu === "drawingentry" && "Drawing Entry"}
+              {activeMenu === "rawmaterialentry" && "Rawmaterialentry"}
               {activeMenu === "fabrication" && "Fabrication"}
               {activeMenu === "erection" && "Erection"}
               {activeMenu === "alignment" && "Alignment"}
               {activeMenu === "billing" && "Billing"}
               {activeMenu === "reports" && "Reports"}
               {activeMenu === "invoices" && "Invoices"}
-              {activeMenu === "import" && "Import"}
+              {activeMenu === "ledgerCreation" && "LedgerCreation"}
               {activeMenu === "notifications" && "Notifications"}
             </h1>
           </div>

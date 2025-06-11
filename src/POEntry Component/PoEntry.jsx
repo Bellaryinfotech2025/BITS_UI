@@ -239,14 +239,14 @@ const POEntry = ({ onClose }) => {
                 />
               </div>
               <div className="AOformFieldKI">
-                <label className="AOformLabelKI">Plant Location</label>
+                <label className="AOformLabelKI">Building Name</label>
                 <input
                   type="text"
                   name="plantLocation"
                   value={formData.plantLocation}
                   onChange={(e) => handleFormInputChange(formData.id, e)}
                   className="AOformInputKI"
-                  placeholder="Enter Plant Location"
+                  placeholder="Enter Building Name"
                 />
               </div>
             </div>
