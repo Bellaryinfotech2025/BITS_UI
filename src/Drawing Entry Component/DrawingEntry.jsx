@@ -217,8 +217,9 @@ const DrawingEntry = () => {
                 const secWeight = Number.parseFloat(data.wgt) || 0
 
                 updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight * itemQty).toFixed(3)
+                //updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight).toFixed(3)
               }
-
+                 
               return updatedRow
             }
             return row
@@ -884,8 +885,10 @@ const DrawingEntry = () => {
                 <th>Section Weight</th>
                 <th>Width</th>
                 <th>Length</th>
+                {/* <th>Item weight </th> */}
                 <th>Item Qty</th>
-                <th>Item Weight</th>
+                <th>Total Item Weight</th>
+
                 <th>Actions</th>
               </tr>
             </thead>

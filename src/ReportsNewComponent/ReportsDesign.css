@@ -46,7 +46,14 @@
   margin: 0;
 }
 
- 
+.modern-filter-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
 
 .modern-filter-grid {
   display: grid;
@@ -285,7 +292,7 @@
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.25rem;
+  font-size: 0.75rem;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -293,16 +300,16 @@
 }
 
 .modern-summary-tag.work-order {
-  background: #2d3748;
+  background: #3b82f6;
 }
 .modern-summary-tag.building {
-  background: #2d3748;
+  background: #10b981;
 }
 .modern-summary-tag.drawing {
-  background: #2d3748;
+  background: #f59e0b;
 }
 .modern-summary-tag.mark {
-  background: #2d3748;
+  background: #8b5cf6;
 }
 
 /* Table Section */

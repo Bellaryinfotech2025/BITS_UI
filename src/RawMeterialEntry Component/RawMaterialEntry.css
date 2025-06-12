@@ -27,12 +27,12 @@
   color: #2d3748;
 }
 
-/* Save button */
+/* Save button - Updated with white text and black background */
 .material-save-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: #2d3748;
+  background-color: #000000;
   color: #ffffff;
   border: none;
   border-radius: 4px;
@@ -41,13 +41,13 @@
   font-weight: bold;
   padding: 10px 16px;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(45, 55, 72, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .material-save-btn:hover:not(:disabled) {
-  background-color: #1a202c;
+  background-color: #333333;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(45, 55, 72, 0.4);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .material-save-btn:disabled {
@@ -240,6 +240,33 @@
   box-shadow: 0 0 0 2px rgba(45, 55, 72, 0.25);
 }
 
+/* New input fields styling */
+.vehicle-input,
+.document-input,
+.date-input {
+  width: 100%;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  font-size: 11px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  background-color: #ffffff;
+}
+
+.vehicle-input:focus,
+.document-input:focus,
+.date-input:focus {
+  border-color: #2d3748;
+  box-shadow: 0 0 0 2px rgba(45, 55, 72, 0.25);
+}
+
+/* Date input specific styling */
+.date-input {
+  min-width: 140px;
+}
+
 /* UOM select */
 .kkk-uom-select {
   width: 100%;
@@ -377,6 +404,14 @@
   .raw-input,
   .kkk-uom-select {
     min-width: 80px;
+    font-size: 10px;
+  }
+
+  /* Responsive adjustments for new columns */
+  .vehicle-input,
+  .document-input,
+  .date-input {
+    min-width: 100px;
     font-size: 10px;
   }
 }

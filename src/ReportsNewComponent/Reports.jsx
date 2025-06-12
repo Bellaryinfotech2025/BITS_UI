@@ -5,6 +5,8 @@ import { TfiTag } from "react-icons/tfi";
 import { FiClipboard } from "react-icons/fi";
 import { RxDrawingPin } from "react-icons/rx";
 import { VscDiffRenamed } from "react-icons/vsc";
+ 
+import { FiTag } from "react-icons/fi"
 
 const ReportTemplate = () => {
   // State for dropdown options
@@ -43,6 +45,9 @@ const ReportTemplate = () => {
   const [tableLoading, setTableLoading] = useState(false)
   const [dropdownLoading, setDropdownLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // State for work order details
+  const [workOrderDetails, setWorkOrderDetails] = useState({})
 
   // Refs for dropdown containers
   const dropdownRefs = {
@@ -112,6 +117,27 @@ const ReportTemplate = () => {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  // Fetch work order details when selected work orders change
+  useEffect(() => {
+    if (selectedWorkOrders.length > 0) {
+      fetchWorkOrderDetails(selectedWorkOrders[0])
+    }
+  }, [selectedWorkOrders])
+
+  const fetchWorkOrderDetails = async (workOrderNumber) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrderNumber}`)
+      if (response.ok) {
+        const data = await response.json()
+        setWorkOrderDetails(data)
+      } else {
+        console.error("Failed to fetch work order details")
+      }
+    } catch (err) {
+      console.error("Error fetching work order details:", err)
+    }
+  }
 
   const fetchDropdownOptions = async () => {
     try {
@@ -195,10 +221,23 @@ const ReportTemplate = () => {
 
       // Convert to array format
       const tableData = Object.entries(groupedData)
-        .map(([sessionName, totalWeight]) => ({
-          session_name: sessionName,
-          total_weight: totalWeight,
-        }))
+        .map(([sessionName, totalWeight]) => {
+          // Calculate scrap allowance
+          const visiblePercent = Number.parseFloat(workOrderDetails.scrapAllowanceVisiblePercent || 0)
+          const invisiblePercent = Number.parseFloat(workOrderDetails.scrapAllowanceInvisiblePercent || 0)
+          const scrapAllowance = visiblePercent + invisiblePercent
+
+          // Calculate total tild weight
+          const totalTildWeight = totalWeight + (totalWeight * scrapAllowance) / 100
+
+          return {
+            session_name: sessionName,
+            total_weight: totalWeight,
+            scrap_allowance: scrapAllowance,
+            material_issue_type: workOrderDetails.materialIssueType || "N/A",
+            total_tild_weight: totalTildWeight,
+          }
+        })
         .sort((a, b) => a.session_name.localeCompare(b.session_name))
 
       setTableData(tableData)
@@ -368,18 +407,26 @@ const ReportTemplate = () => {
     ? tableData.reduce((sum, row) => sum + (Number.parseFloat(row.total_weight) || 0), 0)
     : 0
 
+  // Calculate total scrap allowance
+  const totalScrapAllowance = showTable ? (tableData.length > 0 ? tableData[0].scrap_allowance : 0) : 0
+
+  // Calculate total tild weight
+  const totalTildWeight = showTable
+    ? tableData.reduce((sum, row) => sum + (Number.parseFloat(row.total_tild_weight) || 0), 0)
+    : 0
+
   const getDropdownIcon = (name) => {
     switch (name) {
       case "workOrder":
-        return <FiClipboard />
-      case "building":
-        return <VscDiffRenamed />
-      case "drawing":
-        return <RxDrawingPin />
-      case "mark":
         return <TfiTag />
+      case "building":
+        return <RxDrawingPin />
+      case "drawing":
+        return <FiClipboard />
+      case "mark":
+        return <VscDiffRenamed />
       default:
-        return <MdSearch />
+        return <TfiTag />
     }
   }
 
@@ -498,22 +545,22 @@ const ReportTemplate = () => {
             <div className="modern-summary-tags">
               {selectedWorkOrders.map((item) => (
                 <span key={`wo-${item}`} className="modern-summary-tag work-order">
-                  <FiClipboard /> {item}
+                  <TfiTag /> {item}
                 </span>
               ))}
               {selectedBuildingNames.map((item) => (
                 <span key={`bn-${item}`} className="modern-summary-tag building">
-                  <VscDiffRenamed /> {item}
+                  <TfiTag /> {item}
                 </span>
               ))}
               {selectedDrawingNos.map((item) => (
                 <span key={`dn-${item}`} className="modern-summary-tag drawing">
-                  <RxDrawingPin /> {item}
+                  <FiClipboard /> {item}
                 </span>
               ))}
               {selectedMarkNos.map((item) => (
                 <span key={`mn-${item}`} className="modern-summary-tag mark">
-                  <TfiTag /> {item}
+                  <FiTag /> {item}
                 </span>
               ))}
             </div>
@@ -550,6 +597,10 @@ const ReportTemplate = () => {
             </span>
             <span className="modern-stat">
               <span className="modern-stat-value">{totalWeight.toFixed(2)}</span>
+              <span className="modern-stat-label">Total Drawing Weight (kg)</span>
+            </span>
+            <span className="modern-stat">
+              <span className="modern-stat-value">{totalTildWeight.toFixed(2)}</span>
               <span className="modern-stat-label">Total Weight (kg)</span>
             </span>
           </div>
@@ -593,6 +644,48 @@ const ReportTemplate = () => {
                   </th>
                   <th>
                     <div className="modern-th-content">
+                      <span>Total Drawing Weight (kg)</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M8 9L12 5L16 9"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </th>
+                  <th>
+                    <div className="modern-th-content">
+                      <span>Scrap Allowance (%)</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M8 9L12 5L16 9"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </th>
+                  <th>
+                    <div className="modern-th-content">
+                      <span>Material Issue Type</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M8 9L12 5L16 9"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </th>
+                  <th>
+                    <div className="modern-th-content">
                       <span>Total Weight (kg)</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path
@@ -623,11 +716,30 @@ const ReportTemplate = () => {
                           <span className="modern-weight-unit">kg</span>
                         </div>
                       </td>
+                      <td>
+                        <div className="modern-weight-cell">
+                          <span className="modern-weight-value">{row.scrap_allowance}</span>
+                          <span className="modern-weight-unit">%</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="modern-cell-content">
+                          <span>{row.material_issue_type}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="modern-weight-cell">
+                          <span className="modern-weight-value">
+                            {Number.parseFloat(row.total_tild_weight).toFixed(2)}
+                          </span>
+                          <span className="modern-weight-unit">kg</span>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="2" className="modern-no-data">
+                    <td colSpan="5" className="modern-no-data">
                       <div className="modern-no-data-content">
                         <span className="modern-no-data-icon">📊</span>
                         <span>No data available for the selected filters</span>

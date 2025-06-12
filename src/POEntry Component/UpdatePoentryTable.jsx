@@ -19,6 +19,9 @@ const UpdatePoentryTable = ({ order, onClose }) => {
     workOrderDate: "",
     completionDate: "",
     ldApplicable: false,
+    scrapAllowanceVisiblePercent: "",
+    scrapAllowanceInvisiblePercent: "",
+    materialIssueType: "",
   })
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -39,6 +42,9 @@ const UpdatePoentryTable = ({ order, onClose }) => {
         workOrderDate: order.workOrderDate || "",
         completionDate: order.completionDate || "",
         ldApplicable: order.ldApplicable || false,
+        scrapAllowanceVisiblePercent: order.scrapAllowanceVisiblePercent || "",
+        scrapAllowanceInvisiblePercent: order.scrapAllowanceInvisiblePercent || "",
+        materialIssueType: order.materialIssueType || "",
       })
       
       // Load associated service orders
@@ -345,6 +351,47 @@ const UpdatePoentryTable = ({ order, onClose }) => {
 
           <div className="piFormRowol">
             <div className="piFormFieldol">
+              <label className="piFormLabelol">Scrap Allowance Visible %</label>
+              <input
+                type="text"
+                name="scrapAllowanceVisiblePercent"
+                value={formData.scrapAllowanceVisiblePercent}
+                onChange={handleInputChange}
+                className={`piFormInputol ${!isEditing ? "piReadonlyol" : ""}`}
+                readOnly={!isEditing}
+                placeholder="Enter Visible Scrap %"
+              />
+            </div>
+            <div className="piFormFieldol">
+              <label className="piFormLabelol">Scrap Allowance Invisible %</label>
+              <input
+                type="text"
+                name="scrapAllowanceInvisiblePercent"
+                value={formData.scrapAllowanceInvisiblePercent}
+                onChange={handleInputChange}
+                className={`piFormInputol ${!isEditing ? "piReadonlyol" : ""}`}
+                readOnly={!isEditing}
+                placeholder="Enter Invisible Scrap %"
+              />
+            </div>
+          </div>
+
+          <div className="piFormRowol">
+            <div className="piFormFieldol">
+              <label className="piFormLabelol">Material Issue Type</label>
+              <select
+                name="materialIssueType"
+                value={formData.materialIssueType || ""}
+                onChange={handleInputChange}
+                className={`piFormInputol ${!isEditing ? "piReadonlyol" : ""}`}
+                disabled={!isEditing}
+              >
+                <option value="">Select Type</option>
+                <option value="with_material">With Material</option>
+                <option value="without_material">Without Material</option>
+              </select>
+            </div>
+            <div className="piFormFieldol">
               <label className="piFormLabelol">LD Applicable</label>
               <div className="piCheckboxContainerol">
                 <input
@@ -358,7 +405,6 @@ const UpdatePoentryTable = ({ order, onClose }) => {
                 <span className="piCheckboxLabelol">Yes</span>
               </div>
             </div>
-            <div className="piFormFieldol">{/* Empty field for layout */}</div>
           </div>
         </div>
       </div>

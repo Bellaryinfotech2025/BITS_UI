@@ -35,6 +35,9 @@ const POEntry = ({ onClose }) => {
     workOrderDate: "",
     completionDate: "",
     ldApplicable: false,
+    scrapAllowanceVisiblePercent: "",
+    scrapAllowanceInvisiblePercent: "",
+    materialIssueType: "",
   })
 
   const createNewServiceRow = () => ({
@@ -298,6 +301,43 @@ const POEntry = ({ onClose }) => {
             </div>
             <div className="AOformRowKI">
               <div className="AOformFieldKI">
+                <label className="AOformLabelKI">Scrap Allowance Visible %</label>
+                <input
+                  type="text"
+                  name="scrapAllowanceVisiblePercent"
+                  value={formData.scrapAllowanceVisiblePercent}
+                  onChange={(e) => handleFormInputChange(formData.id, e)}
+                  className="AOformInputKI"
+                  placeholder="Enter Visible Scrap %"
+                />
+              </div>
+              <div className="AOformFieldKI">
+                <label className="AOformLabelKI">Scrap Allowance Invisible %</label>
+                <input
+                  type="text"
+                  name="scrapAllowanceInvisiblePercent"
+                  value={formData.scrapAllowanceInvisiblePercent}
+                  onChange={(e) => handleFormInputChange(formData.id, e)}
+                  className="AOformInputKI"
+                  placeholder="Enter Invisible Scrap %"
+                />
+              </div>
+            </div>
+            <div className="AOformRowKI">
+              <div className="AOformFieldKI">
+                <label className="AOformLabelKI">Material Issue Type</label>
+                <select
+                  name="materialIssueType"
+                  value={formData.materialIssueType}
+                  onChange={(e) => handleFormInputChange(formData.id, e)}
+                  className="AOformInputKI"
+                >
+                  <option value="">Select Type</option>
+                  <option value="with_material">With Material</option>
+                  <option value="without_material">Without Material</option>
+                </select>
+              </div>
+              <div className="AOformFieldKI">
                 <label className="AOformLabelKI">LD Applicable</label>
                 <div className="AOcheckboxContainerKI">
                   <input
@@ -310,7 +350,6 @@ const POEntry = ({ onClose }) => {
                   <span className="AOcheckboxLabelKI">Yes</span>
                 </div>
               </div>
-              <div className="AOformFieldKI">{/* Empty field for layout */}</div>
             </div>
           </div>
         ))}

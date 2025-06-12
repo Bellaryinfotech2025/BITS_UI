@@ -9,7 +9,7 @@ import '../RawMeterialEntry Component/RawMaterialEntry.css'
 
 const RawMaterialEntry = () => {
   // API Base URL - Updated to match your server
-  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
+  const API_BASE_URL = "http://localhost:5522/api/V2.0"
 
   // Work Order State
   const [workOrderRows, setWorkOrderRows] = useState([])
@@ -113,7 +113,7 @@ const RawMaterialEntry = () => {
     workOrder: "",
   })
 
-  // Create new service row
+  // Create new service row with new fields
   const createNewServiceRow = () => ({
     id: generateUniqueId(),
     section: "",
@@ -122,6 +122,10 @@ const RawMaterialEntry = () => {
     qty: "",
     uom: "KG",
     totalWeight: "",
+    vehicleNumber: "",
+    documentNo: "",
+    documentDate: "",
+    receivedDate: "",
   })
 
   // Handle work order input change
@@ -210,7 +214,7 @@ const RawMaterialEntry = () => {
         return
       }
 
-      // Prepare data for backend - Fixed format to match your Postman test
+      // Prepare data for backend - Updated to include new fields
       const rawMaterialData = {
         workOrders: workOrderRows
           .filter((row) => row.workOrder)
@@ -227,6 +231,10 @@ const RawMaterialEntry = () => {
             qty: row.qty,
             uom: row.uom,
             totalWeight: row.totalWeight,
+            vehicleNumber: row.vehicleNumber,
+            documentNo: row.documentNo,
+            documentDate: row.documentDate,
+            receivedDate: row.receivedDate,
           })),
         createdBy: "system",
         createdDate: new Date().toISOString(),
@@ -358,7 +366,7 @@ const RawMaterialEntry = () => {
           </div>
         </div>
 
-        {/* Service Entry Table */}
+        {/* Service Entry Table with New Columns */}
         <div className="entry-table-section">
           <div className="raw-table-header">
             <button className="kkk-add-btn" onClick={handleAddService}>
@@ -377,6 +385,10 @@ const RawMaterialEntry = () => {
                   <th>Qty</th>
                   <th>UOM</th>
                   <th>Total Weight</th>
+                  <th>Vehicle Number</th>
+                  <th>Document No</th>
+                  <th>Document Date</th>
+                  <th>Received Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -390,6 +402,10 @@ const RawMaterialEntry = () => {
                     <td>{row.qty || "-"}</td>
                     <td>{row.uom || "-"}</td>
                     <td>{row.totalWeight || "-"}</td>
+                    <td>{row.vehicleNumber || "-"}</td>
+                    <td>{row.documentNo || "-"}</td>
+                    <td>{row.documentDate || "-"}</td>
+                    <td>{row.receivedDate || "-"}</td>
                     <td>
                       <button onClick={() => handleDeleteSavedService(row.id)} className="jj-remove-btn">
                         <MdDelete />
@@ -463,6 +479,40 @@ const RawMaterialEntry = () => {
                       />
                     </td>
                     <td>
+                      <input
+                        type="text"
+                        value={row.vehicleNumber}
+                        onChange={(e) => handleServiceInputChange(row.id, "vehicleNumber", e.target.value)}
+                        className="vehicle-input"
+                        placeholder="Vehicle No"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={row.documentNo}
+                        onChange={(e) => handleServiceInputChange(row.id, "documentNo", e.target.value)}
+                        className="document-input"
+                        placeholder="Doc No"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        value={row.documentDate}
+                        onChange={(e) => handleServiceInputChange(row.id, "documentDate", e.target.value)}
+                        className="date-input"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        value={row.receivedDate}
+                        onChange={(e) => handleServiceInputChange(row.id, "receivedDate", e.target.value)}
+                        className="date-input"
+                      />
+                    </td>
+                    <td>
                       <button onClick={() => handleRemoveService(row.id)} className="jj-remove-btn">
                         <MdDelete />
                       </button>
@@ -471,7 +521,7 @@ const RawMaterialEntry = () => {
                 ))}
                 {savedServiceRows.length === 0 && serviceRows.length === 0 && (
                   <tr className="entry-empty">
-                    <td colSpan="7">
+                    <td colSpan="11">
                       <div className="raw-empty">
                         <div className="kkk-empty-text">No service entries added.</div>
                       </div>
