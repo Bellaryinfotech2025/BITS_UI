@@ -9,7 +9,7 @@ import '../RawMeterialEntry Component/RawMaterialEntry.css'
 
 const RawMaterialEntry = () => {
   // API Base URL - Updated to match your server
-  const API_BASE_URL = "http://localhost:5522/api/V2.0"
+  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
   // Work Order State
   const [workOrderRows, setWorkOrderRows] = useState([])
