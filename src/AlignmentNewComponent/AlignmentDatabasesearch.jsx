@@ -30,6 +30,18 @@ const AlignmentDatabasesearch = () => {
   const [editingRow, setEditingRow] = useState(null)
   const [editFormData, setEditFormData] = useState({})
 
+  // Helper function to format numbers with 3 decimal places
+  const formatNumber = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return "-"
+    }
+    const num = Number.parseFloat(value)
+    if (isNaN(num)) {
+      return "-"
+    }
+    return num.toFixed(3)
+  }
+
   // Fetch all data on component mount
   useEffect(() => {
     fetchAllData()
@@ -187,6 +199,7 @@ const AlignmentDatabasesearch = () => {
       length: row.length || "",
       itemQty: row.itemQty || "",
       itemWeight: row.itemWeight || "",
+      totalItemWeight: row.totalItemWeight || "", // NEW FIELD
       totalMarkedWgt: row.totalMarkedWgt || "",
       sessionWeight: row.sessionWeight || "",
       // Add new fields for editing
@@ -224,6 +237,7 @@ const AlignmentDatabasesearch = () => {
         length: Number.parseFloat(editFormData.length) || 0,
         itemQty: Number.parseFloat(editFormData.itemQty) || 0,
         itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
+        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0, // NEW FIELD
         totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || 0,
         sessionWeight: Number.parseFloat(editFormData.sessionWeight) || 0,
         lastUpdatedBy: "system",
@@ -362,6 +376,7 @@ const AlignmentDatabasesearch = () => {
         length: item.length || 0,
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
+        totalItemWeight: item.totalItemWeight || 0, // NEW FIELD - Include total item weight
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -540,10 +555,8 @@ const AlignmentDatabasesearch = () => {
                 <th>Building Name</th>
                 <th>Department</th>
                 <th>Work Location</th>
-                <th>Line Number</th>
                 <th>Drawing No</th>
-                {/* NEW COLUMNS NEXT TO DRAWING NO */}
-                <th>Drawing Weight</th>
+                <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
@@ -557,7 +570,7 @@ const AlignmentDatabasesearch = () => {
                 <th>Length</th>
                 <th>Item Qty</th>
                 <th>Item Weight</th>
-                {/* NEW FABRICATION STAGE COLUMNS NEXT TO ITEM WEIGHT */}
+                <th>Total Item Weight</th> {/* NEW COLUMN */}
                 <th>Cutting</th>
                 <th>Fit Up</th>
                 <th>Welding</th>
@@ -582,8 +595,6 @@ const AlignmentDatabasesearch = () => {
                   <td>{displayValue(row.attribute3V)}</td>
                   {/* Work Location - attribute4V */}
                   <td>{displayValue(row.attribute4V)}</td>
-                  {/* Line Number */}
-                  <td>{displayValue(row.lineId)}</td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -596,18 +607,17 @@ const AlignmentDatabasesearch = () => {
                       displayValue(row.drawingNo)
                     )}
                   </td>
-                  {/* NEW COLUMNS NEXT TO DRAWING NO */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
                         step="0.01"
-                        value={editFormData.drawingWeight}
-                        onChange={(e) => handleEditInputChange("drawingWeight", e.target.value)}
+                        value={editFormData.totalMarkedWgt}
+                        onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
                         className="align-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.drawingWeight)
+                      formatNumber(row.totalMarkedWgt)
                     )}
                   </td>
                   <td>
@@ -620,7 +630,7 @@ const AlignmentDatabasesearch = () => {
                         className="align-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.markWeight)
+                      formatNumber(row.markWeight)
                     )}
                   </td>
                   <td>
@@ -698,7 +708,7 @@ const AlignmentDatabasesearch = () => {
                     )}
                   </td>
                   {/* Section Weight - sessionWeight or totalMarkedWgt */}
-                  <td>{displayValue(row.sessionWeight || row.totalMarkedWgt)}</td>
+                  <td>{formatNumber(row.sessionWeight || row.totalMarkedWgt)}</td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -708,7 +718,7 @@ const AlignmentDatabasesearch = () => {
                         className="align-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.width)
+                      formatNumber(row.width)
                     )}
                   </td>
                   <td>
@@ -720,7 +730,7 @@ const AlignmentDatabasesearch = () => {
                         className="align-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.length)
+                      formatNumber(row.length)
                     )}
                   </td>
                   <td>
@@ -744,10 +754,23 @@ const AlignmentDatabasesearch = () => {
                         className="align-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.itemWeight)
+                      formatNumber(row.itemWeight)
                     )}
                   </td>
-                  {/* NEW FABRICATION STAGE COLUMNS NEXT TO ITEM WEIGHT */}
+                  {/* NEW TOTAL ITEM WEIGHT COLUMN */}
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={editFormData.totalItemWeight}
+                        onChange={(e) => handleEditInputChange("totalItemWeight", e.target.value)}
+                        className="align-edit-input-gemsbok"
+                      />
+                    ) : (
+                      formatNumber(row.totalItemWeight)
+                    )}
+                  </td>
                   <td>{renderFabricationCheckbox(row.cuttingStage, "Cutting")}</td>
                   <td>{renderFabricationCheckbox(row.fitUpStage, "Fit Up")}</td>
                   <td>{renderFabricationCheckbox(row.weldingStage, "Welding")}</td>
@@ -798,7 +821,9 @@ const AlignmentDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="align-empty-row-hartebeest">
-                  <td colSpan="27">
+                  <td colSpan="28">
+                    {" "}
+                    {/* Updated colspan to include new column */}
                     <div className="align-empty-state-gnu">
                       <div className="align-empty-text-duiker">No records found.</div>
                     </div>

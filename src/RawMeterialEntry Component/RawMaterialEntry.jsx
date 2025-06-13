@@ -323,10 +323,10 @@ const RawMaterialEntry = () => {
           <div className="raw-table-wrapper">
             <table className="kkk-table">
               <thead>
-                <tr>
+                {/* <tr>
                   <th>Order #</th>
                   <th>Work Order</th>
-                </tr>
+                </tr> */}
               </thead>
               <tbody>
                 {workOrderRows.map((row) => (

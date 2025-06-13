@@ -244,9 +244,11 @@ const FabricationDatabasesearch = () => {
       length: row.length || "",
       itemQty: row.itemQty || "",
       itemWeight: row.itemWeight || "",
+      totalItemWeight: row.totalItemWeight || "", // Add total item weight to edit form
       // Add new fields for editing
       drawingWeight: row.drawingWeight || "",
       markWeight: row.markWeight || "",
+      totalMarkedWgt: row.totalMarkedWgt || "", // Add total marked weight to edit form
       drawingReceivedDate: row.drawingReceivedDate || "",
       targetDate: row.targetDate || "",
     })
@@ -268,9 +270,11 @@ const FabricationDatabasesearch = () => {
         length: Number.parseFloat(editFormData.length) || 0,
         itemQty: Number.parseFloat(editFormData.itemQty) || 0,
         itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
+        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0, // Include total item weight
         // Add new fields
         drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
         markWeight: Number.parseFloat(editFormData.markWeight) || null,
+        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null, // Include total marked weight
         drawingReceivedDate: editFormData.drawingReceivedDate || null,
         targetDate: editFormData.targetDate || null,
         lastUpdatedBy: "system",
@@ -390,6 +394,7 @@ const FabricationDatabasesearch = () => {
         length: item.length || 0,
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
+        totalItemWeight: item.totalItemWeight || 0, // Include total item weight
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -467,6 +472,12 @@ const FabricationDatabasesearch = () => {
     } catch (error) {
       return dateString
     }
+  }
+
+  // Format number for display
+  const formatNumber = (value) => {
+    if (value === null || value === undefined) return "-"
+    return Number.parseFloat(value).toFixed(3)
   }
 
   return (
@@ -560,9 +571,9 @@ const FabricationDatabasesearch = () => {
                 <th>Building Name</th>
                 <th>Department</th>
                 <th>Work Location</th>
-                <th>Line Number</th>
+                {/* <th>Line Number</th> */}
                 <th>Drawing No</th>
-                <th>Drawing Weight</th>
+                <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
@@ -576,6 +587,7 @@ const FabricationDatabasesearch = () => {
                 <th>Length</th>
                 <th>Item Qty</th>
                 <th>Item Weight</th>
+                <th>Total Item Weight</th>
                 <th>Status</th>
                 {/* Fabrication Process Columns */}
                 <th className="fab-process-header">Cutting</th>
@@ -597,7 +609,7 @@ const FabricationDatabasesearch = () => {
                   <td>{row.attribute2V || "-"}</td>
                   <td>{row.attribute3V || "-"}</td>
                   <td>{row.attribute4V || "-"}</td>
-                  <td>{row.attribute5V || "-"}</td>
+                  {/* <td>{row.attribute5V || "-"}</td> */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -614,26 +626,26 @@ const FabricationDatabasesearch = () => {
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
-                        step="0.01"
-                        value={editFormData.drawingWeight}
-                        onChange={(e) => handleEditInputChange("drawingWeight", e.target.value)}
+                        step="0.001"
+                        value={editFormData.totalMarkedWgt}
+                        onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
                         className="fab-edit-input-deer"
                       />
                     ) : (
-                      row.drawingWeight || "-"
+                      formatNumber(row.totalMarkedWgt)
                     )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         value={editFormData.markWeight}
                         onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
                         className="fab-edit-input-deer"
                       />
                     ) : (
-                      row.markWeight || "-"
+                      formatNumber(row.markWeight)
                     )}
                   </td>
                   <td>
@@ -709,7 +721,7 @@ const FabricationDatabasesearch = () => {
                       row.sessionName || "-"
                     )}
                   </td>
-                  <td>{row.sessionWeight || "-"}</td>
+                  <td>{formatNumber(row.sessionWeight)}</td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -719,7 +731,7 @@ const FabricationDatabasesearch = () => {
                         className="fab-edit-input-deer"
                       />
                     ) : (
-                      row.width || "-"
+                      formatNumber(row.width)
                     )}
                   </td>
                   <td>
@@ -731,7 +743,7 @@ const FabricationDatabasesearch = () => {
                         className="fab-edit-input-deer"
                       />
                     ) : (
-                      row.length || "-"
+                      formatNumber(row.length)
                     )}
                   </td>
                   <td>
@@ -743,19 +755,33 @@ const FabricationDatabasesearch = () => {
                         className="fab-edit-input-deer"
                       />
                     ) : (
-                      row.itemQty || "-"
+                      formatNumber(row.itemQty)
                     )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
+                        step="0.001"
                         value={editFormData.itemWeight}
                         onChange={(e) => handleEditInputChange("itemWeight", e.target.value)}
                         className="fab-edit-input-deer"
                       />
                     ) : (
-                      row.itemWeight || "-"
+                      formatNumber(row.itemWeight)
+                    )}
+                  </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={editFormData.totalItemWeight}
+                        onChange={(e) => handleEditInputChange("totalItemWeight", e.target.value)}
+                        className="fab-edit-input-deer"
+                      />
+                    ) : (
+                      formatNumber(row.totalItemWeight)
                     )}
                   </td>
                   <td>
@@ -826,7 +852,7 @@ const FabricationDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="27">
+                  <td colSpan="28">
                     <div className="fab-empty-state-llama">
                       <div className="fab-empty-text-alpaca">No records found.</div>
                     </div>

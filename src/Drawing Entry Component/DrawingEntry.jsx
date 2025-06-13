@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdAdd } from "react-icons/md"
@@ -50,6 +50,41 @@ const DrawingEntry = () => {
     }
   }, [])
 
+  // Calculate total item weight from all service rows and update work order Mark Wgt
+  // Use useMemo to prevent infinite re-renders
+  const totalItemWeight = useMemo(() => {
+    return serviceFormRows.reduce((sum, row) => {
+      const totalWeight = Number.parseFloat(row.totalItemWeight) || 0
+      return sum + totalWeight
+    }, 0)
+  }, [serviceFormRows])
+
+  // Update Mark Wgt when totalItemWeight changes
+  const updateMarkWeight = useCallback(() => {
+    if (totalItemWeight > 0 && formRows.length > 0) {
+      setFormRows((prev) =>
+        prev.map((row, index) => {
+          if (index === 0) {
+            // Update only the first row
+            const markQty = Number.parseFloat(row.markQty) || 0
+            const totalMarkWeight = totalItemWeight * markQty
+            return {
+              ...row,
+              markWeight: totalItemWeight.toFixed(3),
+              totalMarkWeight: totalMarkWeight.toFixed(3),
+            }
+          }
+          return row
+        }),
+      )
+    }
+  }, [totalItemWeight, formRows])
+
+  // Use useEffect with proper dependencies to avoid infinite loop
+  useEffect(() => {
+    updateMarkWeight()
+  }, [totalItemWeight]) // Only depend on totalItemWeight, not formRows
+
   // Fetch work orders from bits_po_entry_header table
   const fetchWorkOrders = async () => {
     try {
@@ -67,7 +102,6 @@ const DrawingEntry = () => {
           }))
           setWorkOrderOptions(formattedOptions)
           console.log("Successfully fetched work orders from database:", formattedOptions)
-          // toast.success(`Loaded ${formattedOptions.length} work orders from database`)
         } else {
           console.warn("No work orders found in database")
           setWorkOrderOptions([])
@@ -209,17 +243,20 @@ const DrawingEntry = () => {
                 secWeight: data.wgt || 0,
               }
 
-              // Recalculate item weight if all required fields are present
-              if (updatedRow.width && updatedRow.length && updatedRow.itemQty) {
+              // NEW FORMULA: Calculate item weight (read-only) and total item weight
+              if (updatedRow.width && updatedRow.length) {
                 const width = Number.parseFloat(updatedRow.width) || 0
                 const length = Number.parseFloat(updatedRow.length) || 0
-                const itemQty = Number.parseFloat(updatedRow.itemQty) || 0
                 const secWeight = Number.parseFloat(data.wgt) || 0
+                const itemQty = Number.parseFloat(updatedRow.itemQty) || 0
 
-                updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight * itemQty).toFixed(3)
-                //updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight).toFixed(3)
+                // Item Weight = (width/1000) * (length/1000) * secWeight (read-only)
+                updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight).toFixed(3)
+
+                // Total Item Weight = Item Weight * Item Qty
+                updatedRow.totalItemWeight = (Number.parseFloat(updatedRow.itemWeight) * itemQty).toFixed(3)
               }
-                 
+
               return updatedRow
             }
             return row
@@ -288,8 +325,8 @@ const DrawingEntry = () => {
     lineNumber: "",
     lineNumberDisplay: "",
     drawingNo: "",
-    drawingWeight: "",
     markWeight: "",
+    totalMarkWeight: "",
     drawingReceivedDate: "",
     targetDate: "",
     markNo: "",
@@ -313,6 +350,7 @@ const DrawingEntry = () => {
       length: "",
       itemQty: "",
       itemWeight: "",
+      totalItemWeight: "",
     }
   }
 
@@ -339,6 +377,13 @@ const DrawingEntry = () => {
             }
           }
 
+          // Calculate Total Mark Weight when Mark Qty changes
+          if (name === "markQty") {
+            const markWeight = Number.parseFloat(updatedRow.markWeight) || 0
+            const markQty = Number.parseFloat(value) || 0
+            updatedRow.totalMarkWeight = (markWeight * markQty).toFixed(3)
+          }
+
           return updatedRow
         }
         return row
@@ -353,15 +398,18 @@ const DrawingEntry = () => {
         if (row.id === rowId) {
           const updatedRow = { ...row, [name]: value }
 
-          // Calculate item weight using the formula: (width/1000)*(length/1000)*Sec. Wty*item qty
+          // NEW FORMULA: Calculate item weight and total item weight
           if (name === "width" || name === "length" || name === "itemQty" || name === "secWeight") {
             const width = Number.parseFloat(name === "width" ? value : updatedRow.width) || 0
             const length = Number.parseFloat(name === "length" ? value : updatedRow.length) || 0
             const itemQty = Number.parseFloat(name === "itemQty" ? value : updatedRow.itemQty) || 0
             const secWeight = Number.parseFloat(name === "secWeight" ? value : updatedRow.secWeight) || 0
 
-            // Formula: (width/1000)*(length/1000)*Sec. Wty*item qty
-            updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight * itemQty).toFixed(3)
+            // Item Weight = (width/1000) * (length/1000) * secWeight (read-only)
+            updatedRow.itemWeight = ((width / 1000) * (length / 1000) * secWeight).toFixed(3)
+
+            // Total Item Weight = Item Weight * Item Qty
+            updatedRow.totalItemWeight = (Number.parseFloat(updatedRow.itemWeight) * itemQty).toFixed(3)
           }
 
           return updatedRow
@@ -414,7 +462,7 @@ const DrawingEntry = () => {
         drawingNo: formData.drawingNo || "",
         markNo: formData.markNo || "",
         markedQty: markQty,
-        totalMarkedWgt: Number.parseFloat(serviceData?.itemWeight) || 0,
+        totalMarkedWgt: Number.parseFloat(formData.totalMarkWeight) || 0,
         sessionCode: serviceData?.sectionCode || "",
         sessionName: serviceData?.sectionName || "",
         sessionWeight: Number.parseFloat(serviceData?.secWeight) || 0,
@@ -422,6 +470,7 @@ const DrawingEntry = () => {
         length: Number.parseFloat(serviceData?.length) || 0,
         itemQty: Number.parseFloat(serviceData?.itemQty) || 0,
         itemWeight: Number.parseFloat(serviceData?.itemWeight) || 0,
+        totalItemWeight: Number.parseFloat(serviceData?.totalItemWeight) || 0, // NEW FIELD
         tenantId: "DEFAULT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -442,7 +491,7 @@ const DrawingEntry = () => {
         attribute4D: null,
         attribute5D: null,
         // Add new fields with proper date formatting
-        drawingWeight: Number.parseFloat(formData.drawingWeight) || null,
+        drawingWeight: null, // Removed drawing weight
         markWeight: Number.parseFloat(formData.markWeight) || null,
         drawingReceivedDate: formData.drawingReceivedDate || null,
         targetDate: formData.targetDate || null,
@@ -491,7 +540,6 @@ const DrawingEntry = () => {
       setLoading(true)
       let totalSavedEntries = 0
       const savedHeaderRows = []
-      const savedServiceRows = []
 
       // Validate that we have data to save
       if (formRows.length === 0 && serviceFormRows.length === 0) {
@@ -544,17 +592,13 @@ const DrawingEntry = () => {
         }
       }
 
-      // Service rows are only used to supplement form row data
-      // They should not create separate database entries
-      console.log("Service rows processed as supplements to form rows only")
-
       // Update the display tables
       if (savedHeaderRows.length > 0) {
         setHeaderRows((prev) => [...savedHeaderRows, ...prev])
         setFormRows([])
       }
 
-      // Clear service form rows but don't add them to display
+      // Clear service form rows
       setServiceFormRows([])
 
       // Show success message
@@ -654,9 +698,8 @@ const DrawingEntry = () => {
                 <th>Building Name</th>
                 <th>Department</th>
                 <th>Work Location</th>
-                {/* <th>Line Number</th> */}
                 <th>Drawing No</th>
-                <th>Drawing Weight</th>
+                <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
@@ -721,21 +764,6 @@ const DrawingEntry = () => {
                       readOnly
                     />
                   </td>
-                  {/* <td>
-                    <select
-                      name="lineNumber"
-                      value={formData.lineNumber}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi drAOlineNumberSelectgi"
-                    >
-                      <option value="">Select Line Number</option>
-                      {lineNumberOptions.map((option) => (
-                        <option key={`line_${option.value}_${formData.id}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td> */}
                   <td>
                     <input
                       type="text"
@@ -750,23 +778,23 @@ const DrawingEntry = () => {
                   <td>
                     <input
                       type="number"
-                      step="0.01"
-                      name="drawingWeight"
-                      value={formData.drawingWeight || ""}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Drawing Weight"
+                      step="0.001"
+                      name="totalMarkWeight"
+                      value={formData.totalMarkWeight || ""}
+                      className="drAOfoxgi readonly"
+                      placeholder="Total Mark Weight"
+                      readOnly
                     />
                   </td>
                   <td>
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.001"
                       name="markWeight"
                       value={formData.markWeight || ""}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
+                      className="drAOfoxgi readonly"
                       placeholder="Mark Weight"
+                      readOnly
                     />
                   </td>
                   <td>
@@ -831,9 +859,8 @@ const DrawingEntry = () => {
                   <td>{row.plantLocation}</td>
                   <td>{row.department}</td>
                   <td>{row.workLocation}</td>
-                  <td>{row.lineNumberDisplay || row.lineNumber}</td>
                   <td>{row.drawingNo}</td>
-                  <td>{row.drawingWeight}</td>
+                  <td>{row.totalMarkWeight}</td>
                   <td>{row.markWeight}</td>
                   <td>{row.drawingReceivedDate}</td>
                   <td>{row.targetDate}</td>
@@ -844,7 +871,7 @@ const DrawingEntry = () => {
               ))}
               {headerRows.length === 0 && formRows.length === 0 && (
                 <tr className="drAOyakgi">
-                  <td colSpan="14">
+                  <td colSpan="13">
                     <div className="drAOcamelgi">
                       <div className="drAOllamagi">No work order records found.</div>
                     </div>
@@ -882,13 +909,12 @@ const DrawingEntry = () => {
                 <th>Item No</th>
                 <th>Section Code</th>
                 <th>Section Name</th>
-                <th>Section Weight</th>
                 <th>Width</th>
                 <th>Length</th>
-                {/* <th>Item weight </th> */}
+                <th>Section Weight</th>
                 <th>Item Qty</th>
+                <th>Item Weight</th>
                 <th>Total Item Weight</th>
-
                 <th>Actions</th>
               </tr>
             </thead>
@@ -950,18 +976,6 @@ const DrawingEntry = () => {
                     <input
                       type="number"
                       step="0.01"
-                      name="secWeight"
-                      value={formData.secWeight}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
-                      className="drAOfoxgi drAOserviceInputgi readonly"
-                      placeholder="Sec. Weight"
-                      readOnly
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      step="0.01"
                       name="width"
                       value={formData.width}
                       onChange={(e) => handleServiceInputChange(formData.id, e)}
@@ -978,6 +992,18 @@ const DrawingEntry = () => {
                       onChange={(e) => handleServiceInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi"
                       placeholder="Length"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="secWeight"
+                      value={formData.secWeight}
+                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      className="drAOfoxgi drAOserviceInputgi readonly"
+                      placeholder="Sec. Weight"
+                      readOnly
                     />
                   </td>
                   <td>
@@ -1004,6 +1030,17 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td>
+                    <input
+                      type="number"
+                      step="0.001"
+                      name="totalItemWeight"
+                      value={formData.totalItemWeight}
+                      className="drAOfoxgi drAOserviceInputgi readonly"
+                      placeholder="Total Item Weight"
+                      readOnly
+                    />
+                  </td>
+                  <td>
                     <button onClick={() => handleRemoveServiceRow(formData.id)} className="drAOremoveBtngi">
                       Remove
                     </button>
@@ -1020,17 +1057,18 @@ const DrawingEntry = () => {
                   <td>{row.itemNo}</td>
                   <td className="drAOgazellegi">{row.sectionCode}</td>
                   <td>{row.sectionName}</td>
-                  <td>{row.secWeight}</td>
                   <td>{row.width}</td>
                   <td>{row.length}</td>
+                  <td>{row.secWeight}</td>
                   <td>{row.itemQty}</td>
                   <td>{row.itemWeight}</td>
+                  <td>{row.totalItemWeight}</td>
                   <td></td>
                 </tr>
               ))}
               {serviceRows.length === 0 && serviceFormRows.length === 0 && (
                 <tr className="drAOyakgi">
-                  <td colSpan="10">
+                  <td colSpan="11">
                     <div className="drAOcamelgi">
                       <div className="drAOllamagi">No service records found.</div>
                     </div>

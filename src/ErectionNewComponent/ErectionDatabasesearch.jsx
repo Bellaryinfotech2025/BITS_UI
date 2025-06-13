@@ -184,6 +184,7 @@ const ErectionDatabasesearch = () => {
       length: row.length || "",
       itemQty: row.itemQty || "",
       itemWeight: row.itemWeight || "",
+      totalItemWeight: row.totalItemWeight || "", // NEW FIELD
       totalMarkedWgt: row.totalMarkedWgt || "",
       sessionWeight: row.sessionWeight || "",
       // Add new fields for editing
@@ -221,6 +222,7 @@ const ErectionDatabasesearch = () => {
         length: Number.parseFloat(editFormData.length) || 0,
         itemQty: Number.parseFloat(editFormData.itemQty) || 0,
         itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
+        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0, // NEW FIELD
         totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || 0,
         sessionWeight: Number.parseFloat(editFormData.sessionWeight) || 0,
         lastUpdatedBy: "system",
@@ -359,6 +361,7 @@ const ErectionDatabasesearch = () => {
         length: item.length || 0,
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
+        totalItemWeight: item.totalItemWeight || 0, // NEW FIELD
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -451,6 +454,12 @@ const ErectionDatabasesearch = () => {
     }
   }
 
+  // Format number for display
+  const formatNumber = (value) => {
+    if (value === null || value === undefined) return "-"
+    return Number.parseFloat(value).toFixed(3)
+  }
+
   // Helper function to render fabrication stage checkbox
   const renderFabricationCheckbox = (stage, label) => {
     const isChecked = stage === "Y"
@@ -540,10 +549,10 @@ const ErectionDatabasesearch = () => {
                 <th>Building Name</th>
                 <th>Department</th>
                 <th>Work Location</th>
-                <th>Line Number</th>
+                {/* <th>Line Number</th> */}
                 <th>Drawing No</th>
                 {/* NEW COLUMNS NEXT TO DRAWING NO */}
-                <th>Drawing Weight</th>
+                <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
@@ -557,7 +566,8 @@ const ErectionDatabasesearch = () => {
                 <th>Length</th>
                 <th>Item Qty</th>
                 <th>Item Weight</th>
-                {/* NEW FABRICATION STAGE COLUMNS NEXT TO ITEM WEIGHT */}
+                <th>Total Item Weight</th>
+                {/* NEW FABRICATION STAGE COLUMNS NEXT TO TOTAL ITEM WEIGHT */}
                 <th>Cutting</th>
                 <th>Fit Up</th>
                 <th>Welding</th>
@@ -583,7 +593,7 @@ const ErectionDatabasesearch = () => {
                   {/* Work Location - attribute4V */}
                   <td>{displayValue(row.attribute4V)}</td>
                   {/* Line Number */}
-                  <td>{displayValue(row.lineId)}</td>
+                  {/* <td>{displayValue(row.lineId)}</td> */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -601,26 +611,26 @@ const ErectionDatabasesearch = () => {
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
-                        step="0.01"
-                        value={editFormData.drawingWeight}
-                        onChange={(e) => handleEditInputChange("drawingWeight", e.target.value)}
+                        step="0.001"
+                        value={editFormData.totalMarkedWgt}
+                        onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
                         className="erect-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.drawingWeight)
+                      formatNumber(row.totalMarkedWgt)
                     )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         value={editFormData.markWeight}
                         onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
                         className="erect-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.markWeight)
+                      formatNumber(row.markWeight)
                     )}
                   </td>
                   <td>
@@ -698,7 +708,7 @@ const ErectionDatabasesearch = () => {
                     )}
                   </td>
                   {/* Section Weight - sessionWeight or totalMarkedWgt */}
-                  <td>{displayValue(row.sessionWeight || row.totalMarkedWgt)}</td>
+                  <td>{formatNumber(row.sessionWeight)}</td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -708,7 +718,7 @@ const ErectionDatabasesearch = () => {
                         className="erect-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.width)
+                      formatNumber(row.width)
                     )}
                   </td>
                   <td>
@@ -720,7 +730,7 @@ const ErectionDatabasesearch = () => {
                         className="erect-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.length)
+                      formatNumber(row.length)
                     )}
                   </td>
                   <td>
@@ -732,22 +742,37 @@ const ErectionDatabasesearch = () => {
                         className="erect-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.itemQty)
+                      formatNumber(row.itemQty)
                     )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
+                        step="0.001"
                         value={editFormData.itemWeight}
                         onChange={(e) => handleEditInputChange("itemWeight", e.target.value)}
                         className="erect-edit-input-gemsbok"
                       />
                     ) : (
-                      displayValue(row.itemWeight)
+                      formatNumber(row.itemWeight)
                     )}
                   </td>
-                  {/* NEW FABRICATION STAGE COLUMNS NEXT TO ITEM WEIGHT */}
+                  {/* NEW TOTAL ITEM WEIGHT COLUMN */}
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={editFormData.totalItemWeight}
+                        onChange={(e) => handleEditInputChange("totalItemWeight", e.target.value)}
+                        className="erect-edit-input-gemsbok"
+                      />
+                    ) : (
+                      formatNumber(row.totalItemWeight)
+                    )}
+                  </td>
+                  {/* NEW FABRICATION STAGE COLUMNS NEXT TO TOTAL ITEM WEIGHT */}
                   <td>{renderFabricationCheckbox(row.cuttingStage, "Cutting")}</td>
                   <td>{renderFabricationCheckbox(row.fitUpStage, "Fit Up")}</td>
                   <td>{renderFabricationCheckbox(row.weldingStage, "Welding")}</td>
@@ -798,7 +823,7 @@ const ErectionDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="erect-empty-row-hartebeest">
-                  <td colSpan="27">
+                  <td colSpan="29">
                     <div className="erect-empty-state-gnu">
                       <div className="erect-empty-text-duiker">No records found.</div>
                     </div>
