@@ -699,12 +699,15 @@ const DrawingEntry = () => {
                 <th>Department</th>
                 <th>Work Location</th>
                 <th>Drawing No</th>
-                <th>Total Mark Weight</th>
-                <th>Mark Wgt</th>
+                {/* <th>Total Mark Weight</th> */}
+                {/* <th>Mark Wgt</th> */}
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
                 <th>Mark No</th>
                 <th>Mark Qty</th>
+                <th>Mark Wgt</th>
+                {/* <th>Mark Qty</th> */}
+                 <th>Total Mark Weight</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -775,7 +778,7 @@ const DrawingEntry = () => {
                       required
                     />
                   </td>
-                  <td>
+                  {/* <td>
                     <input
                       type="number"
                       step="0.001"
@@ -785,8 +788,8 @@ const DrawingEntry = () => {
                       placeholder="Total Mark Weight"
                       readOnly
                     />
-                  </td>
-                  <td>
+                  </td> */}
+                  {/* <td>
                     <input
                       type="number"
                       step="0.001"
@@ -796,7 +799,7 @@ const DrawingEntry = () => {
                       placeholder="Mark Weight"
                       readOnly
                     />
-                  </td>
+                  </td> */}
                   <td>
                     <input
                       type="date"
@@ -839,6 +842,41 @@ const DrawingEntry = () => {
                       min="1"
                       max="1000"
                       required
+                    />
+                  </td>
+                   <td>
+                    <input
+                      type="number"
+                      step="0.001"
+                      name="markWeight"
+                      value={formData.markWeight || ""}
+                      className="drAOfoxgi readonly"
+                      placeholder="Mark Weight"
+                      readOnly
+                    />
+                  </td>
+                  {/* <td>
+                    <input
+                      type="number"
+                      name="markQty"
+                      value={formData.markQty}
+                      onChange={(e) => handleFormInputChange(formData.id, e)}
+                      className="drAOfoxgi"
+                      placeholder="Mark Qty"
+                      min="1"
+                      max="1000"
+                      required
+                    />
+                  </td> */}
+                   <td>
+                    <input
+                      type="number"
+                      step="0.001"
+                      name="totalMarkWeight"
+                      value={formData.totalMarkWeight || ""}
+                      className="drAOfoxgi readonly"
+                      placeholder="Total Mark Weight"
+                      readOnly
                     />
                   </td>
                   <td>
