@@ -631,71 +631,31 @@ const ReportTemplate = () => {
                   <th>
                     <div className="modern-th-content">
                       <span>Section Name</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M8 9L12 5L16 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      
                     </div>
                   </th>
                   <th>
                     <div className="modern-th-content">
                       <span>Total Drawing Weight (kg)</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M8 9L12 5L16 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                       
                     </div>
                   </th>
                   <th>
                     <div className="modern-th-content">
                       <span>Scrap Allowance (%)</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M8 9L12 5L16 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      
                     </div>
                   </th>
                   <th>
                     <div className="modern-th-content">
                       <span>Material Issue Type</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M8 9L12 5L16 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      
                     </div>
                   </th>
                   <th>
                     <div className="modern-th-content">
                       <span>Total Weight (kg)</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M8 9L12 5L16 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      
                     </div>
                   </th>
                 </tr>
@@ -706,7 +666,7 @@ const ReportTemplate = () => {
                     <tr key={index}>
                       <td>
                         <div className="modern-cell-content">
-                          <span className="modern-section-icon">🔧</span>
+                           
                           <span>{row.session_name || "N/A"}</span>
                         </div>
                       </td>
