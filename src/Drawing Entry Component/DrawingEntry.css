@@ -5,6 +5,7 @@
   color: #333;
   background-color: #f8f9fa;
   min-height: 100vh;
+  overflow: visible !important;
 }
 
 /* Header */
@@ -213,18 +214,21 @@
   padding: 15px 20px;
   background-color: #fff;
   border-bottom: 1px solid #e1e7ef;
+  overflow: visible !important;
 }
 
 .drAOhippogi {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  overflow: visible !important;
 }
 
 .drAOrhinogi {
   display: flex;
   gap: 10px;
   align-items: center;
+  overflow: visible !important;
 }
 
 .drAOcheetahgi {
@@ -251,15 +255,21 @@
   cursor: not-allowed;
 }
 
-/* Table container */
+/* Table container with horizontal scroll */
 .drAOleopardgi {
   margin: 20px;
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  overflow: hidden;
+  overflow: visible !important;
   position: relative;
+}
+
+.drAOtableWrappergi {
   overflow-x: auto;
+  overflow-y: visible !important; /* Allow dropdowns to show above */
+  max-height: 600px;
+  position: relative;
 }
 
 /* Loading overlay */
@@ -293,10 +303,16 @@
 .drAOlynxgi {
   width: 100%;
   border-collapse: collapse;
+  min-width: 1200px;
+  overflow: visible !important;
+  position: relative;
 }
 
 .drAOlynxgi thead {
   background-color: #2d3748;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .drAOlynxgi th {
@@ -307,7 +323,7 @@
   color: white;
   border: none;
   white-space: nowrap;
-  
+  min-width: 120px;
 }
 
 .drAOlynxgi td {
@@ -316,10 +332,14 @@
   color: #2d3748;
   white-space: nowrap;
   border: none;
+  min-width: 120px;
+  overflow: visible !important;
+  position: relative;
 }
 
 .drAOlynxgi tbody tr {
   border-bottom: 1px solid #e2e8f0;
+  overflow: visible;
 }
 
 .drAOlynxgi tbody tr:hover {
@@ -413,6 +433,21 @@
   cursor: pointer;
 }
 
+.drAOremoveBtngi {
+  background-color: #f56565;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.drAOremoveBtngi:hover {
+  background-color: #e53e3e;
+}
+
 /* Toast customization */
 .Toastify__toast {
   font-size: 14px;
@@ -455,283 +490,351 @@ html {
   scroll-behavior: smooth;
 }
 
-
-/*new styles*/
-/* Updated dropdown styles - ADD THESE TO YOUR DrawingEntry.css */
+/* Updated dropdown styles with better positioning */
+.drAOdropdownCellgi {
+  position: relative;
+  z-index: 100;
+}
 
 .drAOsearchableSelectgi {
-position: relative;
-min-width: 160px;
-z-index: 10;
+  position: relative;
+  min-width: 160px;
+  z-index: 1000;
 }
 
 .drAOsearchInputgi {
-width: 100%;
-padding: 8px 12px;
-border: 2px solid #e1e7ef;
-border-radius: 6px;
-font-size: 12px;
-background-color: #ffffff;
-outline: none;
-transition: all 0.3s ease;
-box-sizing: border-box;
-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e1e7ef;
+  border-radius: 6px;
+  font-size: 12px;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .drAOsearchInputgi:focus {
-border-color: #007bff;
-box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
-transform: translateY(-1px);
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .drAOdropdownListgi {
-position: absolute;
-top: calc(100% + 4px);
-left: 0;
-right: 0;
-background-color: #ffffff;
-border: 2px solid #e1e7ef;
-border-radius: 8px;
-max-height: 250px;
-overflow-y: auto;
-z-index: 9999;
-box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
-animation: dropdownSlideIn 0.2s ease-out;
-backdrop-filter: blur(10px);
+  position: fixed !important; /* Force fixed positioning */
+  background-color: #ffffff;
+  border: 2px solid #e1e7ef;
+  border-radius: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 99999 !important; /* Very high z-index */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+  animation: dropdownSlideIn 0.2s ease-out;
+  backdrop-filter: blur(10px);
+  min-width: 200px;
+  max-width: 300px;
+  /* Ensure it appears above everything */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 @keyframes dropdownSlideIn {
-from {
-  opacity: 0;
-  transform: translateY(-10px) scale(0.95);
-}
-to {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .drAOdropdownItemgi {
-padding: 12px 16px;
-cursor: pointer;
-font-size: 12px;
-font-weight: 500;
-border-bottom: 1px solid #f1f3f5;
-transition: all 0.2s ease;
-color: #2d3748;
-position: relative;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f3f5;
+  transition: all 0.2s ease;
+  color: #2d3748;
+  position: relative;
+  background-color: #ffffff;
 }
 
 .drAOdropdownItemgi:hover {
-background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-color: #007bff;
-transform: translateX(4px);
-border-left: 3px solid #007bff;
-padding-left: 13px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #007bff;
+  transform: translateX(4px);
+  border-left: 3px solid #007bff;
+  padding-left: 13px;
 }
 
 .drAOdropdownItemgi:last-child {
-border-bottom: none;
-border-radius: 0 0 6px 6px;
+  border-bottom: none;
+  border-radius: 0 0 6px 6px;
 }
 
 .drAOdropdownItemgi:first-child {
-border-radius: 6px 6px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .drAOdropdownItemgi:only-child {
-border-radius: 6px;
+  border-radius: 6px;
 }
 
 .drAOdropdownItemgi:active {
-background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-color: white;
-transform: translateX(2px) scale(0.98);
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  transform: translateX(2px) scale(0.98);
 }
 
-/* Ensure dropdown appears above table and other elements */
+/* Force table containers to not clip dropdowns */
+.drAOleopardgi {
+  overflow: visible !important;
+  position: relative;
+}
+
+.drAOtableWrappergi {
+  overflow-x: auto;
+  overflow-y: visible !important; /* Allow dropdowns to show above */
+  max-height: 600px;
+  position: relative;
+}
+
+/* Ensure dropdown appears above table and scrollbar */
 .drAOserviceTablegi {
-position: relative;
-z-index: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .drAOserviceTablegi td {
-position: relative;
-overflow: visible;
+  position: relative;
+  overflow: visible !important;
 }
 
-.drAOleopardgi {
-overflow: visible;
+.drAOlynxgi {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+  overflow: visible !important;
+  position: relative;
+}
+
+/* Remove any clipping from parent containers */
+.drAOelephantgi {
+  overflow: visible !important;
+}
+
+/* Ensure dropdowns appear above everything */
+.drAOdropdownListgi {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+}
+
+/* Custom scrollbar for dropdown with higher z-index */
+.drAOdropdownListgi::-webkit-scrollbar {
+  width: 8px;
+  z-index: 1000000;
+}
+
+.drAOdropdownListgi::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 4px;
+}
+
+.drAOdropdownListgi::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border-radius: 4px;
+  border: 1px solid #e1e7ef;
+}
+
+.drAOdropdownListgi::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+}
+
+/* Ensure no parent container clips the dropdown */
+* {
+  /* Remove any potential clipping */
+}
+
+.drAOzebragi,
+.drAOhippogi,
+.drAOrhinogi {
+  overflow: visible !important;
+}
+
+/* Force visibility for all dropdown related elements */
+.drAOsearchableSelectgi,
+.drAOdropdownCellgi,
+.drAOdropdownListgi {
+  overflow: visible !important;
+  clip: unset !important;
+  clip-path: unset !important;
 }
 
 /* Custom scrollbar for dropdown */
 .drAOdropdownListgi::-webkit-scrollbar {
-width: 8px;
+  width: 8px;
 }
 
 .drAOdropdownListgi::-webkit-scrollbar-track {
-background: #f1f3f5;
-border-radius: 4px;
+  background: #f1f3f5;
+  border-radius: 4px;
 }
 
 .drAOdropdownListgi::-webkit-scrollbar-thumb {
-background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-border-radius: 4px;
-border: 1px solid #e1e7ef;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border-radius: 4px;
+  border: 1px solid #e1e7ef;
 }
 
 .drAOdropdownListgi::-webkit-scrollbar-thumb:hover {
-background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
 }
 
 /* Empty state for dropdown */
 .drAOdropdownEmptygi {
-padding: 20px 16px;
-text-align: center;
-color: #6c757d;
-font-style: italic;
-font-size: 11px;
+  padding: 20px 16px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 11px;
 }
 
 /* Loading state for dropdown */
 .drAOdropdownLoadinggi {
-padding: 16px;
-text-align: center;
-color: #007bff;
-font-size: 11px;
+  padding: 16px;
+  text-align: center;
+  color: #007bff;
+  font-size: 11px;
 }
 
 .drAOdropdownLoadinggi::after {
-content: '';
-display: inline-block;
-width: 12px;
-height: 12px;
-margin-left: 8px;
-border: 2px solid #e1e7ef;
-border-top: 2px solid #007bff;
-border-radius: 50%;
-animation: spin 1s linear infinite;
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 8px;
+  border: 2px solid #e1e7ef;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Highlight matching text in dropdown items */
 .drAOdropdownItemgi mark {
-background-color: #fff3cd;
-color: #856404;
-padding: 1px 2px;
-border-radius: 2px;
-font-weight: 600;
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: 600;
 }
 
 /* Focus states and accessibility */
 .drAOdropdownItemgi:focus {
-outline: 2px solid #007bff;
-outline-offset: -2px;
-background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  outline: 2px solid #007bff;
+  outline-offset: -2px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-.drAOsearchInputgi {
-  padding: 6px 10px;
-  font-size: 11px;
-}
+  .drAOsearchInputgi {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
 
-.drAOdropdownItemgi {
-  padding: 10px 14px;
-  font-size: 11px;
-}
+  .drAOdropdownItemgi {
+    padding: 10px 14px;
+    font-size: 11px;
+  }
 
-.drAOdropdownListgi {
-  max-height: 200px;
-}
+  .drAOdropdownListgi {
+    max-height: 200px;
+  }
 }
 
 @media (max-width: 768px) {
-.drAOsearchInputgi {
-  padding: 5px 8px;
-  font-size: 10px;
-  border-radius: 4px;
-}
+  .drAOsearchInputgi {
+    padding: 5px 8px;
+    font-size: 10px;
+    border-radius: 4px;
+  }
 
-.drAOdropdownItemgi {
-  padding: 8px 12px;
-  font-size: 10px;
-}
+  .drAOdropdownItemgi {
+    padding: 8px 12px;
+    font-size: 10px;
+  }
 
-.drAOdropdownListgi {
-  max-height: 150px;
-  border-radius: 6px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
+  .drAOdropdownListgi {
+    max-height: 150px;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
 
-.drAOsearchableSelectgi {
-  min-width: 120px;
-}
+  .drAOsearchableSelectgi {
+    min-width: 120px;
+  }
 }
 
 /* Dark mode support (optional) */
 @media (prefers-color-scheme: dark) {
-.drAOdropdownListgi {
-  background-color: #2d3748;
-  border-color: #4a5568;
-}
+  .drAOdropdownListgi {
+    background-color: #2d3748;
+    border-color: #4a5568;
+  }
 
-.drAOdropdownItemgi {
-  color: #e2e8f0;
-  border-bottom-color: #4a5568;
-}
+  .drAOdropdownItemgi {
+    color: #e2e8f0;
+    border-bottom-color: #4a5568;
+  }
 
-.drAOdropdownItemgi:hover {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  color: #63b3ed;
-}
+  .drAOdropdownItemgi:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    color: #63b3ed;
+  }
 
-.drAOsearchInputgi {
-  background-color: #2d3748;
-  border-color: #4a5568;
-  color: #e2e8f0;
-}
+  .drAOsearchInputgi {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
 }
 
 /* Prevent table overflow issues */
-.drAOlynxgi {
-overflow: visible;
-}
-
-.drAOlynxgi tbody {
-overflow: visible;
-}
-
-.drAOlynxgi tr {
-overflow: visible;
-}
-
-/* Add subtle animation to search input */
-.drAOsearchInputgi::placeholder {
-color: #a0aec0;
-transition: color 0.3s ease;
-}
-
-.drAOsearchInputgi:focus::placeholder {
-color: #cbd5e0;
-}
-
-/* Dropdown backdrop for mobile */
-@media (max-width: 768px) {
-.drAOdropdownListgi::before {
-  content: '';
+.drAOdropdownBackdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  z-index: -1;
-  pointer-events: none;
-}
+  z-index: 999;
+  background: transparent;
 }
 
-@keyframes spin {
-0% { transform: rotate(0deg); }
-100% { transform: rotate(360deg); }
+/* Add subtle animation to search input */
+.drAOsearchInputgi::placeholder {
+  color: #a0aec0;
+  transition: color 0.3s ease;
+}
+
+.drAOsearchInputgi:focus::placeholder {
+  color: #cbd5e0;
+}
+
+/* Dropdown backdrop for mobile */
+@media (max-width: 768px) {
+  .drAOdropdownListgi::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: -1;
+    pointer-events: none;
+  }
 }

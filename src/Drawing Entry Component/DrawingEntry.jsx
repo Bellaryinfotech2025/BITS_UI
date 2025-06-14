@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
@@ -11,15 +13,27 @@ const DrawingEntry = () => {
   // API Base URL
   const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
-  // Work Order Header Table State
-  const [headerRows, setHeaderRows] = useState([])
-  const [formRows, setFormRows] = useState([])
-  const [loading, setLoading] = useState(false)
+  // Drawing Entry State (Single Row)
+  const [drawingEntryData, setDrawingEntryData] = useState({
+    id: "drawing_entry_1",
+    workOrder: "",
+    plantLocation: "",
+    department: "",
+    workLocation: "",
+    lineNumber: "",
+    lineNumberDisplay: "",
+    drawingNo: "",
+    markWeight: "",
+    totalMarkWeight: "",
+    drawingReceivedDate: "",
+    targetDate: "",
+    markNo: "",
+    markQty: "",
+  })
 
-  // Service Details Table State
-  const [serviceRows, setServiceRows] = useState([])
-  const [serviceFormRows, setServiceFormRows] = useState([])
-  const [serviceLoading, setServiceLoading] = useState(false)
+  // BOM Entry State (Multiple Rows)
+  const [bomEntryRows, setBomEntryRows] = useState([])
+  const [loading, setLoading] = useState(false)
 
   // API Data State
   const [workOrderOptions, setWorkOrderOptions] = useState([])
@@ -28,12 +42,23 @@ const DrawingEntry = () => {
   const [searchTerms, setSearchTerms] = useState({})
   const [filteredSectionCodes, setFilteredSectionCodes] = useState({})
   const [showDropdowns, setShowDropdowns] = useState({})
+  // Add filtered work orders state
+  const [filteredWorkOrders, setFilteredWorkOrders] = useState({})
+
+  // Saved entries for display
+  const [savedEntries, setSavedEntries] = useState([])
 
   // Fetch work orders, section codes, and line numbers on component mount
   useEffect(() => {
     fetchWorkOrders()
     fetchSectionCodes()
     fetchLineNumbers()
+    // Initialize with one BOM row
+    setBomEntryRows([createNewBomRow()])
+    // Initialize work order search state
+    setSearchTerms((prev) => ({ ...prev, [`workOrder_${drawingEntryData.id}`]: "" }))
+    setFilteredWorkOrders((prev) => ({ ...prev, [drawingEntryData.id]: workOrderOptions }))
+    setShowDropdowns((prev) => ({ ...prev, [`workOrder_${drawingEntryData.id}`]: false }))
   }, [])
 
   // Close dropdown when clicking outside
@@ -50,40 +75,30 @@ const DrawingEntry = () => {
     }
   }, [])
 
-  // Calculate total item weight from all service rows and update work order Mark Wgt
-  // Use useMemo to prevent infinite re-renders
+  // Calculate total item weight from all BOM rows and update Drawing Entry Mark Wgt
   const totalItemWeight = useMemo(() => {
-    return serviceFormRows.reduce((sum, row) => {
+    return bomEntryRows.reduce((sum, row) => {
       const totalWeight = Number.parseFloat(row.totalItemWeight) || 0
       return sum + totalWeight
     }, 0)
-  }, [serviceFormRows])
+  }, [bomEntryRows])
 
-  // Update Mark Wgt when totalItemWeight changes
+  // Update Mark Weight when totalItemWeight changes
   const updateMarkWeight = useCallback(() => {
-    if (totalItemWeight > 0 && formRows.length > 0) {
-      setFormRows((prev) =>
-        prev.map((row, index) => {
-          if (index === 0) {
-            // Update only the first row
-            const markQty = Number.parseFloat(row.markQty) || 0
-            const totalMarkWeight = totalItemWeight * markQty
-            return {
-              ...row,
-              markWeight: totalItemWeight.toFixed(3),
-              totalMarkWeight: totalMarkWeight.toFixed(3),
-            }
-          }
-          return row
-        }),
-      )
+    if (totalItemWeight > 0) {
+      const markQty = Number.parseFloat(drawingEntryData.markQty) || 0
+      const totalMarkWeight = totalItemWeight * markQty
+      setDrawingEntryData((prev) => ({
+        ...prev,
+        markWeight: totalItemWeight.toFixed(3),
+        totalMarkWeight: totalMarkWeight.toFixed(3),
+      }))
     }
-  }, [totalItemWeight, formRows])
+  }, [totalItemWeight, drawingEntryData.markQty])
 
-  // Use useEffect with proper dependencies to avoid infinite loop
   useEffect(() => {
     updateMarkWeight()
-  }, [totalItemWeight]) // Only depend on totalItemWeight, not formRows
+  }, [totalItemWeight])
 
   // Fetch work orders from bits_po_entry_header table
   const fetchWorkOrders = async () => {
@@ -191,7 +206,7 @@ const DrawingEntry = () => {
   }
 
   // Fetch work order details when a work order is selected
-  const fetchWorkOrderDetails = async (workOrder, rowId) => {
+  const fetchWorkOrderDetails = async (workOrder) => {
     try {
       console.log(`Fetching details for work order: ${workOrder}`)
       const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrder}`)
@@ -200,19 +215,12 @@ const DrawingEntry = () => {
         const data = await response.json()
         console.log("Work order details from database:", data)
 
-        setFormRows((prev) =>
-          prev.map((row) => {
-            if (row.id === rowId) {
-              return {
-                ...row,
-                plantLocation: data.plantLocation || "",
-                department: data.department || "",
-                workLocation: data.workLocation || "",
-              }
-            }
-            return row
-          }),
-        )
+        setDrawingEntryData((prev) => ({
+          ...prev,
+          plantLocation: data.plantLocation || "",
+          department: data.department || "",
+          workLocation: data.workLocation || "",
+        }))
         toast.success(`Loaded details for work order ${workOrder}`)
       } else {
         console.error("Failed to fetch work order details")
@@ -234,7 +242,7 @@ const DrawingEntry = () => {
         const data = await response.json()
         console.log("Section code details:", data)
 
-        setServiceFormRows((prev) =>
+        setBomEntryRows((prev) =>
           prev.map((row) => {
             if (row.id === rowId) {
               const updatedRow = {
@@ -243,7 +251,7 @@ const DrawingEntry = () => {
                 secWeight: data.wgt || 0,
               }
 
-              // NEW FORMULA: Calculate item weight (read-only) and total item weight
+              // Calculate item weight and total item weight
               if (updatedRow.width && updatedRow.length) {
                 const width = Number.parseFloat(updatedRow.width) || 0
                 const length = Number.parseFloat(updatedRow.length) || 0
@@ -272,6 +280,21 @@ const DrawingEntry = () => {
     }
   }
 
+  // Calculate dropdown position for fixed positioning
+  const calculateDropdownPosition = (inputElement) => {
+    if (!inputElement) return { top: 0, left: 0 }
+
+    const rect = inputElement.getBoundingClientRect()
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+
+    return {
+      top: rect.bottom + scrollTop + 2, // 2px gap below input
+      left: rect.left + scrollLeft,
+      width: rect.width,
+    }
+  }
+
   // Handle search input for section codes
   const handleSectionCodeSearch = (rowId, term) => {
     setSearchTerms((prev) => ({ ...prev, [rowId]: term }))
@@ -283,14 +306,28 @@ const DrawingEntry = () => {
       setFilteredSectionCodes((prev) => ({ ...prev, [rowId]: filtered }))
     }
 
-    // Show dropdown when typing
+    // Show dropdown when typing and calculate position
     setShowDropdowns((prev) => ({ ...prev, [rowId]: true }))
+
+    // Calculate and set dropdown position
+    setTimeout(() => {
+      const inputElement = document.querySelector(`input[data-row-id="${rowId}"]`)
+      if (inputElement) {
+        const position = calculateDropdownPosition(inputElement)
+        const dropdown = document.querySelector(`[data-dropdown-id="${rowId}"]`)
+        if (dropdown) {
+          dropdown.style.top = `${position.top}px`
+          dropdown.style.left = `${position.left}px`
+          dropdown.style.minWidth = `${Math.max(position.width, 200)}px`
+        }
+      }
+    }, 10)
   }
 
   // Handle section code selection
   const handleSectionCodeSelect = (rowId, sectionCode) => {
     // Update the form data
-    setServiceFormRows((prev) =>
+    setBomEntryRows((prev) =>
       prev.map((row) => {
         if (row.id === rowId) {
           return { ...row, sectionCode: sectionCode }
@@ -311,29 +348,61 @@ const DrawingEntry = () => {
     }
   }
 
+  // Handle search input for work orders
+  const handleWorkOrderSearch = (rowId, term) => {
+    setSearchTerms((prev) => ({ ...prev, [`workOrder_${rowId}`]: term }))
+
+    if (!term) {
+      setFilteredWorkOrders((prev) => ({ ...prev, [rowId]: workOrderOptions }))
+    } else {
+      const filtered = workOrderOptions.filter((option) => option.value.toLowerCase().includes(term.toLowerCase()))
+      setFilteredWorkOrders((prev) => ({ ...prev, [rowId]: filtered }))
+    }
+
+    // Show dropdown when typing and calculate position
+    setShowDropdowns((prev) => ({ ...prev, [`workOrder_${rowId}`]: true }))
+
+    // Calculate and set dropdown position
+    setTimeout(() => {
+      const inputElement = document.querySelector(`input[data-row-id="workOrder_${rowId}"]`)
+      if (inputElement) {
+        const position = calculateDropdownPosition(inputElement)
+        const dropdown = document.querySelector(`[data-dropdown-id="workOrder_${rowId}"]`)
+        if (dropdown) {
+          dropdown.style.top = `${position.top}px`
+          dropdown.style.left = `${position.left}px`
+          dropdown.style.minWidth = `${Math.max(position.width, 200)}px`
+        }
+      }
+    }, 10)
+  }
+
+  // Handle work order selection
+  const handleWorkOrderSelect = (rowId, workOrder) => {
+    // Update the form data
+    setDrawingEntryData((prev) => ({
+      ...prev,
+      workOrder: workOrder,
+    }))
+
+    // Update search term to show selected value
+    setSearchTerms((prev) => ({ ...prev, [`workOrder_${rowId}`]: workOrder }))
+
+    // Hide dropdown
+    setShowDropdowns((prev) => ({ ...prev, [`workOrder_${rowId}`]: false }))
+
+    // Fetch work order details
+    if (workOrder) {
+      fetchWorkOrderDetails(workOrder)
+    }
+  }
+
   // Generate unique ID for new rows
   const generateUniqueId = () => {
     return `row_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 
-  const createNewFormRow = () => ({
-    id: generateUniqueId(),
-    workOrder: "",
-    plantLocation: "",
-    department: "",
-    workLocation: "",
-    lineNumber: "",
-    lineNumberDisplay: "",
-    drawingNo: "",
-    markWeight: "",
-    totalMarkWeight: "",
-    drawingReceivedDate: "",
-    targetDate: "",
-    markNo: "",
-    markQty: "",
-  })
-
-  const createNewServiceRow = () => {
+  const createNewBomRow = () => {
     const newId = generateUniqueId()
     // Initialize search state for new row
     setSearchTerms((prev) => ({ ...prev, [newId]: "" }))
@@ -354,51 +423,46 @@ const DrawingEntry = () => {
     }
   }
 
-  const handleFormInputChange = (rowId, e) => {
+  const handleDrawingEntryInputChange = (e) => {
     const { name, value } = e.target
-    setFormRows((prev) =>
-      prev.map((row) => {
-        if (row.id === rowId) {
-          const updatedRow = { ...row, [name]: value }
+    setDrawingEntryData((prev) => {
+      const updatedData = { ...prev, [name]: value }
 
-          // If work order is changed, fetch the related details
-          if (name === "workOrder" && value) {
-            fetchWorkOrderDetails(value, rowId)
-          }
+      // If work order is changed, fetch the related details
+      if (name === "workOrder" && value) {
+        fetchWorkOrderDetails(value)
+      }
 
-          // If line number is changed, update display value
-          if (name === "lineNumber") {
-            const selectedLine = lineNumberOptions.find((option) => option.value.toString() === value)
-            if (selectedLine) {
-              updatedRow.lineNumberDisplay = selectedLine.label
-              console.log("Selected line:", selectedLine)
-            } else {
-              updatedRow.lineNumberDisplay = ""
-            }
-          }
-
-          // Calculate Total Mark Weight when Mark Qty changes
-          if (name === "markQty") {
-            const markWeight = Number.parseFloat(updatedRow.markWeight) || 0
-            const markQty = Number.parseFloat(value) || 0
-            updatedRow.totalMarkWeight = (markWeight * markQty).toFixed(3)
-          }
-
-          return updatedRow
+      // If line number is changed, update display value
+      if (name === "lineNumber") {
+        const selectedLine = lineNumberOptions.find((option) => option.value.toString() === value)
+        if (selectedLine) {
+          updatedData.lineNumberDisplay = selectedLine.label
+          console.log("Selected line:", selectedLine)
+        } else {
+          updatedData.lineNumberDisplay = ""
         }
-        return row
-      }),
-    )
+      }
+
+      // Calculate Total Mark Weight when Mark Qty changes
+      if (name === "markQty") {
+        const markWeight = Number.parseFloat(updatedData.markWeight) || 0
+        const markQty = Number.parseFloat(value) || 0
+        updatedData.totalMarkWeight = (markWeight * markQty).toFixed(3)
+      }
+
+      return updatedData
+    })
   }
 
-  const handleServiceInputChange = (rowId, e) => {
+  const handleBomInputChange = (rowId, e) => {
     const { name, value } = e.target
-    setServiceFormRows((prev) =>
+    setBomEntryRows((prev) =>
       prev.map((row) => {
         if (row.id === rowId) {
           const updatedRow = { ...row, [name]: value }
 
-          // NEW FORMULA: Calculate item weight and total item weight
+          // Calculate item weight and total item weight
           if (name === "width" || name === "length" || name === "itemQty" || name === "secWeight") {
             const width = Number.parseFloat(name === "width" ? value : updatedRow.width) || 0
             const length = Number.parseFloat(name === "length" ? value : updatedRow.length) || 0
@@ -419,12 +483,8 @@ const DrawingEntry = () => {
     )
   }
 
-  const handleAddHeader = () => {
-    setFormRows((prev) => [...prev, createNewFormRow()])
-  }
-
-  const handleAddService = () => {
-    setServiceFormRows((prev) => [...prev, createNewServiceRow()])
+  const handleAddBomRow = () => {
+    setBomEntryRows((prev) => [...prev, createNewBomRow()])
   }
 
   const showSuccessToast = (message) => {
@@ -446,41 +506,41 @@ const DrawingEntry = () => {
   }
 
   // Save data to bits_drawing_entry table
-  const saveToBitsDrawingEntry = async (formData, serviceData) => {
+  const saveToBitsDrawingEntry = async (bomRow) => {
     try {
       // Parse markQty as integer and ensure it's a valid number
-      const markQty = Number.parseInt(formData.markQty, 10)
+      const markQty = Number.parseInt(drawingEntryData.markQty, 10)
 
       // Validate markQty
       if (isNaN(markQty) || markQty <= 0) {
-        throw new Error(`Invalid Mark Qty: ${formData.markQty}. Must be a positive number.`)
+        throw new Error(`Invalid Mark Qty: ${drawingEntryData.markQty}. Must be a positive number.`)
       }
 
       console.log(`Processing Mark Qty: ${markQty} (type: ${typeof markQty})`)
 
-      const drawingEntryData = {
-        drawingNo: formData.drawingNo || "",
-        markNo: formData.markNo || "",
+      const drawingEntryDataToSave = {
+        drawingNo: drawingEntryData.drawingNo || "",
+        markNo: drawingEntryData.markNo || "",
         markedQty: markQty,
-        totalMarkedWgt: Number.parseFloat(formData.totalMarkWeight) || 0,
-        sessionCode: serviceData?.sectionCode || "",
-        sessionName: serviceData?.sectionName || "",
-        sessionWeight: Number.parseFloat(serviceData?.secWeight) || 0,
-        width: Number.parseFloat(serviceData?.width) || 0,
-        length: Number.parseFloat(serviceData?.length) || 0,
-        itemQty: Number.parseFloat(serviceData?.itemQty) || 0,
-        itemWeight: Number.parseFloat(serviceData?.itemWeight) || 0,
-        totalItemWeight: Number.parseFloat(serviceData?.totalItemWeight) || 0, // NEW FIELD
+        totalMarkedWgt: Number.parseFloat(drawingEntryData.totalMarkWeight) || 0,
+        sessionCode: bomRow?.sectionCode || "",
+        sessionName: bomRow?.sectionName || "",
+        sessionWeight: Number.parseFloat(bomRow?.secWeight) || 0,
+        width: Number.parseFloat(bomRow?.width) || 0,
+        length: Number.parseFloat(bomRow?.length) || 0,
+        itemQty: Number.parseFloat(bomRow?.itemQty) || 0,
+        itemWeight: Number.parseFloat(bomRow?.itemWeight) || 0,
+        totalItemWeight: Number.parseFloat(bomRow?.totalItemWeight) || 0,
         tenantId: "DEFAULT",
         createdBy: "system",
         lastUpdatedBy: "system",
-        poLineReferenceId: formData.lineNumber ? Number.parseInt(formData.lineNumber, 10) : null,
-        attribute1V: formData.workOrder || "",
-        attribute2V: formData.plantLocation || "",
-        attribute3V: formData.department || "",
-        attribute4V: formData.workLocation || "",
-        attribute5V: formData.lineNumberDisplay || "",
-        attribute1N: Number.parseFloat(serviceData?.itemNo) || null,
+        poLineReferenceId: drawingEntryData.lineNumber ? Number.parseInt(drawingEntryData.lineNumber, 10) : null,
+        attribute1V: drawingEntryData.workOrder || "",
+        attribute2V: drawingEntryData.plantLocation || "",
+        attribute3V: drawingEntryData.department || "",
+        attribute4V: drawingEntryData.workLocation || "",
+        attribute5V: drawingEntryData.lineNumberDisplay || "",
+        attribute1N: Number.parseFloat(bomRow?.itemNo) || null,
         attribute2N: null,
         attribute3N: null,
         attribute4N: null,
@@ -490,11 +550,10 @@ const DrawingEntry = () => {
         attribute3D: null,
         attribute4D: null,
         attribute5D: null,
-        // Add new fields with proper date formatting
-        drawingWeight: null, // Removed drawing weight
-        markWeight: Number.parseFloat(formData.markWeight) || null,
-        drawingReceivedDate: formData.drawingReceivedDate || null,
-        targetDate: formData.targetDate || null,
+        drawingWeight: null,
+        markWeight: Number.parseFloat(drawingEntryData.markWeight) || null,
+        drawingReceivedDate: drawingEntryData.drawingReceivedDate || null,
+        targetDate: drawingEntryData.targetDate || null,
         // Initialize fabrication stages to 'N'
         cuttingStage: "N",
         fitUpStage: "N",
@@ -502,14 +561,14 @@ const DrawingEntry = () => {
         finishingStage: "N",
       }
 
-      console.log("Sending data to API:", drawingEntryData)
+      console.log("Sending data to API:", drawingEntryDataToSave)
 
       const response = await fetch(`${API_BASE_URL}/createBitsDrawingEntry/details`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(drawingEntryData),
+        body: JSON.stringify(drawingEntryDataToSave),
       })
 
       if (response.ok) {
@@ -539,67 +598,73 @@ const DrawingEntry = () => {
     try {
       setLoading(true)
       let totalSavedEntries = 0
-      const savedHeaderRows = []
 
-      // Validate that we have data to save
-      if (formRows.length === 0 && serviceFormRows.length === 0) {
-        toast.info("No new records to save")
+      // Validate Drawing Entry data
+      if (!drawingEntryData.drawingNo || !drawingEntryData.markNo || !drawingEntryData.markQty) {
+        toast.error(`Please fill in Drawing No, Mark No, and Mark Qty`)
         return
       }
 
-      // Process each form row
-      for (const formRow of formRows) {
-        // Validate required fields
-        if (!formRow.drawingNo || !formRow.markNo || !formRow.markQty) {
-          toast.error(`Please fill in Drawing No, Mark No, and Mark Qty for all rows`)
-          return
-        }
+      // Validate markQty is a positive integer
+      const markQty = Number.parseInt(drawingEntryData.markQty, 10)
+      if (isNaN(markQty) || markQty <= 0) {
+        toast.error(`Mark Qty must be a positive number. Current value: ${drawingEntryData.markQty}`)
+        return
+      }
 
-        // Validate markQty is a positive integer
-        const markQty = Number.parseInt(formRow.markQty, 10)
-        if (isNaN(markQty) || markQty <= 0) {
-          toast.error(`Mark Qty must be a positive number. Current value: ${formRow.markQty}`)
-          return
-        }
+      // Validate that we have BOM entries
+      if (bomEntryRows.length === 0) {
+        toast.error("Please add at least one BOM entry")
+        return
+      }
 
-        // Find corresponding service row (if any)
-        const correspondingServiceRow =
-          serviceFormRows.find(
-            (serviceRow) => serviceRow.itemNo === formRow.lineNumber || serviceFormRows.length === 1,
-          ) ||
-          serviceFormRows[0] ||
-          {}
-
+      // Save each BOM row as separate entries in the database
+      for (const bomRow of bomEntryRows) {
         try {
           // Save to bits_drawing_entry table
-          const savedEntries = await saveToBitsDrawingEntry(formRow, correspondingServiceRow)
+          const savedEntries = await saveToBitsDrawingEntry(bomRow)
 
           // Count the number of entries created (based on markQty)
           const entriesCount = Array.isArray(savedEntries) ? savedEntries.length : 1
           totalSavedEntries += entriesCount
 
-          // Add to saved header rows for display
-          savedHeaderRows.push({
-            ...formRow,
-            id: generateUniqueId(),
-          })
-
-          console.log(`Successfully saved ${entriesCount} entries for drawing ${formRow.drawingNo}`)
+          console.log(`Successfully saved ${entriesCount} entries for BOM row ${bomRow.itemNo}`)
         } catch (error) {
-          console.error(`Error saving form row:`, error)
-          toast.error(`Failed to save drawing entry: ${error.message}`)
+          console.error(`Error saving BOM row:`, error)
+          toast.error(`Failed to save BOM entry: ${error.message}`)
           return
         }
       }
 
-      // Update the display tables
-      if (savedHeaderRows.length > 0) {
-        setHeaderRows((prev) => [...savedHeaderRows, ...prev])
-        setFormRows([])
+      // Add to saved entries for display
+      const newSavedEntry = {
+        ...drawingEntryData,
+        id: generateUniqueId(),
+        bomEntries: bomEntryRows.length,
+        totalEntries: totalSavedEntries,
       }
+      setSavedEntries((prev) => [newSavedEntry, ...prev])
 
-      // Clear service form rows
-      setServiceFormRows([])
+      // Clear form data
+      setDrawingEntryData({
+        id: "drawing_entry_1",
+        workOrder: "",
+        plantLocation: "",
+        department: "",
+        workLocation: "",
+        lineNumber: "",
+        lineNumberDisplay: "",
+        drawingNo: "",
+        markWeight: "",
+        totalMarkWeight: "",
+        drawingReceivedDate: "",
+        targetDate: "",
+        markNo: "",
+        markQty: "",
+      })
+
+      // Reset BOM entries to one empty row
+      setBomEntryRows([createNewBomRow()])
 
       // Show success message
       if (totalSavedEntries > 0) {
@@ -613,39 +678,40 @@ const DrawingEntry = () => {
     }
   }
 
-  const handleRemoveFormRow = (rowId) => {
-    setFormRows((prev) => prev.filter((row) => row.id !== rowId))
-  }
-
-  const handleRemoveServiceRow = (rowId) => {
-    setServiceFormRows((prev) => prev.filter((row) => row.id !== rowId))
-    // Clean up search state for removed row
-    setSearchTerms((prev) => {
-      const newState = { ...prev }
-      delete newState[rowId]
-      return newState
-    })
-    setFilteredSectionCodes((prev) => {
-      const newState = { ...prev }
-      delete newState[rowId]
-      return newState
-    })
-    setShowDropdowns((prev) => {
-      const newState = { ...prev }
-      delete newState[rowId]
-      return newState
-    })
+  const handleRemoveBomRow = (rowId) => {
+    if (bomEntryRows.length > 1) {
+      setBomEntryRows((prev) => prev.filter((row) => row.id !== rowId))
+      // Clean up search state for removed row
+      setSearchTerms((prev) => {
+        const newState = { ...prev }
+        delete newState[rowId]
+        return newState
+      })
+      setFilteredSectionCodes((prev) => {
+        const newState = { ...prev }
+        delete newState[rowId]
+        return newState
+      })
+      setShowDropdowns((prev) => {
+        const newState = { ...prev }
+        delete newState[rowId]
+        return newState
+      })
+    } else {
+      toast.warning("At least one BOM entry is required")
+    }
   }
 
   // Check if save button should be enabled
-  const isSaveEnabled = formRows.length > 0 || serviceFormRows.length > 0
+  const isSaveEnabled =
+    drawingEntryData.drawingNo && drawingEntryData.markNo && drawingEntryData.markQty && bomEntryRows.length > 0
 
   return (
     <div className="drAOelephantgi">
       {/* Header */}
       <div className="drAOliongi">
         <div className="drAOtigergi">
-          <h3>Work Order Entry</h3>
+          <h3></h3>
         </div>
         <button className="drAOgiraffeги drAOsaveBtngi" onClick={handleSaveAll} disabled={!isSaveEnabled || loading}>
           {loading ? (
@@ -662,18 +728,12 @@ const DrawingEntry = () => {
         </button>
       </div>
 
-      {/* Work Order Details Table */}
+      {/* Drawing Entry Table */}
       <div className="drAOzebragi">
         <div className="drAOhippogi">
           <div className="drAOrhinogi">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "black" }}>Work Order Entry</h4>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button className="drAOcheetahgi drAOaddBtngi" onClick={handleAddHeader}>
-                  <MdAdd className="drAObuttonIcongi" />
-                  <span>Add</span>
-                </button>
-              </div>
+              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "black" }}>DRAWING ENTRY</h4>
             </div>
           </div>
         </div>
@@ -699,195 +759,169 @@ const DrawingEntry = () => {
                 <th>Department</th>
                 <th>Work Location</th>
                 <th>Drawing No</th>
-                {/* <th>Total Mark Weight</th> */}
-                {/* <th>Mark Wgt</th> */}
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
                 <th>Mark No</th>
                 <th>Mark Qty</th>
                 <th>Mark Wgt</th>
-                {/* <th>Mark Qty</th> */}
-                 <th>Total Mark Weight</th>
-                <th>Actions</th>
+                <th>Total Mark Weight</th>
               </tr>
             </thead>
             <tbody>
-              {formRows.map((formData) => (
-                <tr key={formData.id} className="drAObeargi">
-                  <td>
-                    <div className="drAOwolfgi">
-                      <IoMdOpen />
-                    </div>
-                  </td>
-                  <td>
-                    <select
-                      name="workOrder"
-                      value={formData.workOrder}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi drAOworkOrderSelectgi"
-                    >
-                      <option value="">Select Work Order</option>
-                      {workOrderOptions.map((option) => (
-                        <option key={`wo_${option.value}_${formData.id}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
+              {/* Single Drawing Entry Row */}
+              <tr className="drAObeargi">
+                <td>
+                  <div className="drAOwolfgi">
+                    <IoMdOpen />
+                  </div>
+                </td>
+                <td className="drAOdropdownCellgi">
+                  <div className="drAOsearchableSelectgi">
                     <input
                       type="text"
-                      name="plantLocation"
-                      value={formData.plantLocation}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi readonly"
-                      placeholder="Plant Location"
-                      readOnly
+                      placeholder="Search or select work order..."
+                      value={searchTerms[`workOrder_${drawingEntryData.id}`] || ""}
+                      onChange={(e) => handleWorkOrderSearch(drawingEntryData.id, e.target.value)}
+                      onFocus={() =>
+                        setShowDropdowns((prev) => ({ ...prev, [`workOrder_${drawingEntryData.id}`]: true }))
+                      }
+                      className="drAOsearchInputgi"
+                      data-row-id={`workOrder_${drawingEntryData.id}`}
                     />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      name="department"
-                      value={formData.department}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi readonly"
-                      placeholder="Department"
-                      readOnly
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      name="workLocation"
-                      value={formData.workLocation}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi readonly"
-                      placeholder="Work Location"
-                      readOnly
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      name="drawingNo"
-                      value={formData.drawingNo}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Drawing No"
-                      required
-                    />
-                  </td>
-                  {/* <td>
-                    <input
-                      type="number"
-                      step="0.001"
-                      name="totalMarkWeight"
-                      value={formData.totalMarkWeight || ""}
-                      className="drAOfoxgi readonly"
-                      placeholder="Total Mark Weight"
-                      readOnly
-                    />
-                  </td> */}
-                  {/* <td>
-                    <input
-                      type="number"
-                      step="0.001"
-                      name="markWeight"
-                      value={formData.markWeight || ""}
-                      className="drAOfoxgi readonly"
-                      placeholder="Mark Weight"
-                      readOnly
-                    />
-                  </td> */}
-                  <td>
-                    <input
-                      type="date"
-                      name="drawingReceivedDate"
-                      value={formData.drawingReceivedDate || ""}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Received Date"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="date"
-                      name="targetDate"
-                      value={formData.targetDate || ""}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Target Date"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      name="markNo"
-                      value={formData.markNo}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Mark No"
-                      required
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      name="markQty"
-                      value={formData.markQty}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Mark Qty"
-                      min="1"
-                      max="1000"
-                      required
-                    />
-                  </td>
-                   <td>
-                    <input
-                      type="number"
-                      step="0.001"
-                      name="markWeight"
-                      value={formData.markWeight || ""}
-                      className="drAOfoxgi readonly"
-                      placeholder="Mark Weight"
-                      readOnly
-                    />
-                  </td>
-                  {/* <td>
-                    <input
-                      type="number"
-                      name="markQty"
-                      value={formData.markQty}
-                      onChange={(e) => handleFormInputChange(formData.id, e)}
-                      className="drAOfoxgi"
-                      placeholder="Mark Qty"
-                      min="1"
-                      max="1000"
-                      required
-                    />
-                  </td> */}
-                   <td>
-                    <input
-                      type="number"
-                      step="0.001"
-                      name="totalMarkWeight"
-                      value={formData.totalMarkWeight || ""}
-                      className="drAOfoxgi readonly"
-                      placeholder="Total Mark Weight"
-                      readOnly
-                    />
-                  </td>
-                  <td>
-                    <button onClick={() => handleRemoveFormRow(formData.id)} className="drAOremoveBtngi">
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {headerRows.map((row) => (
-                <tr key={`header_${row.id}`} className="drAOantelopegi">
+                    {showDropdowns[`workOrder_${drawingEntryData.id}`] && (
+                      <div
+                        className="drAOdropdownListgi"
+                        data-dropdown-id={`workOrder_${drawingEntryData.id}`}
+                        style={{ position: "fixed", zIndex: 999999 }}
+                      >
+                        {(filteredWorkOrders[drawingEntryData.id] || workOrderOptions).map((option, index) => (
+                          <div
+                            key={`${drawingEntryData.id}_wo_${option.value}_${index}`}
+                            className="drAOdropdownItemgi"
+                            onClick={() => handleWorkOrderSelect(drawingEntryData.id, option.value)}
+                          >
+                            {option.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    name="plantLocation"
+                    value={drawingEntryData.plantLocation}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi readonly"
+                    placeholder="Plant Location"
+                    readOnly
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    name="department"
+                    value={drawingEntryData.department}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi readonly"
+                    placeholder="Department"
+                    readOnly
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    name="workLocation"
+                    value={drawingEntryData.workLocation}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi readonly"
+                    placeholder="Work Location"
+                    readOnly
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    name="drawingNo"
+                    value={drawingEntryData.drawingNo}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi"
+                    placeholder="Drawing No"
+                    required
+                  />
+                </td>
+                <td>
+                  <input
+                    type="date"
+                    name="drawingReceivedDate"
+                    value={drawingEntryData.drawingReceivedDate || ""}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi"
+                    placeholder="Received Date"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="date"
+                    name="targetDate"
+                    value={drawingEntryData.targetDate || ""}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi"
+                    placeholder="Target Date"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    name="markNo"
+                    value={drawingEntryData.markNo}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi"
+                    placeholder="Mark No"
+                    required
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    name="markQty"
+                    value={drawingEntryData.markQty}
+                    onChange={handleDrawingEntryInputChange}
+                    className="drAOfoxgi"
+                    placeholder="Mark Qty"
+                    min="1"
+                    max="1000"
+                    required
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.001"
+                    name="markWeight"
+                    value={drawingEntryData.markWeight || ""}
+                    className="drAOfoxgi readonly"
+                    placeholder="Mark Weight"
+                    readOnly
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.001"
+                    name="totalMarkWeight"
+                    value={drawingEntryData.totalMarkWeight || ""}
+                    className="drAOfoxgi readonly"
+                    placeholder="Total Mark Weight"
+                    readOnly
+                  />
+                </td>
+              </tr>
+
+              {/* Display saved entries */}
+              {savedEntries.map((row) => (
+                <tr key={`saved_${row.id}`} className="drAOantelopegi">
                   <td>
                     <div className="drAOwolfgi">
                       <IoMdOpen />
@@ -898,37 +932,27 @@ const DrawingEntry = () => {
                   <td>{row.department}</td>
                   <td>{row.workLocation}</td>
                   <td>{row.drawingNo}</td>
-                  <td>{row.totalMarkWeight}</td>
-                  <td>{row.markWeight}</td>
                   <td>{row.drawingReceivedDate}</td>
                   <td>{row.targetDate}</td>
                   <td>{row.markNo}</td>
                   <td>{row.markQty}</td>
-                  <td></td>
+                  <td>{row.markWeight}</td>
+                  <td>{row.totalMarkWeight}</td>
                 </tr>
               ))}
-              {headerRows.length === 0 && formRows.length === 0 && (
-                <tr className="drAOyakgi">
-                  <td colSpan="13">
-                    <div className="drAOcamelgi">
-                      <div className="drAOllamagi">No work order records found.</div>
-                    </div>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Service Details Table */}
+      {/* BOM Entry Table */}
       <div className="drAOzebragi drAOserviceSectiongi">
         <div className="drAOhippogi">
           <div className="drAOrhinogi">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "black" }}>Service Entry</h4>
+              <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "black" }}>B.O.M ENTRY</h4>
               <div style={{ display: "flex", gap: "10px" }}>
-                <button className="drAOcheetahgi drAOaddBtngi" onClick={handleAddService}>
+                <button className="drAOcheetahgi drAOaddBtngi" onClick={handleAddBomRow}>
                   <MdAdd className="drAObuttonIcongi" />
                   <span>Add</span>
                 </button>
@@ -957,7 +981,7 @@ const DrawingEntry = () => {
               </tr>
             </thead>
             <tbody>
-              {serviceFormRows.map((formData) => (
+              {bomEntryRows.map((formData) => (
                 <tr key={formData.id} className="drAObeargi">
                   <td>
                     <div className="drAOwolfgi">
@@ -969,7 +993,7 @@ const DrawingEntry = () => {
                       type="text"
                       name="itemNo"
                       value={formData.itemNo}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      onChange={(e) => handleBomInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi"
                       placeholder="Item No"
                     />
@@ -983,9 +1007,14 @@ const DrawingEntry = () => {
                         onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
                         onFocus={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: true }))}
                         className="drAOsearchInputgi"
+                        data-row-id={formData.id}
                       />
                       {showDropdowns[formData.id] && (
-                        <div className="drAOdropdownListgi">
+                        <div
+                          className="drAOdropdownListgi"
+                          data-dropdown-id={formData.id}
+                          style={{ position: "fixed", zIndex: 999999 }}
+                        >
                           {(filteredSectionCodes[formData.id] || sectionCodeOptions).map((option, index) => (
                             <div
                               key={`${formData.id}_${option.value}_${index}`}
@@ -1004,7 +1033,7 @@ const DrawingEntry = () => {
                       type="text"
                       name="sectionName"
                       value={formData.sectionName}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      onChange={(e) => handleBomInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi readonly"
                       placeholder="Section Name"
                       readOnly
@@ -1016,7 +1045,7 @@ const DrawingEntry = () => {
                       step="0.01"
                       name="width"
                       value={formData.width}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      onChange={(e) => handleBomInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi"
                       placeholder="Width"
                     />
@@ -1027,7 +1056,7 @@ const DrawingEntry = () => {
                       step="0.01"
                       name="length"
                       value={formData.length}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      onChange={(e) => handleBomInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi"
                       placeholder="Length"
                     />
@@ -1038,7 +1067,7 @@ const DrawingEntry = () => {
                       step="0.01"
                       name="secWeight"
                       value={formData.secWeight}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      onChange={(e) => handleBomInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi readonly"
                       placeholder="Sec. Weight"
                       readOnly
@@ -1049,7 +1078,7 @@ const DrawingEntry = () => {
                       type="number"
                       name="itemQty"
                       value={formData.itemQty}
-                      onChange={(e) => handleServiceInputChange(formData.id, e)}
+                      onChange={(e) => handleBomInputChange(formData.id, e)}
                       className="drAOfoxgi drAOserviceInputgi"
                       placeholder="Item Qty"
                       min="1"
@@ -1079,36 +1108,17 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td>
-                    <button onClick={() => handleRemoveServiceRow(formData.id)} className="drAOremoveBtngi">
+                    <button onClick={() => handleRemoveBomRow(formData.id)} className="drAOremoveBtngi">
                       Remove
                     </button>
                   </td>
                 </tr>
               ))}
-              {serviceRows.map((row) => (
-                <tr key={`service_${row.id}`} className="drAOantelopegi">
-                  <td>
-                    <div className="drAOwolfgi">
-                      <IoMdOpen />
-                    </div>
-                  </td>
-                  <td>{row.itemNo}</td>
-                  <td className="drAOgazellegi">{row.sectionCode}</td>
-                  <td>{row.sectionName}</td>
-                  <td>{row.width}</td>
-                  <td>{row.length}</td>
-                  <td>{row.secWeight}</td>
-                  <td>{row.itemQty}</td>
-                  <td>{row.itemWeight}</td>
-                  <td>{row.totalItemWeight}</td>
-                  <td></td>
-                </tr>
-              ))}
-              {serviceRows.length === 0 && serviceFormRows.length === 0 && (
+              {bomEntryRows.length === 0 && (
                 <tr className="drAOyakgi">
                   <td colSpan="11">
                     <div className="drAOcamelgi">
-                      <div className="drAOllamagi">No service records found.</div>
+                      <div className="drAOllamagi">No BOM records found.</div>
                     </div>
                   </td>
                 </tr>

@@ -23,6 +23,14 @@ const FabricationDatabasesearch = () => {
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
 
+  // Selected filter values for display
+  const [selectedFilters, setSelectedFilters] = useState({
+    workOrder: "",
+    buildingName: "",
+    drawingNo: "",
+    markNo: "",
+  })
+
   // Move to Erection popup states
   const [showMoveToErectionPopup, setShowMoveToErectionPopup] = useState(false)
   const [selectedMarkNosForErection, setSelectedMarkNosForErection] = useState([])
@@ -136,7 +144,9 @@ const FabricationDatabasesearch = () => {
         toast.success(`Successfully updated fabrication stages for ${result.updatedCount} entries!`)
 
         // Refresh data to get updated values
-        fetchAllData()
+        if (selectedDrawingNo || selectedMarkNo) {
+          handleSearch()
+        }
       } else {
         const errorText = await response.text()
         console.error("Save fabrication stages failed:", errorText)
@@ -150,30 +160,72 @@ const FabricationDatabasesearch = () => {
     }
   }
 
-  // Fetch all data on component mount
+  // Fetch dropdown data on component mount
   useEffect(() => {
-    fetchAllData()
+    fetchDropdownData()
   }, [])
 
-  // Filter data when filters change
-  useEffect(() => {
-    filterData()
-  }, [selectedDrawingNo, selectedMarkNo, tableData])
-
-  // Initialize fabrication stages when filtered data changes
-  useEffect(() => {
-    filteredData.forEach((row) => {
-      initializeFabricationStagesFromData(row.lineId, row)
-    })
-  }, [filteredData])
-
-  // Fetch unique drawing entries and populate dropdowns
-  const fetchAllData = async () => {
+  // Fetch dropdown data for Drawing No and Mark No
+  const fetchDropdownData = async () => {
     try {
       setLoading(true)
 
-      // Use the new unique entries endpoint
-      const response = await fetch(`${API_BASE_URL}/getUniqueBitsDrawingEntries/details`)
+      // Fetch distinct drawing numbers
+      const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctBitsDrawingEntryDrawingNumbers/details`)
+      if (drawingResponse.ok) {
+        const drawingData = await drawingResponse.json()
+        setDrawingNumbers(drawingData || [])
+        console.log("Drawing Numbers:", drawingData)
+      }
+
+      // Fetch distinct mark numbers
+      const markResponse = await fetch(`${API_BASE_URL}/getDistinctBitsDrawingEntryMarkNumbers/details`)
+      if (markResponse.ok) {
+        const markData = await markResponse.json()
+        setMarkNumbers(markData || [])
+        setAvailableMarkNosForErection(markData || [])
+        console.log("Mark Numbers:", markData)
+      }
+    } catch (error) {
+      console.error("Error fetching dropdown data:", error)
+      toast.error(`Error fetching dropdown data: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle search button click
+  const handleSearch = async () => {
+    if (!selectedDrawingNo && !selectedMarkNo) {
+      toast.warning("Please select at least Drawing No or Mark No to search")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Build search URL with parameters
+      let searchUrl = `${API_BASE_URL}/searchBitsDrawingEntries/details?`
+      const params = new URLSearchParams()
+
+      if (selectedDrawingNo) {
+        params.append("drawingNo", selectedDrawingNo)
+      }
+      if (selectedMarkNo) {
+        params.append("markNo", selectedMarkNo)
+      }
+
+      // Add pagination parameters
+      params.append("page", "0")
+      params.append("size", "1000")
+      params.append("sortBy", "creationDate")
+      params.append("sortDir", "desc")
+
+      searchUrl += params.toString()
+
+      console.log("Search URL:", searchUrl)
+
+      const response = await fetch(searchUrl)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -184,51 +236,46 @@ const FabricationDatabasesearch = () => {
         throw new Error("Response is not JSON")
       }
 
-      const data = await response.json()
+      const result = await response.json()
+      console.log("Search result:", result)
 
-      console.log("Fetched unique data:", data)
+      // Handle paginated response
+      const data = result.content || result || []
 
-      // Set table data
       setTableData(data)
       setFilteredData(data)
 
-      // Extract unique drawing numbers and mark numbers for dropdowns
-      const uniqueDrawingNos = [...new Set(data.map((item) => item.drawingNo).filter(Boolean))]
-      const uniqueMarkNos = [...new Set(data.map((item) => item.markNo).filter(Boolean))]
+      // Set selected filter values for display
+      if (data.length > 0) {
+        const firstRow = data[0]
+        setSelectedFilters({
+          workOrder: firstRow.attribute1V || "",
+          buildingName: firstRow.attribute2V || "",
+          drawingNo: selectedDrawingNo,
+          markNo: selectedMarkNo,
+        })
+      }
 
-      setDrawingNumbers(uniqueDrawingNos.sort())
-      setMarkNumbers(uniqueMarkNos.sort())
-      setAvailableMarkNosForErection(uniqueMarkNos.sort())
+      // Initialize fabrication stages for all rows
+      data.forEach((row) => {
+        initializeFabricationStagesFromData(row.lineId, row)
+      })
 
-      console.log("Drawing Numbers:", uniqueDrawingNos)
-      console.log("Mark Numbers:", uniqueMarkNos)
+      toast.info(`Found ${data.length} records`)
     } catch (error) {
-      console.error("Error fetching data:", error)
-      toast.error(`Error fetching data: ${error.message}`)
+      console.error("Error searching data:", error)
+      toast.error(`Error searching data: ${error.message}`)
+      setTableData([])
+      setFilteredData([])
+      setSelectedFilters({
+        workOrder: "",
+        buildingName: "",
+        drawingNo: "",
+        markNo: "",
+      })
     } finally {
       setLoading(false)
     }
-  }
-
-  // Filter data based on selected criteria
-  const filterData = () => {
-    let filtered = tableData
-
-    if (selectedDrawingNo) {
-      filtered = filtered.filter((item) => item.drawingNo === selectedDrawingNo)
-    }
-
-    if (selectedMarkNo) {
-      filtered = filtered.filter((item) => item.markNo === selectedMarkNo)
-    }
-
-    setFilteredData(filtered)
-  }
-
-  // Handle search button click
-  const handleSearch = () => {
-    filterData()
-    toast.info(`Found ${filteredData.length} records`)
   }
 
   // Handle edit button click
@@ -244,13 +291,12 @@ const FabricationDatabasesearch = () => {
       length: row.length || "",
       itemQty: row.itemQty || "",
       itemWeight: row.itemWeight || "",
-      totalItemWeight: row.totalItemWeight || "", // Add total item weight to edit form
-      // Add new fields for editing
+      totalItemWeight: row.totalItemWeight || "",
       drawingWeight: row.drawingWeight || "",
       markWeight: row.markWeight || "",
-      totalMarkedWgt: row.totalMarkedWgt || "", // Add total marked weight to edit form
-      drawingReceivedDate: row.drawingReceivedDate || "",
-      targetDate: row.targetDate || "",
+      totalMarkedWgt: row.totalMarkedWgt || "",
+      // drawingReceivedDate: row.drawingReceivedDate || "",
+      // targetDate: row.targetDate || "",
     })
   }
 
@@ -270,13 +316,12 @@ const FabricationDatabasesearch = () => {
         length: Number.parseFloat(editFormData.length) || 0,
         itemQty: Number.parseFloat(editFormData.itemQty) || 0,
         itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
-        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0, // Include total item weight
-        // Add new fields
+        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0,
         drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
         markWeight: Number.parseFloat(editFormData.markWeight) || null,
-        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null, // Include total marked weight
-        drawingReceivedDate: editFormData.drawingReceivedDate || null,
-        targetDate: editFormData.targetDate || null,
+        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
+        // drawingReceivedDate: editFormData.drawingReceivedDate || null,
+        // targetDate: editFormData.targetDate || null,
         lastUpdatedBy: "system",
       }
 
@@ -294,7 +339,7 @@ const FabricationDatabasesearch = () => {
         toast.success("Record updated successfully!")
         setEditingRow(null)
         setEditFormData({})
-        fetchAllData() // Refresh data
+        handleSearch() // Refresh data
       } else {
         const errorText = await response.text()
         console.error("Update failed:", errorText)
@@ -326,7 +371,7 @@ const FabricationDatabasesearch = () => {
 
         if (response.ok) {
           toast.success("Record deleted successfully!")
-          fetchAllData() // Refresh data
+          handleSearch() // Refresh data
         } else {
           toast.error("Failed to delete record")
         }
@@ -394,7 +439,7 @@ const FabricationDatabasesearch = () => {
         length: item.length || 0,
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
-        totalItemWeight: item.totalItemWeight || 0, // Include total item weight
+        totalItemWeight: item.totalItemWeight || 0,
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -413,13 +458,13 @@ const FabricationDatabasesearch = () => {
         // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
-        drawingReceivedDate: item.drawingReceivedDate || null,
-        targetDate: item.targetDate || null,
+        // drawingReceivedDate: item.drawingReceivedDate || null,
+        // targetDate: item.targetDate || null,
       }))
 
       console.log("Moving to erection:", erectionEntries)
 
-      // Call the new erection API with duplicate checking
+      // Call the erection API (you may need to implement this endpoint)
       const response = await fetch(`${API_BASE_URL}/createBulkErectionDrawingEntriesWithDuplicateCheck/details`, {
         method: "POST",
         headers: {
@@ -463,12 +508,29 @@ const FabricationDatabasesearch = () => {
     }))
   }
 
-  // Format date for display
+  // Format date for display (DD-MMMM-YYYY)
   const formatDate = (dateString) => {
     if (!dateString) return "-"
     try {
       const date = new Date(dateString)
-      return date.toLocaleDateString()
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ]
+      const day = date.getDate().toString().padStart(2, "0")
+      const month = months[date.getMonth()]
+      const year = date.getFullYear()
+      return `${day}-${month}-${year}`
     } catch (error) {
       return dateString
     }
@@ -491,7 +553,7 @@ const FabricationDatabasesearch = () => {
           <button
             className="fab-button-giraffe fab-save-stages-btn"
             onClick={handleSaveFabricationStages}
-            disabled={saving || loading}
+            disabled={saving || loading || filteredData.length === 0}
           >
             {saving ? (
               <>
@@ -505,7 +567,11 @@ const FabricationDatabasesearch = () => {
               </>
             )}
           </button>
-          <button className="fab-button-giraffe fab-move-to-erection-btn" onClick={handleMoveToErection}>
+          <button
+            className="fab-button-giraffe fab-move-to-erection-btn"
+            onClick={handleMoveToErection}
+            disabled={filteredData.length === 0}
+          >
             <span>Completed</span>
           </button>
         </div>
@@ -551,6 +617,44 @@ const FabricationDatabasesearch = () => {
         </div>
       </div>
 
+      {/* Selected Filters Display */}
+      {(selectedFilters.workOrder ||
+        selectedFilters.buildingName ||
+        selectedFilters.drawingNo ||
+        selectedFilters.markNo) && (
+        <div className="fab-selected-filters-section">
+          <div className="fab-selected-filters-container">
+            <h4>Selected Filters:</h4>
+            <div className="fab-selected-filters-grid">
+              {selectedFilters.workOrder && (
+                <div className="fab-filter-item">
+                  <span className="fab-filter-label">Work Order:</span>
+                  <span className="fab-filter-value">{selectedFilters.workOrder}</span>
+                </div>
+              )}
+              {selectedFilters.buildingName && (
+                <div className="fab-filter-item">
+                  <span className="fab-filter-label">Building Name:</span>
+                  <span className="fab-filter-value">{selectedFilters.buildingName}</span>
+                </div>
+              )}
+              {selectedFilters.drawingNo && (
+                <div className="fab-filter-item">
+                  <span className="fab-filter-label">Drawing No:</span>
+                  <span className="fab-filter-value">{selectedFilters.drawingNo}</span>
+                </div>
+              )}
+              {selectedFilters.markNo && (
+                <div className="fab-filter-item">
+                  <span className="fab-filter-label">Mark No:</span>
+                  <span className="fab-filter-value">{selectedFilters.markNo}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table Section */}
       <div className="fab-table-container-lynx">
         {loading && (
@@ -567,17 +671,8 @@ const FabricationDatabasesearch = () => {
             <thead>
               <tr>
                 <th>Order #</th>
-                <th>Work Order</th>
-                <th>Building Name</th>
-                <th>Department</th>
-                <th>Work Location</th>
-                {/* <th>Line Number</th> */}
-                <th>Drawing No</th>
                 <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
-                <th>Drawing Received Date</th>
-                <th>Target Date</th>
-                <th>Mark No</th>
                 <th>Mark Qty</th>
                 <th>Item No</th>
                 <th>Section Code</th>
@@ -604,23 +699,6 @@ const FabricationDatabasesearch = () => {
                     <div className="fab-order-icon-rabbit">
                       <IoMdOpen />
                     </div>
-                  </td>
-                  <td>{row.attribute1V || "-"}</td>
-                  <td>{row.attribute2V || "-"}</td>
-                  <td>{row.attribute3V || "-"}</td>
-                  <td>{row.attribute4V || "-"}</td>
-                  {/* <td>{row.attribute5V || "-"}</td> */}
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.drawingNo}
-                        onChange={(e) => handleEditInputChange("drawingNo", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      row.drawingNo || "-"
-                    )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
@@ -651,42 +729,6 @@ const FabricationDatabasesearch = () => {
                   <td>
                     {editingRow === row.lineId ? (
                       <input
-                        type="date"
-                        value={editFormData.drawingReceivedDate}
-                        onChange={(e) => handleEditInputChange("drawingReceivedDate", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      formatDate(row.drawingReceivedDate)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="date"
-                        value={editFormData.targetDate}
-                        onChange={(e) => handleEditInputChange("targetDate", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      formatDate(row.targetDate)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.markNo}
-                        onChange={(e) => handleEditInputChange("markNo", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      row.markNo || "-"
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
                         type="number"
                         value={editFormData.markedQty}
                         onChange={(e) => handleEditInputChange("markedQty", e.target.value)}
@@ -702,8 +744,8 @@ const FabricationDatabasesearch = () => {
                       <input
                         type="text"
                         value={editFormData.sessionCode}
-                        onChange={(e) => handleEditInputChange("sessionCode", e.target.value)}
-                        className="fab-edit-input-deer"
+                        className="fab-edit-input-deer fab-readonly-input"
+                        readOnly
                       />
                     ) : (
                       row.sessionCode || "-"
@@ -714,8 +756,8 @@ const FabricationDatabasesearch = () => {
                       <input
                         type="text"
                         value={editFormData.sessionName}
-                        onChange={(e) => handleEditInputChange("sessionName", e.target.value)}
-                        className="fab-edit-input-deer"
+                        className="fab-edit-input-deer fab-readonly-input"
+                        readOnly
                       />
                     ) : (
                       row.sessionName || "-"
@@ -852,9 +894,13 @@ const FabricationDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="28">
+                  <td colSpan="19">
                     <div className="fab-empty-state-llama">
-                      <div className="fab-empty-text-alpaca">No records found.</div>
+                      <div className="fab-empty-text-alpaca">
+                        {selectedDrawingNo || selectedMarkNo
+                          ? "No records found for the selected criteria."
+                          : "Please select Drawing No and/or Mark No and click Search to view records."}
+                      </div>
                     </div>
                   </td>
                 </tr>
