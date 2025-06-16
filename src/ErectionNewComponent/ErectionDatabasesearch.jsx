@@ -4,7 +4,7 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdEdit, MdDelete } from "react-icons/md"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import "../ErectionNewComponent/ErectionDatabasesearch.css"
+import "./ErectionDatabasesearch.css"
 
 const ErectionDatabasesearch = () => {
   // API Base URL
@@ -193,7 +193,7 @@ const ErectionDatabasesearch = () => {
     }
   }
 
-  // Handle search button click
+  // Handle search button click - FIXED to show ALL related rows
   const handleSearch = async () => {
     if (!selectedDrawingNo && !selectedMarkNo) {
       toast.warning("Please select at least Drawing No or Mark No to search")
@@ -203,26 +203,10 @@ const ErectionDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Build search URL with parameters
-      let searchUrl = `${API_BASE_URL}/searchErectionDrawingEntries/details?`
-      const params = new URLSearchParams()
+      // Use the enhanced endpoint to get ALL related entries
+      const searchUrl = `${API_BASE_URL}/getEnhancedErectionDrawingEntries/details`
 
-      if (selectedDrawingNo) {
-        params.append("drawingNo", selectedDrawingNo)
-      }
-      if (selectedMarkNo) {
-        params.append("markNo", selectedMarkNo)
-      }
-
-      // Add pagination parameters
-      params.append("page", "0")
-      params.append("size", "1000")
-      params.append("sortBy", "creationDate")
-      params.append("sortDir", "desc")
-
-      searchUrl += params.toString()
-
-      console.log("Search URL:", searchUrl)
+      console.log("Fetching all erection entries for filtering...")
 
       const response = await fetch(searchUrl)
 
@@ -235,18 +219,28 @@ const ErectionDatabasesearch = () => {
         throw new Error("Response is not JSON")
       }
 
-      const result = await response.json()
-      console.log("Search result:", result)
+      const allData = await response.json()
+      console.log("All erection data received:", allData.length, "entries")
 
-      // Handle paginated response
-      const data = result.content || result || []
+      // Filter the data based on selected criteria
+      let filteredResults = allData
 
-      setTableData(data)
-      setFilteredData(data)
+      if (selectedDrawingNo) {
+        filteredResults = filteredResults.filter((item) => item.drawingNo === selectedDrawingNo)
+        console.log("After drawing filter:", filteredResults.length, "entries")
+      }
+
+      if (selectedMarkNo) {
+        filteredResults = filteredResults.filter((item) => item.markNo === selectedMarkNo)
+        console.log("After mark filter:", filteredResults.length, "entries")
+      }
+
+      setTableData(filteredResults)
+      setFilteredData(filteredResults)
 
       // Set selected filter values for display
-      if (data.length > 0) {
-        const firstRow = data[0]
+      if (filteredResults.length > 0) {
+        const firstRow = filteredResults[0]
         setSelectedFilters({
           workOrder: firstRow.attribute1V || "",
           buildingName: firstRow.attribute2V || "",
@@ -256,11 +250,11 @@ const ErectionDatabasesearch = () => {
       }
 
       // Initialize erection stages for all rows
-      data.forEach((row) => {
+      filteredResults.forEach((row) => {
         initializeErectionStagesFromData(row.lineId, row)
       })
 
-      toast.info(`Found ${data.length} records`)
+      toast.info(`Found ${filteredResults.length} records`)
     } catch (error) {
       console.error("Error searching data:", error)
       toast.error(`Error searching data: ${error.message}`)
@@ -405,15 +399,13 @@ const ErectionDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Get all entries for selected mark numbers - only one entry per mark number
+      // Get ALL entries for selected mark numbers
       const entriesToMove = []
 
-      // For each selected mark number, find the first entry with that mark number
+      // For each selected mark number, find ALL entries with that mark number
       for (const markNo of selectedMarkNosForAlignment) {
-        const entry = tableData.find((item) => item.markNo === markNo)
-        if (entry) {
-          entriesToMove.push(entry)
-        }
+        const entries = tableData.filter((item) => item.markNo === markNo)
+        entriesToMove.push(...entries)
       }
 
       if (entriesToMove.length === 0) {
@@ -453,12 +445,17 @@ const ErectionDatabasesearch = () => {
         // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
+        // Copy fabrication stages
+        cuttingStage: item.cuttingStage || "N",
+        fitUpStage: item.fitUpStage || "N",
+        weldingStage: item.weldingStage || "N",
+        finishingStage: item.finishingStage || "N",
       }))
 
       console.log("Moving to alignment:", alignmentEntries)
 
       // Call the alignment API
-      const response = await fetch(`${API_BASE_URL}/createBulkAlignmentDrawingEntriesWithDuplicateCheck/details`, {
+      const response = await fetch(`${API_BASE_URL}/createBulkAlignmentDrawingEntries/details`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -468,16 +465,7 @@ const ErectionDatabasesearch = () => {
 
       if (response.ok) {
         const result = await response.json()
-
-        // Show detailed feedback
-        if (result.skippedCount > 0) {
-          toast.warning(
-            `${result.createdCount} entries created, ${result.skippedCount} skipped as duplicates. Skipped: ${result.skippedDuplicates.join(", ")}`,
-          )
-        } else {
-          toast.success(`${result.createdCount} Mark No(s) moved to Alignment successfully!`)
-        }
-
+        toast.success(`${entriesToMove.length} entries moved to Alignment successfully!`)
         setShowMoveToAlignmentPopup(false)
         setSelectedMarkNosForAlignment([])
       } else {

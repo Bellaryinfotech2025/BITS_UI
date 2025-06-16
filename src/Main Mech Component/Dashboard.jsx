@@ -724,7 +724,7 @@ const MainDashboard = () => {
               {activeMenu === "home" && (username ? `Hi ${username}` : "Welcome")}
               {activeMenu === "poentry" && "PO Entry"}
               {activeMenu === "drawingentry" && "Drawing Entry"}
-              {activeMenu === "rawmaterialentry" && "Rawmaterialentry"}
+              {activeMenu === "rawmaterialentry" && "Raw Material Entry"}
               {activeMenu === "fabrication" && "Fabrication"}
               {activeMenu === "erection" && "Erection"}
               {activeMenu === "alignment" && "Alignment"}

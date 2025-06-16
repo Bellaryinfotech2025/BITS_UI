@@ -1,27 +1,45 @@
-import { useState, useEffect } from "react"
-import { IoMdOpen } from "react-icons/io"
+import { useState, useEffect, useRef } from "react"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { MdSave, MdAdd, MdDelete } from "react-icons/md"
+import { MdSave, MdDelete, MdEdit, MdAdd, MdSearch } from "react-icons/md"
 import { FaCheck } from "react-icons/fa"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import '../RawMeterialEntry Component/RawMaterialEntry.css'
 
 const RawMaterialEntry = () => {
-  // API Base URL - Updated to match your server
+  // API Base URL
   const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
-  // Work Order State
-  const [workOrderRows, setWorkOrderRows] = useState([])
+  // State for dropdowns
   const [workOrderOptions, setWorkOrderOptions] = useState([])
+  const [plantLocationOptions, setPlantLocationOptions] = useState([])
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
+  const [selectedPlantLocation, setSelectedPlantLocation] = useState("")
 
   // Service Entry State
   const [serviceRows, setServiceRows] = useState([])
   const [savedServiceRows, setSavedServiceRows] = useState([])
+  const [editingRowId, setEditingRowId] = useState(null)
+  const [showEntryRows, setShowEntryRows] = useState(false)
+
+  // Search State
+  const [searchWorkOrder, setSearchWorkOrder] = useState("")
+  const [searchPlantLocation, setSearchPlantLocation] = useState("")
 
   // Loading State
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [searching, setSearching] = useState(false)
+
+  // Delete Popup State
+  const [deletePopup, setDeletePopup] = useState({
+    show: false,
+    rowId: null,
+    isNewRow: false,
+  })
+
+  // Refs for dynamic row addition
+  const documentNoRefs = useRef({})
 
   // UOM Options
   const uomOptions = [
@@ -54,35 +72,51 @@ const RawMaterialEntry = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchWorkOrders()
+    fetchWorkOrdersAndPlantLocations()
     fetchSavedServiceEntries()
   }, [])
 
-  // Fetch work orders from backend
-  const fetchWorkOrders = async () => {
+  // Check if buttons should be enabled
+  const isButtonsEnabled = selectedWorkOrder && selectedPlantLocation && !loading
+
+  // Fetch work orders and plant locations from bits_po_entry_header
+  const fetchWorkOrdersAndPlantLocations = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/getworkorder/number`)
+      const response = await fetch(`${API_BASE_URL}/getAllBitsHeaders/details`)
 
       if (response.ok) {
         const data = await response.json()
         if (Array.isArray(data) && data.length > 0) {
-          const formattedOptions = data.map((workOrder) => ({
+          // Extract unique work orders
+          const uniqueWorkOrders = [...new Set(data.map((item) => item.workOrder).filter(Boolean))]
+          const workOrderOptions = uniqueWorkOrders.map((workOrder) => ({
             value: workOrder,
             label: workOrder,
           }))
-          setWorkOrderOptions(formattedOptions)
+          setWorkOrderOptions(workOrderOptions)
+
+          // Extract unique plant locations
+          const uniquePlantLocations = [...new Set(data.map((item) => item.plantLocation).filter(Boolean))]
+          const plantLocationOptions = uniquePlantLocations.map((location) => ({
+            value: location,
+            label: location,
+          }))
+          setPlantLocationOptions(plantLocationOptions)
         } else {
           setWorkOrderOptions([])
-          toast.warning("No work orders found in database.")
+          setPlantLocationOptions([])
+          toast.warning("No data found in bits_po_entry_header table.")
         }
       } else {
         setWorkOrderOptions([])
-        toast.error("Failed to fetch work orders from server")
+        setPlantLocationOptions([])
+        toast.error("Failed to fetch data from server")
       }
     } catch (error) {
-      console.error("Error fetching work orders:", error)
+      console.error("Error fetching data:", error)
       setWorkOrderOptions([])
+      setPlantLocationOptions([])
       toast.error(`Error connecting to server: ${error.message}`)
     } finally {
       setLoading(false)
@@ -107,13 +141,7 @@ const RawMaterialEntry = () => {
     return `row_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 
-  // Create new work order row
-  const createNewWorkOrderRow = () => ({
-    id: generateUniqueId(),
-    workOrder: "",
-  })
-
-  // Create new service row with new fields
+  // Create new service row
   const createNewServiceRow = () => ({
     id: generateUniqueId(),
     section: "",
@@ -128,9 +156,14 @@ const RawMaterialEntry = () => {
     receivedDate: "",
   })
 
-  // Handle work order input change
-  const handleWorkOrderChange = (rowId, value) => {
-    setWorkOrderRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, workOrder: value } : row)))
+  // Handle + button click
+  const handleAddEntryRows = () => {
+    if (!isButtonsEnabled) return
+
+    setShowEntryRows(true)
+    if (serviceRows.length === 0) {
+      setServiceRows([createNewServiceRow()])
+    }
   }
 
   // Handle service input change
@@ -147,7 +180,6 @@ const RawMaterialEntry = () => {
             const qty = Number.parseFloat(field === "qty" ? value : updatedRow.qty) || 0
 
             if (width && length && qty) {
-              // Simple calculation - you can modify this formula as needed
               updatedRow.totalWeight = (width * qty).toFixed(3)
             }
           }
@@ -159,24 +191,95 @@ const RawMaterialEntry = () => {
     )
   }
 
-  // Add new work order row
-  const handleAddWorkOrder = () => {
-    setWorkOrderRows((prev) => [...prev, createNewWorkOrderRow()])
+  // Handle Enter key press in Document No field
+  const handleDocumentNoKeyPress = (e, rowId) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      const newRow = createNewServiceRow()
+      setServiceRows((prev) => [...prev, newRow])
+
+      // Focus on the new row's document no field after a short delay
+      setTimeout(() => {
+        if (documentNoRefs.current[newRow.id]) {
+          documentNoRefs.current[newRow.id].focus()
+        }
+      }, 100)
+    }
   }
 
-  // Add new service row
-  const handleAddService = () => {
-    setServiceRows((prev) => [...prev, createNewServiceRow()])
+  // Search function to filter service entries
+  const handleSearch = async () => {
+    try {
+      setSearching(true)
+
+      let searchResults = []
+
+      // Search by work order if provided
+      if (searchWorkOrder) {
+        const workOrderResponse = await fetch(`${API_BASE_URL}/rawmaterialentry/workorder/${searchWorkOrder}`)
+        if (workOrderResponse.ok) {
+          const workOrderData = await workOrderResponse.json()
+          searchResults = [...searchResults, ...workOrderData]
+        }
+      }
+
+      // If no work order search, get all entries
+      if (!searchWorkOrder && !searchPlantLocation) {
+        const allResponse = await fetch(`${API_BASE_URL}/rawmaterialentry`)
+        if (allResponse.ok) {
+          const allData = await allResponse.json()
+          searchResults = allData
+        }
+      }
+
+      // Filter by plant location if provided (client-side filtering)
+      if (searchPlantLocation) {
+        searchResults = searchResults.filter((entry) =>
+          entry.plantLocation?.toLowerCase().includes(searchPlantLocation.toLowerCase()),
+        )
+      }
+
+      setSavedServiceRows(searchResults || [])
+
+      if (searchResults && searchResults.length > 0) {
+        toast.success(`Found ${searchResults.length} service entries`)
+      } else {
+        toast.info("No service entries found for the search criteria")
+      }
+    } catch (error) {
+      console.error("Error searching service entries:", error)
+      toast.error("Error searching service entries")
+    } finally {
+      setSearching(false)
+    }
   }
 
-  // Remove work order row
-  const handleRemoveWorkOrder = (rowId) => {
-    setWorkOrderRows((prev) => prev.filter((row) => row.id !== rowId))
+  // Show delete confirmation popup
+  const showDeleteConfirmation = (rowId, isNewRow = false) => {
+    setDeletePopup({
+      show: true,
+      rowId,
+      isNewRow,
+    })
   }
 
-  // Remove service row
-  const handleRemoveService = (rowId) => {
-    setServiceRows((prev) => prev.filter((row) => row.id !== rowId))
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    const { rowId, isNewRow } = deletePopup
+
+    if (isNewRow) {
+      setServiceRows((prev) => prev.filter((row) => row.id !== rowId))
+      toast.success("Row removed successfully!")
+    } else {
+      handleDeleteSavedService(rowId)
+    }
+
+    setDeletePopup({ show: false, rowId: null, isNewRow: false })
+  }
+
+  // Cancel delete
+  const handleDeleteCancel = () => {
+    setDeletePopup({ show: false, rowId: null, isNewRow: false })
   }
 
   // Delete saved service entry
@@ -198,30 +301,80 @@ const RawMaterialEntry = () => {
     }
   }
 
+  // Handle edit functionality
+  const handleEdit = (rowId) => {
+    setEditingRowId(rowId)
+  }
+
+  const handleSaveEdit = async (rowId) => {
+    try {
+      const rowToUpdate = savedServiceRows.find((row) => row.id === rowId)
+      if (!rowToUpdate) return
+
+      const response = await fetch(`${API_BASE_URL}/rawmaterialentry/${rowId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(rowToUpdate),
+      })
+
+      if (response.ok) {
+        setEditingRowId(null)
+        toast.success("Service entry updated successfully!")
+        await fetchSavedServiceEntries()
+      } else {
+        toast.error("Failed to update service entry")
+      }
+    } catch (error) {
+      console.error("Error updating service entry:", error)
+      toast.error("Error updating service entry")
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingRowId(null)
+    fetchSavedServiceEntries() // Refresh to cancel changes
+  }
+
+  // Handle saved row input change
+  const handleSavedRowInputChange = (rowId, field, value) => {
+    setSavedServiceRows((prev) =>
+      prev.map((row) => {
+        if (row.id === rowId) {
+          const updatedRow = { ...row, [field]: value }
+
+          // Auto-calculate total weight if width, length, and qty are provided
+          if (field === "width" || field === "length" || field === "qty") {
+            const width = Number.parseFloat(field === "width" ? value : updatedRow.width) || 0
+            const length = Number.parseFloat(field === "length" ? value : updatedRow.length) || 0
+            const qty = Number.parseFloat(field === "qty" ? value : updatedRow.qty) || 0
+
+            if (width && length && qty) {
+              updatedRow.totalWeight = (width * qty).toFixed(3)
+            }
+          }
+
+          return updatedRow
+        }
+        return row
+      }),
+    )
+  }
+
   // Save raw material entry
   const handleSaveRawMaterialEntry = async () => {
+    if (!isButtonsEnabled || serviceRows.length === 0) {
+      toast.error("Please add at least one service entry")
+      return
+    }
+
     try {
       setSaving(true)
 
-      // Validate data
-      if (workOrderRows.length === 0) {
-        toast.error("Please add at least one work order")
-        return
-      }
-
-      if (serviceRows.length === 0) {
-        toast.error("Please add at least one service entry")
-        return
-      }
-
-      // Prepare data for backend - Updated to include new fields
+      // Prepare data for backend
       const rawMaterialData = {
-        workOrders: workOrderRows
-          .filter((row) => row.workOrder)
-          .map((row) => ({
-            id: row.id,
-            workOrder: row.workOrder,
-          })),
+        workOrders: selectedWorkOrder ? [{ workOrder: selectedWorkOrder }] : [],
         serviceEntries: serviceRows
           .filter((row) => row.section && row.width && row.length && row.qty)
           .map((row) => ({
@@ -242,7 +395,6 @@ const RawMaterialEntry = () => {
 
       console.log("Sending data to backend:", rawMaterialData)
 
-      // Save to backend
       const response = await fetch(`${API_BASE_URL}/rawmaterialentry`, {
         method: "POST",
         headers: {
@@ -250,9 +402,6 @@ const RawMaterialEntry = () => {
         },
         body: JSON.stringify(rawMaterialData),
       })
-
-      console.log("Response status:", response.status)
-      console.log("Response headers:", response.headers)
 
       if (response.ok) {
         const savedData = await response.json()
@@ -265,9 +414,9 @@ const RawMaterialEntry = () => {
           </div>,
         )
 
-        // Clear forms and refresh saved data
-        setWorkOrderRows([])
+        // Clear entry rows and refresh saved data
         setServiceRows([])
+        setShowEntryRows(false)
         await fetchSavedServiceEntries()
       } else {
         const errorText = await response.text()
@@ -283,100 +432,91 @@ const RawMaterialEntry = () => {
   }
 
   return (
-    <div className="jj">
-      {/* Header with Save Button */}
-      <div className="entry">
-        <div className="raw-header">
-          <h3>Raw Material Entry</h3>
+    <div className="main-container">
+      {/* Control Section - Half Width */}
+      <div className="control-section">
+        <div className="dropdowns-and-buttons">
+          {/* Work Order Dropdown */}
+          <div className="dropdown-group">
+            <label htmlFor="workOrder">Work Order:</label>
+            <select
+              id="workOrder"
+              value={selectedWorkOrder}
+              onChange={(e) => setSelectedWorkOrder(e.target.value)}
+              className="dropdown-select"
+              disabled={loading}
+            >
+              <option value="">Select Work Order</option>
+              {workOrderOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Plant Location Dropdown */}
+          <div className="dropdown-group">
+            <label htmlFor="plantLocation">Building Name:</label>
+            <select
+              id="plantLocation"
+              value={selectedPlantLocation}
+              onChange={(e) => setSelectedPlantLocation(e.target.value)}
+              className="dropdown-select"
+              disabled={loading}
+            >
+              <option value="">Select Building Name</option>
+              {plantLocationOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Add Button */}
+          <button
+            className="add-button"
+            onClick={handleAddEntryRows}
+            disabled={!isButtonsEnabled}
+            title="Add Entry Rows"
+          >
+            <MdAdd />
+          </button>
+
+          {/* Save Button */}
+          <button
+            className="save-button"
+            onClick={handleSaveRawMaterialEntry}
+            disabled={!isButtonsEnabled || !showEntryRows || serviceRows.length === 0 || saving}
+          >
+            {saving ? (
+              <>
+                <AiOutlineLoading3Quarters className="spin-icon" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <MdSave />
+                <span>Save</span>
+              </>
+            )}
+          </button>
         </div>
-        <button
-          className="kkk material-save-btn"
-          onClick={handleSaveRawMaterialEntry}
-          disabled={saving || (workOrderRows.length === 0 && serviceRows.length === 0)}
-        >
-          {saving ? (
-            <>
-              <AiOutlineLoading3Quarters className="jj-spin" />
-              <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <MdSave className="entry-icon" />
-              <span>Save Raw Material New Entry</span>
-            </>
-          )}
-        </button>
+
+        {/* Search Section */}
+        {showEntryRows && (
+          <div className="search-section">
+        
+          </div>
+        )}
       </div>
 
-      {/* Main Content Area */}
-      <div className="raw-content">
-        {/* Work Order Table */}
-        <div className="kkk-table-section">
-          <div className="material-table-header">
-            <h4>Work Order Entry</h4>
-            <button className="jj-add-btn" onClick={handleAddWorkOrder}>
-              <MdAdd className="entry-add-icon" />
-              <span>Add</span>
-            </button>
-          </div>
-
-          <div className="raw-table-wrapper">
-            <table className="kkk-table">
-              <thead>
-                {/* <tr>
-                  <th>Order #</th>
-                  <th>Work Order</th>
-                </tr> */}
-              </thead>
-              <tbody>
-                {workOrderRows.map((row) => (
-                  <tr key={row.id} className="material-row">
-                    <td>
-                      <div className="jj-order-icon">
-                        <IoMdOpen />
-                      </div>
-                    </td>
-                    <td>
-                      <select
-                        value={row.workOrder}
-                        onChange={(e) => handleWorkOrderChange(row.id, e.target.value)}
-                        className="entry-select"
-                      >
-                        <option value="">Select Work Order</option>
-                        {workOrderOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-                {workOrderRows.length === 0 && (
-                  <tr className="kkk-empty">
-                    <td colSpan="2">
-                      <div className="material-empty">
-                        <div className="jj-empty-text">No work orders added.</div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Service Entry Table with New Columns */}
-        <div className="entry-table-section">
-          <div className="raw-table-header">
-            <button className="kkk-add-btn" onClick={handleAddService}>
-              <MdAdd className="material-add-icon" />
-              <span>Add</span>
-            </button>
-          </div>
-
-          <div className="jj-table-wrapper">
-            <table className="entry-table">
+      {/* Service Entry Table */}
+      {showEntryRows && (
+        <div className="table-section">
+          <div className="table-wrapper">
+            <table className="service-table">
               <thead>
                 <tr>
                   <th>Section</th>
@@ -393,36 +533,15 @@ const RawMaterialEntry = () => {
                 </tr>
               </thead>
               <tbody>
-                {/* Saved Service Rows */}
-                {savedServiceRows.map((row) => (
-                  <tr key={`saved_${row.id}`} className="raw-saved-row">
-                    <td>{row.section || "-"}</td>
-                    <td>{row.width || "-"}</td>
-                    <td>{row.length || "-"}</td>
-                    <td>{row.qty || "-"}</td>
-                    <td>{row.uom || "-"}</td>
-                    <td>{row.totalWeight || "-"}</td>
-                    <td>{row.vehicleNumber || "-"}</td>
-                    <td>{row.documentNo || "-"}</td>
-                    <td>{row.documentDate || "-"}</td>
-                    <td>{row.receivedDate || "-"}</td>
-                    <td>
-                      <button onClick={() => handleDeleteSavedService(row.id)} className="jj-remove-btn">
-                        <MdDelete />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
                 {/* New Service Rows */}
-                {serviceRows.map((row) => (
-                  <tr key={row.id} className="raw-service-row">
+                {serviceRows.map((row, index) => (
+                  <tr key={row.id} className="new-service-row">
                     <td>
                       <input
                         type="text"
                         value={row.section}
                         onChange={(e) => handleServiceInputChange(row.id, "section", e.target.value)}
-                        className="material-input"
+                        className="table-input"
                         placeholder="Section"
                       />
                     </td>
@@ -432,7 +551,7 @@ const RawMaterialEntry = () => {
                         step="0.01"
                         value={row.width}
                         onChange={(e) => handleServiceInputChange(row.id, "width", e.target.value)}
-                        className="jj-input"
+                        className="table-input"
                         placeholder="Width"
                       />
                     </td>
@@ -442,7 +561,7 @@ const RawMaterialEntry = () => {
                         step="0.01"
                         value={row.length}
                         onChange={(e) => handleServiceInputChange(row.id, "length", e.target.value)}
-                        className="entry-input"
+                        className="table-input"
                         placeholder="Length"
                       />
                     </td>
@@ -452,7 +571,7 @@ const RawMaterialEntry = () => {
                         step="0.01"
                         value={row.qty}
                         onChange={(e) => handleServiceInputChange(row.id, "qty", e.target.value)}
-                        className="raw-input"
+                        className="table-input"
                         placeholder="Qty"
                       />
                     </td>
@@ -460,7 +579,7 @@ const RawMaterialEntry = () => {
                       <select
                         value={row.uom}
                         onChange={(e) => handleServiceInputChange(row.id, "uom", e.target.value)}
-                        className="kkk-uom-select"
+                        className="table-select"
                       >
                         {uomOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -474,7 +593,7 @@ const RawMaterialEntry = () => {
                         type="text"
                         value={row.totalWeight}
                         readOnly
-                        className="material-weight-input"
+                        className="table-input readonly"
                         placeholder="Auto calculated"
                       />
                     </td>
@@ -483,17 +602,19 @@ const RawMaterialEntry = () => {
                         type="text"
                         value={row.vehicleNumber}
                         onChange={(e) => handleServiceInputChange(row.id, "vehicleNumber", e.target.value)}
-                        className="vehicle-input"
+                        className="table-input"
                         placeholder="Vehicle No"
                       />
                     </td>
                     <td>
                       <input
+                        ref={(el) => (documentNoRefs.current[row.id] = el)}
                         type="text"
                         value={row.documentNo}
                         onChange={(e) => handleServiceInputChange(row.id, "documentNo", e.target.value)}
-                        className="document-input"
-                        placeholder="Doc No"
+                        onKeyPress={(e) => handleDocumentNoKeyPress(e, row.id)}
+                        className="table-input"
+                        placeholder="Doc No (Press Enter to add new row)"
                       />
                     </td>
                     <td>
@@ -501,7 +622,7 @@ const RawMaterialEntry = () => {
                         type="date"
                         value={row.documentDate}
                         onChange={(e) => handleServiceInputChange(row.id, "documentDate", e.target.value)}
-                        className="date-input"
+                        className="table-input"
                       />
                     </td>
                     <td>
@@ -509,21 +630,176 @@ const RawMaterialEntry = () => {
                         type="date"
                         value={row.receivedDate}
                         onChange={(e) => handleServiceInputChange(row.id, "receivedDate", e.target.value)}
-                        className="date-input"
+                        className="table-input"
                       />
                     </td>
                     <td>
-                      <button onClick={() => handleRemoveService(row.id)} className="jj-remove-btn">
+                      <button
+                        onClick={() => showDeleteConfirmation(row.id, true)}
+                        className="delete-button"
+                        title="Delete"
+                      >
                         <MdDelete />
                       </button>
                     </td>
                   </tr>
                 ))}
+
+                {/* Saved Service Rows */}
+                {savedServiceRows.map((row) => (
+                  <tr key={`saved_${row.id}`} className="saved-service-row">
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="text"
+                          value={row.section || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "section", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.section || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={row.width || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "width", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.width || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={row.length || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "length", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.length || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={row.qty || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "qty", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.qty || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <select
+                          value={row.uom || "KG"}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "uom", e.target.value)}
+                          className="table-select"
+                        >
+                          {uomOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        row.uom || "-"
+                      )}
+                    </td>
+                    <td>{row.totalWeight || "-"}</td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="text"
+                          value={row.vehicleNumber || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "vehicleNumber", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.vehicleNumber || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="text"
+                          value={row.documentNo || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "documentNo", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.documentNo || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="date"
+                          value={row.documentDate || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "documentDate", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.documentDate || "-"
+                      )}
+                    </td>
+                    <td>
+                      {editingRowId === row.id ? (
+                        <input
+                          type="date"
+                          value={row.receivedDate || ""}
+                          onChange={(e) => handleSavedRowInputChange(row.id, "receivedDate", e.target.value)}
+                          className="table-input"
+                        />
+                      ) : (
+                        row.receivedDate || "-"
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {editingRowId === row.id ? (
+                          <>
+                            <button onClick={() => handleSaveEdit(row.id)} className="save-edit-button" title="Save">
+                              <FaCheck />
+                            </button>
+                            <button onClick={handleCancelEdit} className="cancel-edit-button" title="Cancel">
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => handleEdit(row.id)} className="edit-button" title="Edit">
+                              <MdEdit />
+                            </button>
+                            <button
+                              onClick={() => showDeleteConfirmation(row.id, false)}
+                              className="delete-button"
+                              title="Delete"
+                            >
+                              <MdDelete />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
                 {savedServiceRows.length === 0 && serviceRows.length === 0 && (
-                  <tr className="entry-empty">
+                  <tr className="empty-row">
                     <td colSpan="11">
-                      <div className="raw-empty">
-                        <div className="kkk-empty-text">No service entries added.</div>
+                      <div className="empty-message">
+                        <div className="empty-text">No service entries found.</div>
                       </div>
                     </td>
                   </tr>
@@ -532,7 +808,35 @@ const RawMaterialEntry = () => {
             </table>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Custom Delete Confirmation Popup */}
+      {deletePopup.show && (
+        <div className="popup-overlay">
+          <div className="popup-container">
+            <div className="popup-header">
+              <h3>Confirm Delete</h3>
+            </div>
+            <div className="popup-content">
+              <div className="popup-icon">
+                <MdDelete />
+              </div>
+              <div className="popup-message">
+                <p>Are you sure you want to delete this entry?</p>
+                <p className="popup-warning">Once deleted, this action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="popup-actions">
+              <button onClick={handleDeleteCancel} className="popup-cancel-button">
+                Cancel
+              </button>
+              <button onClick={handleDeleteConfirm} className="popup-confirm-button">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastContainer />
     </div>

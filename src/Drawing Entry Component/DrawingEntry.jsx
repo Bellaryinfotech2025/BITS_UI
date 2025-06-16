@@ -5,6 +5,8 @@ import { MdSave, MdAdd } from "react-icons/md"
 import { FaCheck } from "react-icons/fa"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
+import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
+import "../DeleteComponent/DeleteDesign.css"
 import "../Drawing Entry Component/DrawingEntry.css"
 
 const DrawingEntry = () => {
@@ -32,6 +34,10 @@ const DrawingEntry = () => {
   // BOM Entry State (Multiple Rows)
   const [bomEntryRows, setBomEntryRows] = useState([])
   const [loading, setLoading] = useState(false)
+
+  // Delete confirmation modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
 
   // API Data State
   const [workOrderOptions, setWorkOrderOptions] = useState([])
@@ -676,28 +682,53 @@ const DrawingEntry = () => {
     }
   }
 
-  const handleRemoveBomRow = (rowId) => {
-    if (bomEntryRows.length > 1) {
-      setBomEntryRows((prev) => prev.filter((row) => row.id !== rowId))
-      // Clean up search state for removed row
-      setSearchTerms((prev) => {
-        const newState = { ...prev }
-        delete newState[rowId]
-        return newState
-      })
-      setFilteredSectionCodes((prev) => {
-        const newState = { ...prev }
-        delete newState[rowId]
-        return newState
-      })
-      setShowDropdowns((prev) => {
-        const newState = { ...prev }
-        delete newState[rowId]
-        return newState
-      })
-    } else {
+  // Enhanced delete handler - shows confirmation modal instead of window.confirm
+  const handleRemoveBomRowClick = (rowId) => {
+    if (bomEntryRows.length <= 1) {
       toast.warning("At least one BOM entry is required")
+      return
     }
+
+    setItemToDelete(rowId)
+    setShowDeleteModal(true)
+    // Prevent body scroll when modal is open
+    document.body.classList.add("modal-open")
+  }
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (!itemToDelete) return
+
+    setBomEntryRows((prev) => prev.filter((row) => row.id !== itemToDelete))
+
+    // Clean up search state for removed row
+    setSearchTerms((prev) => {
+      const newState = { ...prev }
+      delete newState[itemToDelete]
+      return newState
+    })
+    setFilteredSectionCodes((prev) => {
+      const newState = { ...prev }
+      delete newState[itemToDelete]
+      return newState
+    })
+    setShowDropdowns((prev) => {
+      const newState = { ...prev }
+      delete newState[itemToDelete]
+      return newState
+    })
+
+    setShowDeleteModal(false)
+    setItemToDelete(null)
+    document.body.classList.remove("modal-open")
+    toast.success("BOM entry removed successfully")
+  }
+
+  // Handle delete cancellation
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setItemToDelete(null)
+    document.body.classList.remove("modal-open")
   }
 
   // Check if save button should be enabled
@@ -720,7 +751,7 @@ const DrawingEntry = () => {
           ) : (
             <>
               <MdSave className="drAOrefreshIcongi" />
-              <span>Save All</span>
+              <span>Save All Drawing Entries</span>
             </>
           )}
         </button>
@@ -760,8 +791,8 @@ const DrawingEntry = () => {
                 <th>Drawing Received Date</th>
                 <th>Target Date</th>
                 <th>Mark No</th>
-                <th>Mark Qty</th>
                 <th>Mark Wgt</th>
+                <th>Mark Qty</th>
                 <th>Total Mark Weight</th>
               </tr>
             </thead>
@@ -883,6 +914,17 @@ const DrawingEntry = () => {
                 <td>
                   <input
                     type="number"
+                    step="0.001"
+                    name="markWeight"
+                    value={drawingEntryData.markWeight || ""}
+                    className="drAOfoxgi readonly"
+                    placeholder="Mark Weight"
+                    readOnly
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
                     name="markQty"
                     value={drawingEntryData.markQty}
                     onChange={handleDrawingEntryInputChange}
@@ -891,17 +933,6 @@ const DrawingEntry = () => {
                     min="1"
                     max="1000"
                     required
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    step="0.001"
-                    name="markWeight"
-                    value={drawingEntryData.markWeight || ""}
-                    className="drAOfoxgi readonly"
-                    placeholder="Mark Weight"
-                    readOnly
                   />
                 </td>
                 <td>
@@ -933,8 +964,8 @@ const DrawingEntry = () => {
                   <td>{row.drawingReceivedDate}</td>
                   <td>{row.targetDate}</td>
                   <td>{row.markNo}</td>
-                  <td>{row.markQty}</td>
                   <td>{row.markWeight}</td>
+                  <td>{row.markQty}</td>
                   <td>{row.totalMarkWeight}</td>
                 </tr>
               ))}
@@ -1106,7 +1137,7 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td>
-                    <button onClick={() => handleRemoveBomRow(formData.id)} className="drAOremoveBtngi">
+                    <button onClick={() => handleRemoveBomRowClick(formData.id)} className="drAOremoveBtngi">
                       Remove
                     </button>
                   </td>
@@ -1125,6 +1156,15 @@ const DrawingEntry = () => {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirm
+        isOpen={showDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        title="Confirm BOM Entry Removal"
+        message="Are you sure you want to remove this BOM entry? This action cannot be undone."
+      />
 
       <ToastContainer />
     </div>

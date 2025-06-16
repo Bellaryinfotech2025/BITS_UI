@@ -5,6 +5,8 @@ import { MdSave, MdEdit, MdDelete } from "react-icons/md"
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { ToastContainer } from "react-toastify"
+import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
+import "../DeleteComponent/DeleteDesign.css"
 import "../FabricationNewComponent/FabricationDatabasesearch.css"
 
 const FabricationDatabasesearch = () => {
@@ -39,6 +41,10 @@ const FabricationDatabasesearch = () => {
   // Edit states
   const [editingRow, setEditingRow] = useState(null)
   const [editFormData, setEditFormData] = useState({})
+
+  // Delete confirmation modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
 
   // Fabrication process states - tracks checkbox states for each row
   const [fabricationStages, setFabricationStages] = useState({})
@@ -295,8 +301,6 @@ const FabricationDatabasesearch = () => {
       drawingWeight: row.drawingWeight || "",
       markWeight: row.markWeight || "",
       totalMarkedWgt: row.totalMarkedWgt || "",
-      // drawingReceivedDate: row.drawingReceivedDate || "",
-      // targetDate: row.targetDate || "",
     })
   }
 
@@ -320,8 +324,6 @@ const FabricationDatabasesearch = () => {
         drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
         markWeight: Number.parseFloat(editFormData.markWeight) || null,
         totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
-        // drawingReceivedDate: editFormData.drawingReceivedDate || null,
-        // targetDate: editFormData.targetDate || null,
         lastUpdatedBy: "system",
       }
 
@@ -359,29 +361,47 @@ const FabricationDatabasesearch = () => {
     setEditFormData({})
   }
 
-  // Handle delete
-  const handleDelete = async (lineId) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
-      try {
-        setLoading(true)
+  // Enhanced delete handler - shows confirmation modal instead of window.confirm
+  const handleDeleteClick = (lineId) => {
+    setItemToDelete(lineId)
+    setShowDeleteModal(true)
+    // Prevent body scroll when modal is open
+    document.body.classList.add("modal-open")
+  }
 
-        const response = await fetch(`${API_BASE_URL}/deleteBitsDrawingEntry/details?lineId=${lineId}`, {
-          method: "DELETE",
-        })
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return
 
-        if (response.ok) {
-          toast.success("Record deleted successfully!")
-          handleSearch() // Refresh data
-        } else {
-          toast.error("Failed to delete record")
-        }
-      } catch (error) {
-        console.error("Error deleting record:", error)
-        toast.error("Error deleting record")
-      } finally {
-        setLoading(false)
+    try {
+      setLoading(true)
+      setShowDeleteModal(false)
+      document.body.classList.remove("modal-open")
+
+      const response = await fetch(`${API_BASE_URL}/deleteBitsDrawingEntry/details?lineId=${itemToDelete}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast.success("Record deleted successfully!")
+        handleSearch() // Refresh data
+      } else {
+        toast.error("Failed to delete record")
       }
+    } catch (error) {
+      console.error("Error deleting record:", error)
+      toast.error("Error deleting record")
+    } finally {
+      setLoading(false)
+      setItemToDelete(null)
     }
+  }
+
+  // Handle delete cancellation
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setItemToDelete(null)
+    document.body.classList.remove("modal-open")
   }
 
   // Handle Move to Erection button click
@@ -458,8 +478,6 @@ const FabricationDatabasesearch = () => {
         // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
-        // drawingReceivedDate: item.drawingReceivedDate || null,
-        // targetDate: item.targetDate || null,
       }))
 
       console.log("Moving to erection:", erectionEntries)
@@ -880,7 +898,7 @@ const FabricationDatabasesearch = () => {
                             <MdEdit />
                           </button>
                           <button
-                            onClick={() => handleDelete(row.lineId)}
+                            onClick={() => handleDeleteClick(row.lineId)}
                             className="fab-action-button-elk fab-delete-button-bison"
                             title="Delete"
                           >
@@ -966,6 +984,15 @@ const FabricationDatabasesearch = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirm
+        isOpen={showDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this item? It will impact on Fabrication Item."
+      />
 
       <ToastContainer />
     </div>

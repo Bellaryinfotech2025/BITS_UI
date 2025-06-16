@@ -12,6 +12,7 @@ const AlignmentDatabasesearch = () => {
 
   // State management
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [tableData, setTableData] = useState([])
   const [filteredData, setFilteredData] = useState([])
   const [drawingNumbers, setDrawingNumbers] = useState([])
@@ -20,6 +21,14 @@ const AlignmentDatabasesearch = () => {
   // Filter states
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
+
+  // Selected filter values for display
+  const [selectedFilters, setSelectedFilters] = useState({
+    workOrder: "",
+    buildingName: "",
+    drawingNo: "",
+    markNo: "",
+  })
 
   // Move to Billing popup states
   const [showMoveToBillingPopup, setShowMoveToBillingPopup] = useState(false)
@@ -30,37 +39,192 @@ const AlignmentDatabasesearch = () => {
   const [editingRow, setEditingRow] = useState(null)
   const [editFormData, setEditFormData] = useState({})
 
-  // Helper function to format numbers with 3 decimal places
-  const formatNumber = (value) => {
-    if (value === null || value === undefined || value === "") {
-      return "-"
-    }
-    const num = Number.parseFloat(value)
-    if (isNaN(num)) {
-      return "-"
-    }
-    return num.toFixed(3)
+  // Alignment process states - tracks checkbox states for each row
+  const [alignmentStages, setAlignmentStages] = useState({})
+
+  // Alignment stages in order
+  const ALIGNMENT_STAGES = ["cutting", "fitUp", "welding", "finishing"]
+  const STAGE_LABELS = {
+    cutting: "Cutting",
+    fitUp: "Fit Up",
+    welding: "Welding",
+    finishing: "Finishing",
   }
 
-  // Fetch all data on component mount
+  // Backend field mapping
+  const STAGE_FIELD_MAPPING = {
+    cutting: "cuttingStage",
+    fitUp: "fitUpStage",
+    welding: "weldingStage",
+    finishing: "finishingStage",
+  }
+
+  // Initialize alignment stages for a row from backend data
+  const initializeAlignmentStagesFromData = (lineId, rowData) => {
+    setAlignmentStages((prev) => ({
+      ...prev,
+      [lineId]: {
+        cutting: rowData.cuttingStage === "Y",
+        fitUp: rowData.fitUpStage === "Y",
+        welding: rowData.weldingStage === "Y",
+        finishing: rowData.finishingStage === "Y",
+      },
+    }))
+  }
+
+  // Handle alignment stage checkbox change with sequential logic
+  const handleStageChange = (lineId, stage, checked) => {
+    setAlignmentStages((prev) => {
+      const currentStages = prev[lineId] || {
+        cutting: false,
+        fitUp: false,
+        welding: false,
+        finishing: false,
+      }
+
+      const newStages = { ...currentStages }
+      const stageIndex = ALIGNMENT_STAGES.indexOf(stage)
+
+      if (checked) {
+        // If checking a stage, automatically check all previous stages
+        for (let i = 0; i <= stageIndex; i++) {
+          newStages[ALIGNMENT_STAGES[i]] = true
+        }
+      } else {
+        // If unchecking a stage, automatically uncheck all subsequent stages
+        for (let i = stageIndex; i < ALIGNMENT_STAGES.length; i++) {
+          newStages[ALIGNMENT_STAGES[i]] = false
+        }
+      }
+
+      return {
+        ...prev,
+        [lineId]: newStages,
+      }
+    })
+  }
+
+  // Save alignment stages to backend
+  const handleSaveAlignmentStages = async () => {
+    try {
+      setSaving(true)
+
+      // Prepare alignment stage updates
+      const alignmentUpdates = Object.keys(alignmentStages).map((lineId) => {
+        const stages = alignmentStages[lineId]
+        return {
+          lineId: lineId,
+          cuttingStage: stages.cutting ? "Y" : "N",
+          fitUpStage: stages.fitUp ? "Y" : "N",
+          weldingStage: stages.welding ? "Y" : "N",
+          finishingStage: stages.finishing ? "Y" : "N",
+        }
+      })
+
+      if (alignmentUpdates.length === 0) {
+        toast.warning("No alignment stages to save")
+        return
+      }
+
+      console.log("Saving alignment stages:", alignmentUpdates)
+
+      const response = await fetch(`${API_BASE_URL}/updateAlignmentStages/details`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          alignmentStages: alignmentUpdates,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(`Successfully updated alignment stages for ${result.updatedCount} entries!`)
+
+        // Refresh data to get updated values
+        if (selectedDrawingNo || selectedMarkNo) {
+          handleSearch()
+        }
+      } else {
+        const errorText = await response.text()
+        console.error("Save alignment stages failed:", errorText)
+        toast.error(`Failed to save alignment stages: ${errorText}`)
+      }
+    } catch (error) {
+      console.error("Error saving alignment stages:", error)
+      toast.error("Error saving alignment stages: " + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Fetch dropdown data on component mount
   useEffect(() => {
-    fetchAllData()
+    fetchDropdownData()
   }, [])
 
-  // Filter data when filters change
-  useEffect(() => {
-    filterData()
-  }, [selectedDrawingNo, selectedMarkNo, tableData])
-
-  // Fetch all alignment entries and populate dropdowns
-  const fetchAllData = async () => {
+  // Fetch dropdown data for Drawing No and Mark No
+  const fetchDropdownData = async () => {
     try {
       setLoading(true)
 
-      // Use the getAllAlignmentDrawingEntries endpoint to get complete data
-      const response = await fetch(
-        `${API_BASE_URL}/getAllAlignmentDrawingEntries/details?page=0&size=1000&sortBy=creationDate&sortDir=desc`,
-      )
+      // Fetch distinct drawing numbers
+      const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryDrawingNumbers/details`)
+      if (drawingResponse.ok) {
+        const drawingData = await drawingResponse.json()
+        setDrawingNumbers(drawingData || [])
+        console.log("Drawing Numbers:", drawingData)
+      }
+
+      // Fetch distinct mark numbers
+      const markResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryMarkNumbers/details`)
+      if (markResponse.ok) {
+        const markData = await markResponse.json()
+        setMarkNumbers(markData || [])
+        setAvailableMarkNosForBilling(markData || [])
+        console.log("Mark Numbers:", markData)
+      }
+    } catch (error) {
+      console.error("Error fetching dropdown data:", error)
+      toast.error(`Error fetching dropdown data: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle search button click
+  const handleSearch = async () => {
+    if (!selectedDrawingNo && !selectedMarkNo) {
+      toast.warning("Please select at least Drawing No or Mark No to search")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Build search URL with parameters
+      let searchUrl = `${API_BASE_URL}/searchAlignmentDrawingEntries/details?`
+      const params = new URLSearchParams()
+
+      if (selectedDrawingNo) {
+        params.append("drawingNo", selectedDrawingNo)
+      }
+      if (selectedMarkNo) {
+        params.append("markNo", selectedMarkNo)
+      }
+
+      // Add pagination parameters
+      params.append("page", "0")
+      params.append("size", "1000")
+      params.append("sortBy", "creationDate")
+      params.append("sortDir", "desc")
+
+      searchUrl += params.toString()
+
+      console.log("Search URL:", searchUrl)
+
+      const response = await fetch(searchUrl)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -72,115 +236,42 @@ const AlignmentDatabasesearch = () => {
       }
 
       const result = await response.json()
-      const data = result.content || result // Handle both paginated and non-paginated responses
+      console.log("Search result:", result)
 
-      console.log("Fetched alignment data:", data)
-      console.log("Sample row:", data[0])
+      // Handle paginated response
+      const data = result.content || result || []
 
-      // Set table data
       setTableData(data)
       setFilteredData(data)
 
-      // Fetch distinct drawing numbers and mark numbers for dropdowns
-      await fetchDistinctDrawingNumbers()
-      await fetchDistinctMarkNumbers()
+      // Set selected filter values for display
+      if (data.length > 0) {
+        const firstRow = data[0]
+        setSelectedFilters({
+          workOrder: firstRow.attribute1V || "",
+          buildingName: firstRow.attribute2V || "",
+          drawingNo: selectedDrawingNo,
+          markNo: selectedMarkNo,
+        })
+      }
+
+      // Initialize alignment stages for all rows
+      data.forEach((row) => {
+        initializeAlignmentStagesFromData(row.lineId, row)
+      })
+
+      toast.info(`Found ${data.length} records`)
     } catch (error) {
-      console.error("Error fetching data:", error)
-      toast.error(`Error fetching data: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Fetch distinct drawing numbers for dropdown
-  const fetchDistinctDrawingNumbers = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryDrawingNumbers/details`)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const drawingNos = await response.json()
-      setDrawingNumbers(drawingNos.sort())
-      console.log("Drawing Numbers:", drawingNos)
-    } catch (error) {
-      console.error("Error fetching drawing numbers:", error)
-      toast.error(`Error fetching drawing numbers: ${error.message}`)
-    }
-  }
-
-  // Fetch distinct mark numbers for dropdown
-  const fetchDistinctMarkNumbers = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryMarkNumbers/details`)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const markNos = await response.json()
-      setMarkNumbers(markNos.sort())
-      setAvailableMarkNosForBilling(markNos.sort())
-      console.log("Mark Numbers:", markNos)
-    } catch (error) {
-      console.error("Error fetching mark numbers:", error)
-      toast.error(`Error fetching mark numbers: ${error.message}`)
-    }
-  }
-
-  // Filter data based on selected criteria
-  const filterData = () => {
-    let filtered = tableData
-
-    if (selectedDrawingNo) {
-      filtered = filtered.filter((item) => item.drawingNo === selectedDrawingNo)
-    }
-
-    if (selectedMarkNo) {
-      filtered = filtered.filter((item) => item.markNo === selectedMarkNo)
-    }
-
-    setFilteredData(filtered)
-  }
-
-  // Handle search button click
-  const handleSearch = async () => {
-    try {
-      setLoading(true)
-
-      // Build the search URL based on selected filters
-      let searchUrl = `${API_BASE_URL}/searchAlignmentDrawingEntries/details?`
-
-      if (selectedDrawingNo) {
-        searchUrl += `drawingNo=${encodeURIComponent(selectedDrawingNo)}&`
-      } else {
-        searchUrl += `drawingNo=&`
-      }
-
-      if (selectedMarkNo) {
-        searchUrl += `markNo=${encodeURIComponent(selectedMarkNo)}&`
-      } else {
-        searchUrl += `markNo=&`
-      }
-
-      // Add other parameters as null
-      searchUrl += `sessionCode=&tenantId=&status=alignment&page=0&size=100`
-
-      const response = await fetch(searchUrl)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const searchResults = await response.json()
-
-      // Update filtered data with search results
-      setFilteredData(searchResults.content || [])
-      toast.info(`Found ${searchResults.content?.length || 0} records`)
-    } catch (error) {
-      console.error("Error searching records:", error)
-      toast.error(`Error searching records: ${error.message}`)
+      console.error("Error searching data:", error)
+      toast.error(`Error searching data: ${error.message}`)
+      setTableData([])
+      setFilteredData([])
+      setSelectedFilters({
+        workOrder: "",
+        buildingName: "",
+        drawingNo: "",
+        markNo: "",
+      })
     } finally {
       setLoading(false)
     }
@@ -199,25 +290,10 @@ const AlignmentDatabasesearch = () => {
       length: row.length || "",
       itemQty: row.itemQty || "",
       itemWeight: row.itemWeight || "",
-      totalItemWeight: row.totalItemWeight || "", // NEW FIELD
-      totalMarkedWgt: row.totalMarkedWgt || "",
-      sessionWeight: row.sessionWeight || "",
-      // Add new fields for editing
+      totalItemWeight: row.totalItemWeight || "",
       drawingWeight: row.drawingWeight || "",
       markWeight: row.markWeight || "",
-      drawingReceivedDate: row.drawingReceivedDate || "",
-      targetDate: row.targetDate || "",
-      // Add attribute fields for editing
-      attribute1V: row.attribute1V || "",
-      attribute2V: row.attribute2V || "",
-      attribute3V: row.attribute3V || "",
-      attribute4V: row.attribute4V || "",
-      attribute5V: row.attribute5V || "",
-      attribute1N: row.attribute1N || "",
-      attribute2N: row.attribute2N || "",
-      attribute3N: row.attribute3N || "",
-      attribute4N: row.attribute4N || "",
-      attribute5N: row.attribute5N || "",
+      totalMarkedWgt: row.totalMarkedWgt || "",
     })
   }
 
@@ -226,7 +302,7 @@ const AlignmentDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Prepare the update data with all fields including attributes and new fields
+      // Prepare the update data with only the fields that can be updated
       const updateData = {
         drawingNo: editFormData.drawingNo,
         markNo: editFormData.markNo,
@@ -237,27 +313,11 @@ const AlignmentDatabasesearch = () => {
         length: Number.parseFloat(editFormData.length) || 0,
         itemQty: Number.parseFloat(editFormData.itemQty) || 0,
         itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
-        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0, // NEW FIELD
-        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || 0,
-        sessionWeight: Number.parseFloat(editFormData.sessionWeight) || 0,
-        lastUpdatedBy: "system",
-        status: "alignment",
-        // Include new fields
+        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0,
         drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
         markWeight: Number.parseFloat(editFormData.markWeight) || null,
-        drawingReceivedDate: editFormData.drawingReceivedDate || null,
-        targetDate: editFormData.targetDate || null,
-        // Include attribute fields
-        attribute1V: editFormData.attribute1V || "",
-        attribute2V: editFormData.attribute2V || "",
-        attribute3V: editFormData.attribute3V || "",
-        attribute4V: editFormData.attribute4V || "",
-        attribute5V: editFormData.attribute5V || "",
-        attribute1N: Number.parseFloat(editFormData.attribute1N) || 0,
-        attribute2N: Number.parseFloat(editFormData.attribute2N) || 0,
-        attribute3N: Number.parseFloat(editFormData.attribute3N) || 0,
-        attribute4N: Number.parseFloat(editFormData.attribute4N) || 0,
-        attribute5N: Number.parseFloat(editFormData.attribute5N) || 0,
+        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
+        lastUpdatedBy: "system",
       }
 
       console.log("Sending update data:", updateData)
@@ -274,7 +334,7 @@ const AlignmentDatabasesearch = () => {
         toast.success("Record updated successfully!")
         setEditingRow(null)
         setEditFormData({})
-        fetchAllData() // Refresh data
+        handleSearch() // Refresh data
       } else {
         const errorText = await response.text()
         console.error("Update failed:", errorText)
@@ -306,7 +366,7 @@ const AlignmentDatabasesearch = () => {
 
         if (response.ok) {
           toast.success("Record deleted successfully!")
-          fetchAllData() // Refresh data
+          handleSearch() // Refresh data
         } else {
           toast.error("Failed to delete record")
         }
@@ -345,15 +405,13 @@ const AlignmentDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Get all entries for selected mark numbers - only one entry per mark number
+      // Get ALL entries for selected mark numbers
       const entriesToMove = []
 
-      // For each selected mark number, find the first entry with that mark number
+      // For each selected mark number, find ALL entries with that mark number
       for (const markNo of selectedMarkNosForBilling) {
-        const entry = tableData.find((item) => item.markNo === markNo)
-        if (entry) {
-          entriesToMove.push(entry)
-        }
+        const entries = tableData.filter((item) => item.markNo === markNo)
+        entriesToMove.push(...entries)
       }
 
       if (entriesToMove.length === 0) {
@@ -363,8 +421,6 @@ const AlignmentDatabasesearch = () => {
 
       // Create billing entries with proper data format
       const billingEntries = entriesToMove.map((item) => ({
-        // Generate a unique lineId for each billing entry
-        lineId: "B" + Math.floor(Math.random() * 1000000),
         drawingNo: item.drawingNo || "",
         markNo: item.markNo || "",
         markedQty: item.markedQty || 1,
@@ -376,21 +432,11 @@ const AlignmentDatabasesearch = () => {
         length: item.length || 0,
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
-        totalItemWeight: item.totalItemWeight || 0, // NEW FIELD - Include total item weight
+        totalItemWeight: item.totalItemWeight || 0,
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
         status: "billing",
-        // Include new fields
-        drawingWeight: item.drawingWeight || null,
-        markWeight: item.markWeight || null,
-        drawingReceivedDate: item.drawingReceivedDate || null,
-        targetDate: item.targetDate || null,
-        // Include fabrication stages
-        cuttingStage: item.cuttingStage || "N",
-        fitUpStage: item.fitUpStage || "N",
-        weldingStage: item.weldingStage || "N",
-        finishingStage: item.finishingStage || "N",
         // Copy attributes
         attribute1V: item.attribute1V || null,
         attribute2V: item.attribute2V || null,
@@ -402,11 +448,19 @@ const AlignmentDatabasesearch = () => {
         attribute3N: item.attribute3N || null,
         attribute4N: item.attribute4N || null,
         attribute5N: item.attribute5N || null,
+        // Copy new fields
+        drawingWeight: item.drawingWeight || null,
+        markWeight: item.markWeight || null,
+        // Copy fabrication stages
+        cuttingStage: item.cuttingStage || "N",
+        fitUpStage: item.fitUpStage || "N",
+        weldingStage: item.weldingStage || "N",
+        finishingStage: item.finishingStage || "N",
       }))
 
       console.log("Moving to billing:", billingEntries)
 
-      // Call the billing API to store in billing_drawing_entry table
+      // Call the billing API
       const response = await fetch(`${API_BASE_URL}/createBulkBillingDrawingEntries/details`, {
         method: "POST",
         headers: {
@@ -417,9 +471,7 @@ const AlignmentDatabasesearch = () => {
 
       if (response.ok) {
         const result = await response.json()
-        toast.success(
-          `${selectedMarkNosForBilling.length} Mark No(s) moved to Billing successfully! Created ${result.length} entries.`,
-        )
+        toast.success(`${entriesToMove.length} entries moved to Billing successfully!`)
         setShowMoveToBillingPopup(false)
         setSelectedMarkNosForBilling([])
       } else {
@@ -443,67 +495,84 @@ const AlignmentDatabasesearch = () => {
     }))
   }
 
-  // Helper function to safely display data with proper fallback
-  const displayValue = (value, fallback = "-") => {
-    if (value === null || value === undefined || value === "") {
-      return fallback
-    }
-    // Handle numeric values including 0
-    if (typeof value === "number") {
-      return value.toString()
-    }
-    return value
-  }
-
-  // Helper function to format date for display
+  // Format date for display (DD-MMMM-YYYY)
   const formatDate = (dateString) => {
     if (!dateString) return "-"
     try {
       const date = new Date(dateString)
-      return date.toLocaleDateString()
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ]
+      const day = date.getDate().toString().padStart(2, "0")
+      const month = months[date.getMonth()]
+      const year = date.getFullYear()
+      return `${day}-${month}-${year}`
     } catch (error) {
       return dateString
     }
   }
 
-  // Helper function to render fabrication stage checkbox
-  const renderFabricationCheckbox = (stage, label) => {
-    const isChecked = stage === "Y"
-    return (
-      <div className="align-fab-checkbox-container">
-        <input
-          type="checkbox"
-          checked={isChecked}
-          readOnly
-          className="align-fab-checkbox"
-          title={`${label}: ${isChecked ? "Completed" : "Not Completed"}`}
-        />
-        <label className="align-fab-checkbox-label">{isChecked ? "✓" : "✗"}</label>
-      </div>
-    )
+  // Format number for display
+  const formatNumber = (value) => {
+    if (value === null || value === undefined) return "-"
+    return Number.parseFloat(value).toFixed(3)
   }
 
   return (
-    <div className="align-container-elephant">
+    <div className="align-container-mammoth">
       {/* Header */}
-      <div className="align-header-giraffe">
-        <div className="align-title-lion">
+      <div className="align-header-elephant">
+        <div className="align-title-tiger">
           <h3>Search for Alignment Details</h3>
         </div>
-        <button className="align-button-kangaroo align-move-to-completion-btn" onClick={handleMoveToBilling}>
-          <span>Completed</span>
-        </button>
+        <div className="align-header-buttons">
+          <button
+            className="align-button-giraffe align-save-stages-btn"
+            onClick={handleSaveAlignmentStages}
+            disabled={saving || loading || filteredData.length === 0}
+          >
+            {saving ? (
+              <>
+                <AiOutlineLoading3Quarters className="align-spin-icon-polar" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <MdSave />
+                <span>Save</span>
+              </>
+            )}
+          </button>
+          <button
+            className="align-button-giraffe align-move-to-billing-btn"
+            onClick={handleMoveToBilling}
+            disabled={filteredData.length === 0}
+          >
+            <span>Completed</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Section */}
       <div className="align-filter-section-zebra">
-        <div className="align-filter-container-tiger">
-          <div className="align-filter-row-panda">
+        <div className="align-filter-container-hippo">
+          <div className="align-filter-row-rhino">
             {/* Drawing No Dropdown */}
             <select
               value={selectedDrawingNo}
               onChange={(e) => setSelectedDrawingNo(e.target.value)}
-              className="align-dropdown-leopard"
+              className="align-dropdown-cheetah"
             >
               <option value="">Select Drawing No</option>
               {drawingNumbers.map((drawingNo, index) => (
@@ -517,10 +586,10 @@ const AlignmentDatabasesearch = () => {
             <select
               value={selectedMarkNo}
               onChange={(e) => setSelectedMarkNo(e.target.value)}
-              className="align-dropdown-leopard"
+              className="align-dropdown-cheetah"
             >
               <option value="">Select Mark No</option>
-              {markNumbers.map((markNo, index) => (
+              {markNumbers?.map((markNo, index) => (
                 <option key={`mark_${index}`} value={markNo}>
                   {markNo}
                 </option>
@@ -528,39 +597,69 @@ const AlignmentDatabasesearch = () => {
             </select>
 
             {/* Search Button */}
-            <button className="align-search-button-cheetah" onClick={handleSearch} disabled={loading}>
+            <button className="align-search-button-leopard" onClick={handleSearch} disabled={loading}>
               <span>Search</span>
             </button>
           </div>
         </div>
       </div>
 
+      {/* Selected Filters Display */}
+      {(selectedFilters.workOrder ||
+        selectedFilters.buildingName ||
+        selectedFilters.drawingNo ||
+        selectedFilters.markNo) && (
+        <div className="align-selected-filters-section">
+          <div className="align-selected-filters-container">
+            <h4>Selected Filters:</h4>
+            <div className="align-selected-filters-grid">
+              {selectedFilters.workOrder && (
+                <div className="align-filter-item">
+                  <span className="align-filter-label">Work Order:</span>
+                  <span className="align-filter-value">{selectedFilters.workOrder}</span>
+                </div>
+              )}
+              {selectedFilters.buildingName && (
+                <div className="align-filter-item">
+                  <span className="align-filter-label">Building Name:</span>
+                  <span className="align-filter-value">{selectedFilters.buildingName}</span>
+                </div>
+              )}
+              {selectedFilters.drawingNo && (
+                <div className="align-filter-item">
+                  <span className="align-filter-label">Drawing No:</span>
+                  <span className="align-filter-value">{selectedFilters.drawingNo}</span>
+                </div>
+              )}
+              {selectedFilters.markNo && (
+                <div className="align-filter-item">
+                  <span className="align-filter-label">Mark No:</span>
+                  <span className="align-filter-value">{selectedFilters.markNo}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table Section */}
-      <div className="align-table-container-rhino">
+      <div className="align-table-container-lynx">
         {loading && (
-          <div className="align-loading-overlay-hippo">
-            <div className="align-loading-spinner-gazelle">
+          <div className="align-loading-overlay-panther">
+            <div className="align-loading-spinner-jaguar">
               <AiOutlineLoading3Quarters />
             </div>
-            <div className="align-loading-text-antelope">Loading...</div>
+            <div className="align-loading-text-cougar">Loading...</div>
           </div>
         )}
 
-        <div className="align-table-wrapper-buffalo">
-          <table className="align-table-wildebeest">
+        <div className="align-table-wrapper-bear">
+          <table className="align-table-wolf">
             <thead>
               <tr>
                 <th>Order #</th>
-                <th>Work Order</th>
-                <th>Building Name</th>
-                <th>Department</th>
-                <th>Work Location</th>
-                <th>Drawing No</th>
                 <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
-                <th>Drawing Received Date</th>
-                <th>Target Date</th>
-                <th>Mark No</th>
                 <th>Mark Qty</th>
                 <th>Item No</th>
                 <th>Section Code</th>
@@ -570,51 +669,32 @@ const AlignmentDatabasesearch = () => {
                 <th>Length</th>
                 <th>Item Qty</th>
                 <th>Item Weight</th>
-                <th>Total Item Weight</th> {/* NEW COLUMN */}
-                <th>Cutting</th>
-                <th>Fit Up</th>
-                <th>Welding</th>
-                <th>Finishing</th>
+                <th>Total Item Weight</th>
                 <th>Status</th>
+                {/* Alignment Process Columns */}
+                <th className="align-process-header">Cutting</th>
+                <th className="align-process-header">Fit Up</th>
+                <th className="align-process-header">Welding</th>
+                <th className="align-process-header">Finishing</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredData.map((row, index) => (
-                <tr key={`row_${row.lineId || index}`} className="align-table-row-impala">
+                <tr key={`row_${index}`} className="align-table-row-fox">
                   <td>
-                    <div className="align-order-icon-kudu">
+                    <div className="align-order-icon-rabbit">
                       <IoMdOpen />
                     </div>
-                  </td>
-                  {/* Work Order - attribute1V */}
-                  <td>{displayValue(row.attribute1V)}</td>
-                  {/* Building Name - attribute2V */}
-                  <td>{displayValue(row.attribute2V)}</td>
-                  {/* Department - attribute3V */}
-                  <td>{displayValue(row.attribute3V)}</td>
-                  {/* Work Location - attribute4V */}
-                  <td>{displayValue(row.attribute4V)}</td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.drawingNo}
-                        onChange={(e) => handleEditInputChange("drawingNo", e.target.value)}
-                        className="align-edit-input-gemsbok"
-                      />
-                    ) : (
-                      displayValue(row.drawingNo)
-                    )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         value={editFormData.totalMarkedWgt}
                         onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
                       formatNumber(row.totalMarkedWgt)
@@ -624,10 +704,10 @@ const AlignmentDatabasesearch = () => {
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         value={editFormData.markWeight}
                         onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
                       formatNumber(row.markWeight)
@@ -636,63 +716,26 @@ const AlignmentDatabasesearch = () => {
                   <td>
                     {editingRow === row.lineId ? (
                       <input
-                        type="date"
-                        value={editFormData.drawingReceivedDate}
-                        onChange={(e) => handleEditInputChange("drawingReceivedDate", e.target.value)}
-                        className="align-edit-input-gemsbok"
-                      />
-                    ) : (
-                      formatDate(row.drawingReceivedDate)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="date"
-                        value={editFormData.targetDate}
-                        onChange={(e) => handleEditInputChange("targetDate", e.target.value)}
-                        className="align-edit-input-gemsbok"
-                      />
-                    ) : (
-                      formatDate(row.targetDate)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.markNo}
-                        onChange={(e) => handleEditInputChange("markNo", e.target.value)}
-                        className="align-edit-input-gemsbok"
-                      />
-                    ) : (
-                      displayValue(row.markNo)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
                         type="number"
                         value={editFormData.markedQty}
                         onChange={(e) => handleEditInputChange("markedQty", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
-                      displayValue(row.markedQty)
+                      row.markedQty || "-"
                     )}
                   </td>
-                  {/* Item No - attribute1N */}
-                  <td>{displayValue(row.attribute1N)}</td>
+                  <td>{row.attribute1N || "-"}</td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="text"
                         value={editFormData.sessionCode}
-                        onChange={(e) => handleEditInputChange("sessionCode", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer align-readonly-input"
+                        readOnly
                       />
                     ) : (
-                      displayValue(row.sessionCode)
+                      row.sessionCode || "-"
                     )}
                   </td>
                   <td>
@@ -700,22 +743,21 @@ const AlignmentDatabasesearch = () => {
                       <input
                         type="text"
                         value={editFormData.sessionName}
-                        onChange={(e) => handleEditInputChange("sessionName", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer align-readonly-input"
+                        readOnly
                       />
                     ) : (
-                      displayValue(row.sessionName)
+                      row.sessionName || "-"
                     )}
                   </td>
-                  {/* Section Weight - sessionWeight or totalMarkedWgt */}
-                  <td>{formatNumber(row.sessionWeight || row.totalMarkedWgt)}</td>
+                  <td>{formatNumber(row.sessionWeight)}</td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
                         value={editFormData.width}
                         onChange={(e) => handleEditInputChange("width", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
                       formatNumber(row.width)
@@ -727,7 +769,7 @@ const AlignmentDatabasesearch = () => {
                         type="number"
                         value={editFormData.length}
                         onChange={(e) => handleEditInputChange("length", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
                       formatNumber(row.length)
@@ -739,25 +781,25 @@ const AlignmentDatabasesearch = () => {
                         type="number"
                         value={editFormData.itemQty}
                         onChange={(e) => handleEditInputChange("itemQty", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
-                      displayValue(row.itemQty)
+                      formatNumber(row.itemQty)
                     )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
                         type="number"
+                        step="0.001"
                         value={editFormData.itemWeight}
                         onChange={(e) => handleEditInputChange("itemWeight", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
                       formatNumber(row.itemWeight)
                     )}
                   </td>
-                  {/* NEW TOTAL ITEM WEIGHT COLUMN */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -765,33 +807,51 @@ const AlignmentDatabasesearch = () => {
                         step="0.001"
                         value={editFormData.totalItemWeight}
                         onChange={(e) => handleEditInputChange("totalItemWeight", e.target.value)}
-                        className="align-edit-input-gemsbok"
+                        className="align-edit-input-deer"
                       />
                     ) : (
                       formatNumber(row.totalItemWeight)
                     )}
                   </td>
-                  <td>{renderFabricationCheckbox(row.cuttingStage, "Cutting")}</td>
-                  <td>{renderFabricationCheckbox(row.fitUpStage, "Fit Up")}</td>
-                  <td>{renderFabricationCheckbox(row.weldingStage, "Welding")}</td>
-                  <td>{renderFabricationCheckbox(row.finishingStage, "Finishing")}</td>
                   <td>
-                    <span className="align-status-badge-oryx">{displayValue(row.status, "Alignment")}</span>
+                    <span className="align-status-badge-moose">Alignment</span>
                   </td>
+
+                  {/* Alignment Process Columns */}
+                  {ALIGNMENT_STAGES.map((stage) => (
+                    <td key={`${row.lineId}_${stage}`} className="align-process-cell">
+                      <div className="align-checkbox-container">
+                        <input
+                          type="checkbox"
+                          id={`${row.lineId}_${stage}`}
+                          checked={alignmentStages[row.lineId]?.[stage] || false}
+                          onChange={(e) => handleStageChange(row.lineId, stage, e.target.checked)}
+                          className="align-process-checkbox"
+                          aria-label={`${STAGE_LABELS[stage]} for ${row.markNo || "item"}`}
+                        />
+                        <label
+                          htmlFor={`${row.lineId}_${stage}`}
+                          className="align-checkbox-label"
+                          title={`Mark ${STAGE_LABELS[stage]} as ${alignmentStages[row.lineId]?.[stage] ? "incomplete" : "complete"}`}
+                        />
+                      </div>
+                    </td>
+                  ))}
+
                   <td>
-                    <div className="align-actions-container-springbok">
+                    <div className="align-actions-container-yak">
                       {editingRow === row.lineId ? (
                         <>
                           <button
                             onClick={handleSaveEdit}
-                            className="align-action-button-eland align-save-button-nyala"
+                            className="align-action-button-elk align-save-button-impala"
                             title="Save"
                           >
                             <MdSave />
                           </button>
                           <button
                             onClick={handleCancelEdit}
-                            className="align-action-button-eland align-cancel-button-waterbuck"
+                            className="align-action-button-elk align-cancel-button-bison"
                             title="Cancel"
                           >
                             ✕
@@ -801,14 +861,14 @@ const AlignmentDatabasesearch = () => {
                         <>
                           <button
                             onClick={() => handleEdit(row)}
-                            className="align-action-button-eland align-edit-button-nyala"
+                            className="align-action-button-elk align-edit-button-impala"
                             title="Modify"
                           >
                             <MdEdit />
                           </button>
                           <button
                             onClick={() => handleDelete(row.lineId)}
-                            className="align-action-button-eland align-delete-button-waterbuck"
+                            className="align-action-button-elk align-delete-button-bison"
                             title="Delete"
                           >
                             <MdDelete />
@@ -820,12 +880,14 @@ const AlignmentDatabasesearch = () => {
                 </tr>
               ))}
               {filteredData.length === 0 && !loading && (
-                <tr className="align-empty-row-hartebeest">
-                  <td colSpan="28">
-                    {" "}
-                    {/* Updated colspan to include new column */}
-                    <div className="align-empty-state-gnu">
-                      <div className="align-empty-text-duiker">No records found.</div>
+                <tr className="align-empty-row-camel">
+                  <td colSpan="19">
+                    <div className="align-empty-state-llama">
+                      <div className="align-empty-text-alpaca">
+                        {selectedDrawingNo || selectedMarkNo
+                          ? "No records found for the selected criteria."
+                          : "Please select Drawing No and/or Mark No and click Search to view records."}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -837,47 +899,47 @@ const AlignmentDatabasesearch = () => {
 
       {/* Move to Billing Popup */}
       {showMoveToBillingPopup && (
-        <div className="align-popup-overlay-crocodile">
-          <div className="align-popup-container-alligator">
-            <div className="align-popup-header-iguana">
+        <div className="align-popup-overlay-shark">
+          <div className="align-popup-container-whale">
+            <div className="align-popup-header-dolphin">
               <h3>Mark No.</h3>
-              <button onClick={() => setShowMoveToBillingPopup(false)} className="align-popup-close-lizard">
+              <button onClick={() => setShowMoveToBillingPopup(false)} className="align-popup-close-octopus">
                 ✕
               </button>
             </div>
-            <div className="align-popup-content-snake">
-              <div className="align-multiselect-container-turtle">
-                <div className="align-multiselect-label-tortoise">Select Mark No(s):</div>
-                <div className="align-multiselect-options-chameleon">
+            <div className="align-popup-content-squid">
+              <div className="align-multiselect-container-jellyfish">
+                <div className="align-multiselect-label-starfish">Select Mark No(s):</div>
+                <div className="align-multiselect-options-seahorse">
                   {availableMarkNosForBilling.map((markNo, index) => (
-                    <label key={`popup_mark_${index}`} className="align-checkbox-label-gecko">
+                    <label key={`popup_mark_${index}`} className="align-checkbox-label-crab">
                       <input
                         type="checkbox"
                         checked={selectedMarkNosForBilling.includes(markNo)}
                         onChange={() => handleMarkNoSelection(markNo)}
-                        className="align-checkbox-input-salamander"
+                        className="align-checkbox-input-lobster"
                       />
-                      <span className="align-checkbox-text-newt">{markNo}</span>
+                      <span className="align-checkbox-text-shrimp">{markNo}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="align-popup-actions-frog">
+            <div className="align-popup-actions-turtle">
               <button
                 onClick={() => setShowMoveToBillingPopup(false)}
-                className="align-popup-button-toad align-cancel-button-tadpole"
+                className="align-popup-button-seal align-cancel-button-walrus"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveToBilling}
-                className="align-popup-button-toad align-save-button-bullfrog"
+                className="align-popup-button-seal align-save-button-penguin"
                 disabled={loading || selectedMarkNosForBilling.length === 0}
               >
                 {loading ? (
                   <>
-                    <AiOutlineLoading3Quarters className="align-spin-icon-treefrog" />
+                    <AiOutlineLoading3Quarters className="align-spin-icon-polar" />
                     <span>Saving...</span>
                   </>
                 ) : (
