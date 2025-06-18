@@ -13,6 +13,8 @@ import LedgerCreation from './VendorComponent/LedgerCreation';
 
 import Kaaa from './VendorComponent/KKK';
 
+import Invoice from './InvoiceComponent/Invoice';
+
  
  
  
@@ -37,11 +39,14 @@ function App() {
             
             <Route path="/usertabs/puser/rofile/details" element={<UserTabs/>}/>
 
-            <Route path="/vendor/puser/rofile/details" element={<VendorProfile/>}/>
+            <Route path="/vendor/user/profile/details" element={<VendorProfile/>}/>
              
             <Route path="/customer/puser/rofile/details" element={<LedgerCreation/>}/>
 
             <Route path="/Kaaa" element={<Kaaa/>}/>
+
+            <Route path="/invoice/management/bellaryinfotech/billing/software" element={<Invoice/>}/>
+
 
 
 

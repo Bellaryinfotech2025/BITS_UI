@@ -747,7 +747,7 @@ const MainDashboard = () => {
                 <div className="user-dropdown">
                   <div className="user-dropdown-item" onClick={() => handleProfileAction("my-profile")}>
                     <UserCircle size={18} />
-                    <Link to="/Kaaa" style={{textDecoration:'none'}}>
+                    <Link to="/vendor/user/profile/details" style={{textDecoration:'none'}}>
                     <span>My Profile</span>
                     </Link>
                   </div>
