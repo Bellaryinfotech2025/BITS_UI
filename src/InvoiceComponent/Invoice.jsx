@@ -398,18 +398,18 @@ const Invoice = () => {
       {/* Print Button at Bottom */}
       <div className="print-section">
         <button className="print-button" onClick={() => setShowDropdown(!showDropdown)}>
-          Print Invoice ▼
+          Print Invoice 
         </button>
         {showDropdown && (
           <div className="dropdown-menu">
             <div className="dropdown-item" onClick={() => handleDownload("PDF")}>
-              📄 Download as PDF
+               Download as PDF
             </div>
             <div className="dropdown-item" onClick={() => handleDownload("Document")}>
-              📝 Download as Document
+               Download as Document
             </div>
             <div className="dropdown-item" onClick={() => handleDownload("Word")}>
-              📋 Download as Word
+               Download as Word
             </div>
           </div>
         )}

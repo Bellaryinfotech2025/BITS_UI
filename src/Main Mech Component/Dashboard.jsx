@@ -43,7 +43,9 @@ import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabases
 import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
 import ReportTemplate from "../ReportsNewComponent/Reports";
+import Invoice from "../InvoiceComponent/Invoice";
 import RawMaterialEntry from "../RawMeterialEntry Component/RawMaterialEntry";
+
 
 import LedgerCreation from "../VendorComponent/LedgerCreation"
 
@@ -464,11 +466,7 @@ const MainDashboard = () => {
 
     // Handle Requests
     if (activeMenu === "invoices") {
-      return (
-        <div className="empty-state">
-          <p>Hi Viewers, invoices content will be displayed here.</p>
-        </div>
-      )
+         return <Invoice />
     }
 
     // Handle Import
@@ -522,7 +520,7 @@ const MainDashboard = () => {
             </div>
             {!sidebarCollapsed && (
               <div className="logo-text">
-                <span className="company-name">Bellary Infotech Billing</span>
+                <span className="company-name" style={{color:'#ffffff'}}>Bellary Infotech Billing</span>
                 <span className="company-tagline">Smart Software</span>
               </div>
             )}
