@@ -506,8 +506,8 @@ const LedgerCreation = () => {
                           disabled={loading}
                         >
                           <option value="">Select Type</option>
-                          <option value="Debtor">Debtor</option>
-                          <option value="Creditor">Creditor</option>
+                          <option value="Debtor">Debtor (Service Reciever)</option>
+                          <option value="Creditor">Creditor (Service Provider)</option>
                         </select>
                         <label
                           htmlFor="debtorCreditor"

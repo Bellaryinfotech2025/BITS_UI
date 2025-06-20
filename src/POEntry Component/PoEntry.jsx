@@ -98,11 +98,14 @@ const POEntry = ({ onClose }) => {
     )
   }
 
-  // Combined save function for both Work Order and Service Order
+  // ENHANCED: Updated save function to use new backend endpoints
   const handleSaveBoth = async () => {
     try {
       setLoading(true)
+      setServiceLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      console.log("Starting save process...");
 
       // First save the work order header
       const savedHeaders = []
@@ -124,34 +127,61 @@ const POEntry = ({ onClose }) => {
 
       // If we have service rows to save and we successfully saved a header
       if (serviceFormRows.length > 0 && savedHeaders.length > 0) {
-        const workOrderId = savedHeaders[0]?.orderId
-        const workOrderNo = savedHeaders[0]?.workOrder
+        const savedHeader = savedHeaders[0];
+        const workOrderId = savedHeader?.orderId;  // This is the key - use orderId
+        const workOrderNo = savedHeader?.workOrder;
 
         console.log("Work Order ID:", workOrderId, "Work Order No:", workOrderNo);
 
-        // Only proceed if we have a valid workOrderNo
-        if (workOrderNo) {
-          // Save each service row with reference to the work order
-          for (const formData of serviceFormRows) {
-            const { id, ...dataToSave } = formData
-            const processedData = {
-              ...dataToSave,
-              qty: dataToSave.qty ? Number.parseFloat(dataToSave.qty) : null,
-              rate: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null,
-              amount: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null,
-              workOrderRef: workOrderNo, // Set the work order reference properly
-            }
+        // Validate we have the required IDs
+        if (!workOrderId) {
+          throw new Error("Failed to get work order ID from saved header");
+        }
 
-            console.log("Saving service order with data:", processedData);
+        if (!workOrderNo) {
+          throw new Error("Failed to get work order number from saved header");
+        }
 
-            const serviceResponse = await axios.post(`${API_BASE_URL}/createBitsLine/details`, processedData, {
-              headers: {
-                "Content-Type": "application/json",
-              },
-            })
-            
-            console.log("Saved service order response:", serviceResponse.data);
+        // ENHANCED: Use bulk create method for better performance and proper foreign key handling
+        const serviceDataToSave = serviceFormRows.map(formData => {
+          const { id, ...dataToSave } = formData;
+          return {
+            ...dataToSave,
+            qty: dataToSave.qty ? Number.parseFloat(dataToSave.qty) : null,
+            unitPrice: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null, // Use unitPrice instead of rate
+            totalPrice: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null, // Use totalPrice instead of amount
+            workOrderRef: workOrderNo, // Keep for backward compatibility
+            // orderId will be set automatically by the backend
+          };
+        });
+
+        console.log("Saving service orders with bulk method:", serviceDataToSave);
+
+        // ENHANCED: Use the new bulk create endpoint that properly handles foreign keys and line numbering
+        const serviceResponse = await axios.post(
+          `${API_BASE_URL}/createMultipleBitsLines/details?orderId=${workOrderId}`, 
+          serviceDataToSave, 
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
+        );
+        
+        console.log("Bulk saved service orders response:", serviceResponse.data);
+
+        // Verify the response
+        if (serviceResponse.data && Array.isArray(serviceResponse.data)) {
+          console.log(`Successfully created ${serviceResponse.data.length} service lines`);
+          serviceResponse.data.forEach((line, index) => {
+            console.log(`Service Line ${index + 1}:`, {
+              lineId: line.lineId,
+              orderId: line.orderId,
+              lineNumber: line.lineNumber,
+              serNo: line.serNo,
+              serviceCode: line.serviceCode
+            });
+          });
         }
       }
 
@@ -159,10 +189,17 @@ const POEntry = ({ onClose }) => {
       setFormRows([createNewFormRow()])
       setServiceFormRows([])
       
-      showSuccessToast("Work Order and Service Order data successfully saved!")
+      showSuccessToast("Work Order and Service Order data successfully saved with proper relationships!")
+      
     } catch (error) {
       console.error("Error saving data:", error)
-      toast.error("Failed to save data")
+      let errorMessage = "Failed to save data";
+      if (error.response?.data) {
+        errorMessage += ": " + (typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data));
+      } else if (error.message) {
+        errorMessage += ": " + error.message;
+      }
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
       setServiceLoading(false)
@@ -361,12 +398,12 @@ const POEntry = ({ onClose }) => {
           <div className="AOrhinoKI">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
               <h4 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "#2c3e50" }}>
-                Service Order
+                Service Order ({serviceFormRows.length} items)
               </h4>
               <div style={{ display: "flex", gap: "10px" }}>
                 <button className="AOcheetahKI AOaddBtnKI" onClick={handleAddService}>
                   <MdAdd className="AObuttonIconKI" />
-                  <span>Add</span>
+                  <span>Add Service</span>
                 </button>
               </div>
             </div>
@@ -380,7 +417,7 @@ const POEntry = ({ onClose }) => {
             <div className="AOjaguarKI">
               <AiOutlineLoading3Quarters />
             </div>
-            <div className="AOcougarKI">Saving data...</div>
+            <div className="AOcougarKI">Saving service data with proper relationships...</div>
           </div>
         )}
 
@@ -404,7 +441,9 @@ const POEntry = ({ onClose }) => {
               <tr key={formData.id} className="AObearKI">
                 <td>
                   <div className="AOwolfKI">
-                    <IoMdOpen />
+                    <span style={{ fontSize: "12px", color: "#666" }}>
+                      {index + 1}
+                    </span>
                   </div>
                 </td>
                 <td>
@@ -445,6 +484,8 @@ const POEntry = ({ onClose }) => {
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
                     className="AOfoxKI"
                     placeholder="QTY"
+                    min="0"
+                    step="0.01"
                   />
                 </td>
                 <td>
@@ -466,6 +507,7 @@ const POEntry = ({ onClose }) => {
                     onChange={(e) => handleServiceInputChange(formData.id, e)}
                     className="AOfoxKI"
                     placeholder="Unit Price"
+                    min="0"
                   />
                 </td>
                 <td>
@@ -477,17 +519,20 @@ const POEntry = ({ onClose }) => {
                     className="AOfoxKI readonly"
                     placeholder="Total Price"
                     readOnly
+                    style={{ backgroundColor: "#f8f9fa", color: "#6c757d" }}
                   />
                 </td>
                 <td>
-                  <span className="AOdeerKI">Pending</span>
+                  <span className="AOdeerKI">
+                    {serviceLoading ? "Saving..." : "Ready"}
+                  </span>
                 </td>
                 <td>
                   <div className="AOmooseKI">
                     <button
                       className="AOelkKI AObisonKI"
                       onClick={() => handleRemoveServiceRow(formData.id)}
-                      title="Remove"
+                      title="Remove Service"
                       disabled={serviceLoading}
                     >
                       <MdDelete />
@@ -500,7 +545,13 @@ const POEntry = ({ onClose }) => {
               <tr className="AOyakKI">
                 <td colSpan="10">
                   <div className="AOcamelKI">
-                    <div className="AOllamaKI">No service records. Click "Add" to create a new service order.</div>
+                    <div className="AOllamaKI">
+                      No service records. Click "Add Service" to create a new service order.
+                      <br />
+                      <small style={{ color: "#666", fontSize: "12px" }}>
+                        Service lines will be automatically numbered and linked to the work order.
+                      </small>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -508,6 +559,46 @@ const POEntry = ({ onClose }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Enhanced Loading Overlay */}
+      {(loading || serviceLoading) && (
+        <div className="AOloadingOverlayKI" style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: "white",
+            padding: "30px",
+            borderRadius: "10px",
+            textAlign: "center",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
+          }}>
+            <AiOutlineLoading3Quarters 
+              style={{ 
+                fontSize: "40px", 
+                color: "#007bff", 
+                animation: "spin 1s linear infinite" 
+              }} 
+            />
+            <div style={{ marginTop: "15px", fontSize: "16px", color: "#333" }}>
+              {loading && serviceLoading ? "Saving work order and service lines..." : 
+               loading ? "Saving work order..." : 
+               "Saving service lines with proper relationships..."}
+            </div>
+            <div style={{ marginTop: "10px", fontSize: "12px", color: "#666" }}>
+              Please wait while we establish proper foreign key relationships...
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastContainer />
     </div>

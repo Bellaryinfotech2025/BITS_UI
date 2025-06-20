@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-import { MdSave, MdClose, MdEdit, MdDelete } from "react-icons/md"
+import { MdSave, MdClose, MdEdit, MdDelete, MdAdd } from "react-icons/md"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { FaCheck } from "react-icons/fa"
 import { ToastContainer, toast } from "react-toastify"
@@ -31,6 +31,10 @@ const UpdatePoentryTable = ({ order, onClose }) => {
   const [serviceLoading, setServiceLoading] = useState(false)
   const [editingServiceId, setEditingServiceId] = useState(null)
   const [editServiceData, setEditServiceData] = useState({})
+  
+  // New service row state
+  const [newServiceRows, setNewServiceRows] = useState([])
+  const [showAddForm, setShowAddForm] = useState(false)
 
   useEffect(() => {
     if (order) {
@@ -47,25 +51,36 @@ const UpdatePoentryTable = ({ order, onClose }) => {
         materialIssueType: order.materialIssueType || "",
       })
       
-      // Load associated service orders
-      loadServiceOrders(order.workOrder);
+      // ENHANCED: Load associated service orders using proper foreign key relationship
+      loadServiceOrders();
     }
   }, [order])
   
-  const loadServiceOrders = async (workOrderNo) => {
+  // ENHANCED: Load service orders using the new enhanced endpoint
+  const loadServiceOrders = async () => {
     try {
       setServiceLoading(true);
-      console.log("Loading service orders for work order:", workOrderNo);
+      console.log("Loading service orders for orderId:", order.orderId);
       
-      // Use the new endpoint to get service orders by work order
-      const response = await axios.get(`${API_BASE_URL}/getBitsLinesByWorkOrder/details?workOrder=${encodeURIComponent(workOrderNo)}`);
+      // Use the enhanced endpoint that uses proper foreign key relationship
+      const response = await axios.get(`${API_BASE_URL}/getBitsLinesByOrderId/details?orderId=${order.orderId}`);
       
       console.log("Service orders response:", response.data);
       setServiceOrders(response.data || []);
     } catch (error) {
       console.error("Error loading service orders:", error);
-      toast.error("Failed to load service order details");
-      setServiceOrders([]);
+      
+      // Fallback to work order number method if orderId method fails
+      try {
+        console.log("Trying fallback method with work order number:", order.workOrder);
+        const fallbackResponse = await axios.get(`${API_BASE_URL}/getBitsLinesByWorkOrder/details?workOrder=${encodeURIComponent(order.workOrder)}`);
+        console.log("Fallback service orders response:", fallbackResponse.data);
+        setServiceOrders(fallbackResponse.data || []);
+      } catch (fallbackError) {
+        console.error("Fallback method also failed:", fallbackError);
+        toast.error("Failed to load service order details");
+        setServiceOrders([]);
+      }
     } finally {
       setServiceLoading(false);
     }
@@ -84,19 +99,19 @@ const UpdatePoentryTable = ({ order, onClose }) => {
     let processedValue = value;
     
     // Handle numeric fields
-    if (name === 'qty' || name === 'rate' || name === 'amount') {
+    if (name === 'qty' || name === 'unitPrice' || name === 'totalPrice') {
       processedValue = value === '' ? '' : parseFloat(value);
       
-      // Recalculate amount if qty or rate changes
-      if (name === 'qty' || name === 'rate') {
+      // Recalculate totalPrice if qty or unitPrice changes
+      if (name === 'qty' || name === 'unitPrice') {
         const qty = name === 'qty' ? processedValue : editServiceData.qty;
-        const rate = name === 'rate' ? processedValue : editServiceData.rate;
+        const unitPrice = name === 'unitPrice' ? processedValue : editServiceData.unitPrice;
         
-        if (!isNaN(qty) && !isNaN(rate)) {
+        if (!isNaN(qty) && !isNaN(unitPrice)) {
           setEditServiceData(prev => ({
             ...prev,
             [name]: processedValue,
-            amount: (qty * rate).toFixed(2)
+            totalPrice: (qty * unitPrice).toFixed(2)
           }));
           return;
         }
@@ -107,6 +122,28 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       ...prev,
       [name]: processedValue
     }));
+  };
+
+  // ENHANCED: Handle new service row input changes
+  const handleNewServiceInputChange = (rowId, e) => {
+    const { name, value } = e.target;
+    setNewServiceRows(prev => 
+      prev.map(row => {
+        if (row.id === rowId) {
+          const updatedRow = { ...row, [name]: value };
+          
+          // Auto-calculate total price
+          if (name === 'qty' || name === 'unitPrice') {
+            const qty = parseFloat(name === 'qty' ? value : updatedRow.qty) || 0;
+            const unitPrice = parseFloat(name === 'unitPrice' ? value : updatedRow.unitPrice) || 0;
+            updatedRow.totalPrice = (qty * unitPrice).toFixed(2);
+          }
+          
+          return updatedRow;
+        }
+        return row;
+      })
+    );
   };
 
   const showSuccessToast = (message) => {
@@ -157,8 +194,8 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       serviceDesc: service.serviceDesc || '',
       qty: service.qty || '',
       uom: service.uom || '',
-      rate: service.rate || '',
-      amount: service.amount || ''
+      unitPrice: service.unitPrice || service.rate || '', // Handle both field names
+      totalPrice: service.totalPrice || service.amount || '' // Handle both field names
     });
   };
   
@@ -169,8 +206,8 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       const processedData = {
         ...editServiceData,
         qty: editServiceData.qty ? parseFloat(editServiceData.qty) : null,
-        rate: editServiceData.rate ? parseFloat(editServiceData.rate) : null,
-        amount: editServiceData.amount ? parseFloat(editServiceData.amount) : null,
+        unitPrice: editServiceData.unitPrice ? parseFloat(editServiceData.unitPrice) : null,
+        totalPrice: editServiceData.totalPrice ? parseFloat(editServiceData.totalPrice) : null,
       };
       
       await axios.put(`${API_BASE_URL}/updateBitsLine/details?id=${editingServiceId}`, processedData, {
@@ -182,7 +219,7 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       showSuccessToast("Service Order updated successfully!");
       
       // Refresh service orders
-      loadServiceOrders(order.workOrder);
+      loadServiceOrders();
       setEditingServiceId(null);
       setEditServiceData({});
     } catch (error) {
@@ -211,13 +248,92 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       showSuccessToast("Service Order deleted successfully!");
       
       // Refresh service orders
-      loadServiceOrders(order.workOrder);
+      loadServiceOrders();
     } catch (error) {
       console.error("Error deleting service order:", error);
       toast.error("Failed to delete service order");
     } finally {
       setServiceLoading(false);
     }
+  };
+
+  // ENHANCED: Add new service functionality
+  const handleAddNewService = () => {
+    const newRow = {
+      id: Date.now() + Math.random(),
+      serNo: '',
+      serviceCode: '',
+      serviceDesc: '',
+      qty: '',
+      uom: '',
+      unitPrice: '',
+      totalPrice: ''
+    };
+    setNewServiceRows(prev => [...prev, newRow]);
+    setShowAddForm(true);
+  };
+
+  const handleSaveNewServices = async () => {
+    try {
+      setServiceLoading(true);
+      
+      // Filter out empty rows
+      const validRows = newServiceRows.filter(row => 
+        row.serNo || row.serviceCode || row.serviceDesc || row.qty || row.unitPrice
+      );
+      
+      if (validRows.length === 0) {
+        toast.warning("Please fill in at least one service row");
+        return;
+      }
+      
+      // Prepare data for bulk creation
+      const serviceData = validRows.map(row => ({
+        serNo: row.serNo || '',
+        serviceCode: row.serviceCode || '',
+        serviceDesc: row.serviceDesc || '',
+        qty: row.qty ? parseFloat(row.qty) : null,
+        uom: row.uom || '',
+        unitPrice: row.unitPrice ? parseFloat(row.unitPrice) : null,
+        totalPrice: row.totalPrice ? parseFloat(row.totalPrice) : null,
+        workOrderRef: order.workOrder
+      }));
+      
+      console.log("Creating new services for orderId:", order.orderId, "Data:", serviceData);
+      
+      // ENHANCED: Use the new bulk create endpoint with proper foreign key handling
+      await axios.post(
+        `${API_BASE_URL}/createMultipleBitsLines/details?orderId=${order.orderId}`, 
+        serviceData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      showSuccessToast(`Successfully added ${validRows.length} new service order(s)!`);
+      
+      // Reset and refresh
+      setNewServiceRows([]);
+      setShowAddForm(false);
+      loadServiceOrders();
+      
+    } catch (error) {
+      console.error("Error creating new services:", error);
+      toast.error("Failed to create new service orders");
+    } finally {
+      setServiceLoading(false);
+    }
+  };
+
+  const handleCancelNewServices = () => {
+    setNewServiceRows([]);
+    setShowAddForm(false);
+  };
+
+  const handleRemoveNewServiceRow = (rowId) => {
+    setNewServiceRows(prev => prev.filter(row => row.id !== rowId));
   };
 
   const handleCancel = () => {
@@ -234,7 +350,7 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       <div className="piHeaderSectionol">
         <div className="piTitleSectionol">
           <h2 className="piPageTitleol">Update Work Order</h2>
-          <p className="piSubtitleol">Work Order: {order?.workOrder}</p>
+          <p className="piSubtitleol">Work Order: {order?.workOrder} (ID: {order?.orderId})</p>
         </div>
         <div className="piHeaderButtonsol">
           {!isEditing ? (
@@ -412,7 +528,28 @@ const UpdatePoentryTable = ({ order, onClose }) => {
       {/* Service Order Details DataGrid */}
       <div className="piFormContainerol piServiceGridContainerol">
         <div className="piFormHeaderol">
-          <h4>Service Order Details ({serviceOrders.length} records)</h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h4>Service Order Details ({serviceOrders.length} records)</h4>
+            <button 
+              className="piAddServiceButtonol" 
+              onClick={handleAddNewService}
+              disabled={serviceLoading || editingServiceId !== null}
+              style={{
+                backgroundColor: "#28a745",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px"
+              }}
+            >
+              <MdAdd />
+              Add Service
+            </button>
+          </div>
         </div>
         
         <div className="piServiceGridol">
@@ -426,6 +563,7 @@ const UpdatePoentryTable = ({ order, onClose }) => {
           <table className="piServiceTableol">
             <thead>
               <tr>
+                <th>Line #</th>
                 <th>Serial No</th>
                 <th>Service Code</th>
                 <th>Service Description</th>
@@ -437,12 +575,18 @@ const UpdatePoentryTable = ({ order, onClose }) => {
               </tr>
             </thead>
             <tbody>
+              {/* Existing Service Orders */}
               {serviceOrders.length > 0 ? (
                 serviceOrders.map((service) => (
                   <tr key={service.lineId}>
                     {editingServiceId === service.lineId ? (
                       // Editing row
                       <>
+                        <td>
+                          <span style={{ fontSize: "12px", color: "#666" }}>
+                            {service.lineNumber || '-'}
+                          </span>
+                        </td>
                         <td>
                           <input
                             type="text"
@@ -477,6 +621,8 @@ const UpdatePoentryTable = ({ order, onClose }) => {
                             value={editServiceData.qty || ''}
                             onChange={handleServiceInputChange}
                             className="piServiceInputol"
+                            min="0"
+                            step="0.01"
                           />
                         </td>
                         <td>
@@ -492,20 +638,22 @@ const UpdatePoentryTable = ({ order, onClose }) => {
                           <input
                             type="number"
                             step="0.01"
-                            name="rate"
-                            value={editServiceData.rate || ''}
+                            name="unitPrice"
+                            value={editServiceData.unitPrice || ''}
                             onChange={handleServiceInputChange}
                             className="piServiceInputol"
+                            min="0"
                           />
                         </td>
                         <td>
                           <input
                             type="number"
                             step="0.01"
-                            name="amount"
-                            value={editServiceData.amount || ''}
+                            name="totalPrice"
+                            value={editServiceData.totalPrice || ''}
                             className="piServiceInputol"
                             readOnly
+                            style={{ backgroundColor: "#f8f9fa" }}
                           />
                         </td>
                         <td>
@@ -530,13 +678,18 @@ const UpdatePoentryTable = ({ order, onClose }) => {
                     ) : (
                       // Display row
                       <>
+                        <td>
+                          <span style={{ fontSize: "12px", color: "#666" }}>
+                            {service.lineNumber || '-'}
+                          </span>
+                        </td>
                         <td>{service.serNo || '-'}</td>
                         <td>{service.serviceCode || '-'}</td>
                         <td>{service.serviceDesc || '-'}</td>
                         <td>{service.qty || '-'}</td>
                         <td>{service.uom || '-'}</td>
-                        <td>{service.rate || '-'}</td>
-                        <td>{service.amount || '-'}</td>
+                        <td>{service.unitPrice || service.rate || '-'}</td>
+                        <td>{service.totalPrice || service.amount || '-'}</td>
                         <td>
                           <div className="piServiceActionsol">
                             <button 
@@ -561,13 +714,150 @@ const UpdatePoentryTable = ({ order, onClose }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="piNoServiceDataol">
+                  <td colSpan="9" className="piNoServiceDataol">
                     {serviceLoading ? "Loading..." : "No service orders found for this work order."}
                   </td>
                 </tr>
               )}
+              
+              {/* New Service Rows */}
+              {newServiceRows.map((row, index) => (
+                <tr key={row.id} style={{ backgroundColor: "#f8f9fa" }}>
+                  <td>
+                    <span style={{ fontSize: "12px", color: "#28a745" }}>
+                      NEW
+                    </span>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="serNo"
+                      value={row.serNo}
+                      onChange={(e) => handleNewServiceInputChange(row.id, e)}
+                      className="piServiceInputol"
+                      placeholder="Serial No"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="serviceCode"
+                      value={row.serviceCode}
+                      onChange={(e) => handleNewServiceInputChange(row.id, e)}
+                      className="piServiceInputol"
+                      placeholder="Service Code"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="serviceDesc"
+                      value={row.serviceDesc}
+                      onChange={(e) => handleNewServiceInputChange(row.id, e)}
+                      className="piServiceInputol"
+                      placeholder="Description"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="qty"
+                      value={row.qty}
+                      onChange={(e) => handleNewServiceInputChange(row.id, e)}
+                      className="piServiceInputol"
+                      placeholder="QTY"
+                      min="0"
+                      step="0.01"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="uom"
+                      value={row.uom}
+                      onChange={(e) => handleNewServiceInputChange(row.id, e)}
+                      className="piServiceInputol"
+                      placeholder="UOM"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="unitPrice"
+                      value={row.unitPrice}
+                      onChange={(e) => handleNewServiceInputChange(row.id, e)}
+                      className="piServiceInputol"
+                      placeholder="Unit Price"
+                      min="0"
+                      step="0.01"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="totalPrice"
+                      value={row.totalPrice}
+                      className="piServiceInputol"
+                      readOnly
+                      style={{ backgroundColor: "#e9ecef" }}
+                    />
+                  </td>
+                  <td>
+                    <button 
+                      className="piServiceDeleteol" 
+                      onClick={() => handleRemoveNewServiceRow(row.id)}
+                      disabled={serviceLoading}
+                    >
+                      <MdDelete />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
+          
+          {/* New Service Actions */}
+          {showAddForm && newServiceRows.length > 0 && (
+            <div style={{ 
+              padding: "15px", 
+              backgroundColor: "#f8f9fa", 
+              borderTop: "1px solid #dee2e6",
+              display: "flex",
+              gap: "10px",
+              justifyContent: "flex-end"
+            }}>
+              <button 
+                onClick={handleSaveNewServices}
+                disabled={serviceLoading}
+                style={{
+                  backgroundColor: "#28a745",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                {serviceLoading ? <AiOutlineLoading3Quarters className="piSpinIconol" /> : <MdSave />}
+                Save New Services
+              </button>
+              <button 
+                onClick={handleCancelNewServices}
+                disabled={serviceLoading}
+                style={{
+                  backgroundColor: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                <MdClose />
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
