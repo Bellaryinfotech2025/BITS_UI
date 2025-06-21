@@ -21,9 +21,17 @@ const FabricationDatabasesearch = () => {
   const [drawingNumbers, setDrawingNumbers] = useState([])
   const [markNumbers, setMarkNumbers] = useState([])
 
+  // NEW: Additional dropdown data
+  const [workOrders, setWorkOrders] = useState([])
+  const [plantLocations, setPlantLocations] = useState([])
+
   // Filter states
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
+
+  // NEW: Additional filter states
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
+  const [selectedPlantLocation, setSelectedPlantLocation] = useState("")
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
@@ -32,6 +40,10 @@ const FabricationDatabasesearch = () => {
     drawingNo: "",
     markNo: "",
   })
+
+  // NEW: RA.NO states
+  const [raNoValues, setRaNoValues] = useState({})
+  const [savingRaNo, setSavingRaNo] = useState({})
 
   // Move to Erection popup states
   const [showMoveToErectionPopup, setShowMoveToErectionPopup] = useState(false)
@@ -166,12 +178,57 @@ const FabricationDatabasesearch = () => {
     }
   }
 
+  // NEW: Handle RA.NO input change
+  const handleRaNoChange = (lineId, value) => {
+    setRaNoValues((prev) => ({
+      ...prev,
+      [lineId]: value,
+    }))
+  }
+
+  // NEW: Save RA.NO to backend
+  const handleSaveRaNo = async (lineId) => {
+    const raNoValue = raNoValues[lineId]
+    if (!raNoValue || raNoValue.trim() === "") {
+      toast.warning("Please enter RA.NO value")
+      return
+    }
+
+    try {
+      setSavingRaNo((prev) => ({ ...prev, [lineId]: true }))
+
+      const response = await fetch(
+        `${API_BASE_URL}/updateDrawingEntryRaNo/details?lineId=${lineId}&raNo=${encodeURIComponent(raNoValue.trim())}`,
+        {
+          method: "PUT",
+        },
+      )
+
+      if (response.ok) {
+        toast.success("RA.NO saved successfully!")
+
+        // Update the table data to reflect the saved value
+        setTableData((prev) => prev.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue.trim() } : row)))
+        setFilteredData((prev) => prev.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue.trim() } : row)))
+      } else {
+        const errorText = await response.text()
+        console.error("Save RA.NO failed:", errorText)
+        toast.error(`Failed to save RA.NO: ${errorText}`)
+      }
+    } catch (error) {
+      console.error("Error saving RA.NO:", error)
+      toast.error("Error saving RA.NO: " + error.message)
+    } finally {
+      setSavingRaNo((prev) => ({ ...prev, [lineId]: false }))
+    }
+  }
+
   // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData()
   }, [])
 
-  // Fetch dropdown data for Drawing No and Mark No
+  // Fetch dropdown data for all dropdowns
   const fetchDropdownData = async () => {
     try {
       setLoading(true)
@@ -191,6 +248,28 @@ const FabricationDatabasesearch = () => {
         setMarkNumbers(markData || [])
         setAvailableMarkNosForErection(markData || [])
         console.log("Mark Numbers:", markData)
+      }
+
+      // NEW: Fetch work orders
+      const workOrderResponse = await fetch(`${API_BASE_URL}/getworkorder/number`)
+      if (workOrderResponse.ok) {
+        const workOrderData = await workOrderResponse.json()
+        setWorkOrders(workOrderData || [])
+        console.log("Work Orders:", workOrderData)
+      } else {
+        console.error("Error fetching work orders:", workOrderResponse.statusText)
+        toast.error(`Error fetching work orders: ${workOrderResponse.statusText}`)
+      }
+
+      // NEW: Fetch plant locations
+      const plantLocationResponse = await fetch(`${API_BASE_URL}/getAllPlantLocations/details`)
+      if (plantLocationResponse.ok) {
+        const plantLocationData = await plantLocationResponse.json()
+        setPlantLocations(plantLocationData || [])
+        console.log("Plant Locations:", plantLocationData)
+      } else {
+        console.error("Error fetching plant locations:", plantLocationResponse.statusText)
+        toast.error(`Error fetching plant locations: ${plantLocationResponse.statusText}`)
       }
     } catch (error) {
       console.error("Error fetching dropdown data:", error)
@@ -252,20 +331,24 @@ const FabricationDatabasesearch = () => {
       setFilteredData(data)
 
       // Set selected filter values for display
-      if (data.length > 0) {
-        const firstRow = data[0]
-        setSelectedFilters({
-          workOrder: firstRow.attribute1V || "",
-          buildingName: firstRow.attribute2V || "",
-          drawingNo: selectedDrawingNo,
-          markNo: selectedMarkNo,
-        })
-      }
+      setSelectedFilters({
+        workOrder: selectedWorkOrder,
+        buildingName: selectedPlantLocation,
+        drawingNo: selectedDrawingNo,
+        markNo: selectedMarkNo,
+      })
 
       // Initialize fabrication stages for all rows
       data.forEach((row) => {
         initializeFabricationStagesFromData(row.lineId, row)
       })
+
+      // Initialize RA.NO values from database
+      const raNoInitialValues = {}
+      data.forEach((row) => {
+        raNoInitialValues[row.lineId] = row.raNo || ""
+      })
+      setRaNoValues(raNoInitialValues)
 
       toast.info(`Found ${data.length} records`)
     } catch (error) {
@@ -478,6 +561,7 @@ const FabricationDatabasesearch = () => {
         // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
+        raNo: item.raNo || null,
       }))
 
       console.log("Moving to erection:", erectionEntries)
@@ -599,6 +683,34 @@ const FabricationDatabasesearch = () => {
       <div className="fab-filter-section-zebra">
         <div className="fab-filter-container-hippo">
           <div className="fab-filter-row-rhino">
+            {/* NEW: Work Order Dropdown */}
+            <select
+              value={selectedWorkOrder}
+              onChange={(e) => setSelectedWorkOrder(e.target.value)}
+              className="fab-dropdown-cheetah"
+            >
+              <option value="">Select Work Order</option>
+              {workOrders.map((workOrder, index) => (
+                <option key={`work_order_${index}`} value={workOrder}>
+                  {workOrder}
+                </option>
+              ))}
+            </select>
+
+            {/* NEW: Building Name (Plant Location) Dropdown */}
+            <select
+              value={selectedPlantLocation}
+              onChange={(e) => setSelectedPlantLocation(e.target.value)}
+              className="fab-dropdown-cheetah"
+            >
+              <option value="">Select Building Name</option>
+              {plantLocations.map((location, index) => (
+                <option key={`plant_location_${index}`} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+
             {/* Drawing No Dropdown */}
             <select
               value={selectedDrawingNo}
@@ -708,6 +820,8 @@ const FabricationDatabasesearch = () => {
                 <th className="fab-process-header">Welding</th>
                 <th className="fab-process-header">Finishing</th>
                 <th>Actions</th>
+                {/* NEW: RA.NO Column */}
+                <th>RA.NO</th>
               </tr>
             </thead>
             <tbody>
@@ -908,11 +1022,37 @@ const FabricationDatabasesearch = () => {
                       )}
                     </div>
                   </td>
+
+                  {/* NEW: RA.NO Column */}
+                  <td>
+                    <div className="fab-actions-container-yak">
+                      <input
+                        type="text"
+                        value={raNoValues[row.lineId] || ""}
+                        onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
+                        className="fab-edit-input-deer"
+                        placeholder="Enter RA.NO"
+                        style={{ minWidth: "120px", marginRight: "5px" }}
+                      />
+                      <button
+                        onClick={() => handleSaveRaNo(row.lineId)}
+                        className="fab-action-button-elk fab-save-button-impala"
+                        title="Save RA.NO"
+                        disabled={savingRaNo[row.lineId]}
+                      >
+                        {savingRaNo[row.lineId] ? (
+                          <AiOutlineLoading3Quarters className="fab-spin-icon-polar" />
+                        ) : (
+                          <MdSave />
+                        )}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="19">
+                  <td colSpan="21">
                     <div className="fab-empty-state-llama">
                       <div className="fab-empty-text-alpaca">
                         {selectedDrawingNo || selectedMarkNo
