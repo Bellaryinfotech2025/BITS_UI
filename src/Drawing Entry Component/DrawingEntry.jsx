@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdAdd } from "react-icons/md"
-import { FaCheck } from "react-icons/fa"
+import { FaCheck, FaChevronUp, FaChevronDown } from "react-icons/fa"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
@@ -17,6 +17,7 @@ const DrawingEntry = () => {
   const [drawingEntryData, setDrawingEntryData] = useState({
     id: "drawing_entry_1",
     workOrder: "",
+    orderId: null, // NEW FIELD: Store the order_id from bits_po_entry_header
     plantLocation: "",
     department: "",
     workLocation: "",
@@ -46,8 +47,6 @@ const DrawingEntry = () => {
   const [searchTerms, setSearchTerms] = useState({})
   const [filteredSectionCodes, setFilteredSectionCodes] = useState({})
   const [showDropdowns, setShowDropdowns] = useState({})
-  // Add filtered work orders state
-  const [filteredWorkOrders, setFilteredWorkOrders] = useState({})
 
   // Saved entries for display
   const [savedEntries, setSavedEntries] = useState([])
@@ -59,10 +58,6 @@ const DrawingEntry = () => {
     fetchLineNumbers()
     // Initialize with one BOM row
     setBomEntryRows([createNewBomRow()])
-    // Initialize work order search state
-    setSearchTerms((prev) => ({ ...prev, [`workOrder_${drawingEntryData.id}`]: "" }))
-    setFilteredWorkOrders((prev) => ({ ...prev, [drawingEntryData.id]: workOrderOptions }))
-    setShowDropdowns((prev) => ({ ...prev, [`workOrder_${drawingEntryData.id}`]: false }))
   }, [])
 
   // Close dropdown when clicking outside
@@ -219,13 +214,24 @@ const DrawingEntry = () => {
         const data = await response.json()
         console.log("Work order details from database:", data)
 
+        // Check different possible field names for order_id
+        const orderId = data.orderId || data.order_id || data.id || null
+
+        console.log("Extracted order_id:", orderId) // Debug log
+
         setDrawingEntryData((prev) => ({
           ...prev,
-          plantLocation: data.plantLocation || "",
+          orderId: orderId, // Store the order_id
+          plantLocation: data.plantLocation || data.plant_location || "",
           department: data.department || "",
-          workLocation: data.workLocation || "",
+          workLocation: data.workLocation || data.work_location || "",
         }))
-        toast.success(`Loaded details for work order ${workOrder}`)
+
+        if (orderId) {
+          toast.success(`Loaded details for work order ${workOrder} (Order ID: ${orderId})`)
+        } else {
+          toast.warning(`Work order ${workOrder} loaded but no Order ID found`)
+        }
       } else {
         console.error("Failed to fetch work order details")
         toast.error(`Failed to fetch details for work order ${workOrder}`)
@@ -352,55 +358,6 @@ const DrawingEntry = () => {
     }
   }
 
-  // Handle search input for work orders
-  const handleWorkOrderSearch = (rowId, term) => {
-    setSearchTerms((prev) => ({ ...prev, [`workOrder_${rowId}`]: term }))
-
-    if (!term) {
-      setFilteredWorkOrders((prev) => ({ ...prev, [rowId]: workOrderOptions }))
-    } else {
-      const filtered = workOrderOptions.filter((option) => option.value.toLowerCase().includes(term.toLowerCase()))
-      setFilteredWorkOrders((prev) => ({ ...prev, [rowId]: filtered }))
-    }
-
-    // Show dropdown when typing and calculate position
-    setShowDropdowns((prev) => ({ ...prev, [`workOrder_${rowId}`]: true }))
-
-    // Calculate and set dropdown position
-    setTimeout(() => {
-      const inputElement = document.querySelector(`input[data-row-id="workOrder_${rowId}"]`)
-      if (inputElement) {
-        const position = calculateDropdownPosition(inputElement)
-        const dropdown = document.querySelector(`[data-dropdown-id="workOrder_${rowId}"]`)
-        if (dropdown) {
-          dropdown.style.top = `${position.top}px`
-          dropdown.style.left = `${position.left}px`
-          dropdown.style.minWidth = `${Math.max(position.width, 200)}px`
-        }
-      }
-    }, 10)
-  }
-
-  // Handle work order selection
-  const handleWorkOrderSelect = (rowId, workOrder) => {
-    // Update the form data
-    setDrawingEntryData((prev) => ({
-      ...prev,
-      workOrder: workOrder,
-    }))
-
-    // Update search term to show selected value
-    setSearchTerms((prev) => ({ ...prev, [`workOrder_${rowId}`]: workOrder }))
-
-    // Hide dropdown
-    setShowDropdowns((prev) => ({ ...prev, [`workOrder_${rowId}`]: false }))
-
-    // Fetch work order details
-    if (workOrder) {
-      fetchWorkOrderDetails(workOrder)
-    }
-  }
-
   // Generate unique ID for new rows
   const generateUniqueId = () => {
     return `row_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -521,6 +478,12 @@ const DrawingEntry = () => {
       }
 
       console.log(`Processing Mark Qty: ${markQty} (type: ${typeof markQty})`)
+      console.log("Current drawingEntryData.orderId:", drawingEntryData.orderId) // Debug log
+
+      // Validate that we have an orderId
+      if (!drawingEntryData.orderId) {
+        console.warn("No orderId found in drawingEntryData. Work order might not be selected properly.")
+      }
 
       const drawingEntryDataToSave = {
         drawingNo: drawingEntryData.drawingNo || "",
@@ -535,6 +498,7 @@ const DrawingEntry = () => {
         itemQty: Number.parseFloat(bomRow?.itemQty) || 0,
         itemWeight: Number.parseFloat(bomRow?.itemWeight) || 0,
         totalItemWeight: Number.parseFloat(bomRow?.totalItemWeight) || 0,
+        orderId: drawingEntryData.orderId, // This should now contain the correct order_id
         tenantId: "DEFAULT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -565,7 +529,7 @@ const DrawingEntry = () => {
         finishingStage: "N",
       }
 
-      console.log("Sending data to API:", drawingEntryDataToSave)
+      console.log("Sending data to API (with orderId):", drawingEntryDataToSave)
 
       const response = await fetch(`${API_BASE_URL}/createBitsDrawingEntry/details`, {
         method: "POST",
@@ -583,6 +547,13 @@ const DrawingEntry = () => {
         if (Array.isArray(result)) {
           if (result.length !== markQty) {
             console.warn(`Expected ${markQty} entries, but got ${result.length} entries`)
+          }
+
+          // Check if orderId was saved correctly
+          if (result.length > 0 && result[0].orderId) {
+            console.log("✅ Order ID successfully saved:", result[0].orderId)
+          } else {
+            console.warn("⚠️ Order ID might not have been saved correctly")
           }
         }
 
@@ -653,6 +624,7 @@ const DrawingEntry = () => {
       setDrawingEntryData({
         id: "drawing_entry_1",
         workOrder: "",
+        orderId: null,
         plantLocation: "",
         department: "",
         workLocation: "",
@@ -806,34 +778,21 @@ const DrawingEntry = () => {
                 </td>
                 <td className="drAOdropdownCellgi">
                   <div className="drAOsearchableSelectgi">
-                    <input
-                      type="text"
-                      placeholder="Search or select work order..."
-                      value={searchTerms[`workOrder_${drawingEntryData.id}`] || ""}
-                      onChange={(e) => handleWorkOrderSearch(drawingEntryData.id, e.target.value)}
-                      onFocus={() =>
-                        setShowDropdowns((prev) => ({ ...prev, [`workOrder_${drawingEntryData.id}`]: true }))
+                    <select
+                      value={drawingEntryData.workOrder}
+                      onChange={(e) =>
+                        handleDrawingEntryInputChange({ target: { name: "workOrder", value: e.target.value } })
                       }
-                      className="drAOsearchInputgi"
-                      data-row-id={`workOrder_${drawingEntryData.id}`}
-                    />
-                    {showDropdowns[`workOrder_${drawingEntryData.id}`] && (
-                      <div
-                        className="drAOdropdownListgi"
-                        data-dropdown-id={`workOrder_${drawingEntryData.id}`}
-                        style={{ position: "fixed", zIndex: 999999 }}
-                      >
-                        {(filteredWorkOrders[drawingEntryData.id] || workOrderOptions).map((option, index) => (
-                          <div
-                            key={`${drawingEntryData.id}_wo_${option.value}_${index}`}
-                            className="drAOdropdownItemgi"
-                            onClick={() => handleWorkOrderSelect(drawingEntryData.id, option.value)}
-                          >
-                            {option.label}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                      className="drAOfoxgi"
+                      style={{ width: "100%", padding: "8px 10px" }}
+                    >
+                      <option value="">Select Work Order...</option>
+                      {workOrderOptions.map((option, index) => (
+                        <option key={`wo_${option.value}_${index}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </td>
                 <td>
@@ -1029,15 +988,35 @@ const DrawingEntry = () => {
                   </td>
                   <td className="drAOdropdownCellgi">
                     <div className="drAOsearchableSelectgi">
-                      <input
-                        type="text"
-                        placeholder="Search or select section code..."
-                        value={searchTerms[formData.id] || ""}
-                        onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
-                        onFocus={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: true }))}
-                        className="drAOsearchInputgi"
-                        data-row-id={formData.id}
-                      />
+                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                        <input
+                          type="text"
+                          placeholder="Search or select section code..."
+                          value={searchTerms[formData.id] || ""}
+                          onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
+                          onFocus={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: true }))}
+                          className="drAOsearchInputgi"
+                          data-row-id={formData.id}
+                          style={{ paddingRight: "30px" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: !prev[formData.id] }))}
+                          style={{
+                            position: "absolute",
+                            right: "5px",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "2px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {showDropdowns[formData.id] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                        </button>
+                      </div>
                       {showDropdowns[formData.id] && (
                         <div
                           className="drAOdropdownListgi"

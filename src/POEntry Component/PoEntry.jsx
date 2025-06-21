@@ -3,11 +3,11 @@ import axios from "axios"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { TiEdit } from "react-icons/ti"
-import { MdDelete, MdSave, MdAdd, MdClose } from "react-icons/md"
-import { FaCheck } from "react-icons/fa"
-import { ToastContainer, toast } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import "../POEntry Component/PoEntry.css"
+import { MdDelete, MdSave, MdAdd, MdClose } from "react-icons/md";
+import { FaCheck } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "../POEntry Component/PoEntry.css";
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
