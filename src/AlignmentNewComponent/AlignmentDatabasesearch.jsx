@@ -17,10 +17,14 @@ const AlignmentDatabasesearch = () => {
   const [filteredData, setFilteredData] = useState([])
   const [drawingNumbers, setDrawingNumbers] = useState([])
   const [markNumbers, setMarkNumbers] = useState([])
+  const [workOrders, setWorkOrders] = useState([]) // NEW: Work Orders from erection
+  const [buildingNames, setBuildingNames] = useState([]) // NEW: Building Names from erection
 
   // Filter states
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState("") // NEW: Work Order filter
+  const [selectedBuildingName, setSelectedBuildingName] = useState("") // NEW: Building Name filter
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
@@ -113,7 +117,7 @@ const AlignmentDatabasesearch = () => {
       const alignmentUpdates = Object.keys(alignmentStages).map((lineId) => {
         const stages = alignmentStages[lineId]
         return {
-          lineId: lineId,
+          lineId: Number.parseInt(lineId), // CONVERT TO LONG INTEGER
           cuttingStage: stages.cutting ? "Y" : "N",
           fitUpStage: stages.fitUp ? "Y" : "N",
           weldingStage: stages.welding ? "Y" : "N",
@@ -143,7 +147,7 @@ const AlignmentDatabasesearch = () => {
         toast.success(`Successfully updated alignment stages for ${result.updatedCount} entries!`)
 
         // Refresh data to get updated values
-        if (selectedDrawingNo || selectedMarkNo) {
+        if (selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedBuildingName) {
           handleSearch()
         }
       } else {
@@ -164,10 +168,26 @@ const AlignmentDatabasesearch = () => {
     fetchDropdownData()
   }, [])
 
-  // Fetch dropdown data for Drawing No and Mark No
+  // Fetch dropdown data for all filters
   const fetchDropdownData = async () => {
     try {
       setLoading(true)
+
+      // NEW: Fetch Work Orders that were moved from erection (have order_id)
+      const workOrderResponse = await fetch(`${API_BASE_URL}/getDistinctErectionWorkOrders/details`)
+      if (workOrderResponse.ok) {
+        const workOrderData = await workOrderResponse.json()
+        setWorkOrders(workOrderData || [])
+        console.log("Work Orders from erection:", workOrderData)
+      }
+
+      // NEW: Fetch Building Names that were moved from erection (have ra_no)
+      const buildingResponse = await fetch(`${API_BASE_URL}/getDistinctErectionPlantLocations/details`)
+      if (buildingResponse.ok) {
+        const buildingData = await buildingResponse.json()
+        setBuildingNames(buildingData || [])
+        console.log("Building Names from erection:", buildingData)
+      }
 
       // Fetch distinct drawing numbers
       const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryDrawingNumbers/details`)
@@ -195,8 +215,8 @@ const AlignmentDatabasesearch = () => {
 
   // Handle search button click
   const handleSearch = async () => {
-    if (!selectedDrawingNo && !selectedMarkNo) {
-      toast.warning("Please select at least Drawing No or Mark No to search")
+    if (!selectedDrawingNo && !selectedMarkNo && !selectedWorkOrder && !selectedBuildingName) {
+      toast.warning("Please select at least one filter to search")
       return
     }
 
@@ -212,6 +232,13 @@ const AlignmentDatabasesearch = () => {
       }
       if (selectedMarkNo) {
         params.append("markNo", selectedMarkNo)
+      }
+      // NEW: Add Work Order and Building Name filters
+      if (selectedWorkOrder) {
+        params.append("orderId", selectedWorkOrder)
+      }
+      if (selectedBuildingName) {
+        params.append("raNo", selectedBuildingName)
       }
 
       // Add pagination parameters
@@ -245,15 +272,12 @@ const AlignmentDatabasesearch = () => {
       setFilteredData(data)
 
       // Set selected filter values for display
-      if (data.length > 0) {
-        const firstRow = data[0]
-        setSelectedFilters({
-          workOrder: firstRow.attribute1V || "",
-          buildingName: firstRow.attribute2V || "",
-          drawingNo: selectedDrawingNo,
-          markNo: selectedMarkNo,
-        })
-      }
+      setSelectedFilters({
+        workOrder: selectedWorkOrder,
+        buildingName: selectedBuildingName,
+        drawingNo: selectedDrawingNo,
+        markNo: selectedMarkNo,
+      })
 
       // Initialize alignment stages for all rows
       data.forEach((row) => {
@@ -277,6 +301,24 @@ const AlignmentDatabasesearch = () => {
     }
   }
 
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSelectedWorkOrder("")
+    setSelectedBuildingName("")
+    setSelectedDrawingNo("")
+    setSelectedMarkNo("")
+    setTableData([])
+    setFilteredData([])
+    setSelectedFilters({
+      workOrder: "",
+      buildingName: "",
+      drawingNo: "",
+      markNo: "",
+    })
+    setAlignmentStages({})
+    toast.info("All filters cleared")
+  }
+
   // Handle edit button click
   const handleEdit = (row) => {
     setEditingRow(row.lineId)
@@ -294,6 +336,8 @@ const AlignmentDatabasesearch = () => {
       drawingWeight: row.drawingWeight || "",
       markWeight: row.markWeight || "",
       totalMarkedWgt: row.totalMarkedWgt || "",
+      orderId: row.orderId || "", // NEW: Order ID
+      raNo: row.raNo || "", // NEW: RA NO
     })
   }
 
@@ -317,6 +361,8 @@ const AlignmentDatabasesearch = () => {
         drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
         markWeight: Number.parseFloat(editFormData.markWeight) || null,
         totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
+        orderId: editFormData.orderId ? Number.parseInt(editFormData.orderId) : null, // NEW: Order ID as Long
+        raNo: editFormData.raNo || null, // NEW: RA NO
         lastUpdatedBy: "system",
       }
 
@@ -451,6 +497,8 @@ const AlignmentDatabasesearch = () => {
         // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
+        orderId: item.orderId || null, // NEW: Order ID
+        raNo: item.raNo || null, // NEW: RA NO
         // Copy fabrication stages
         cuttingStage: item.cuttingStage || "N",
         fitUpStage: item.fitUpStage || "N",
@@ -537,7 +585,7 @@ const AlignmentDatabasesearch = () => {
           <h3>Search for Alignment Details</h3>
         </div>
         <div className="align-header-buttons">
-          <button
+          {/* <button
             className="align-button-giraffe align-save-stages-btn"
             onClick={handleSaveAlignmentStages}
             disabled={saving || loading || filteredData.length === 0}
@@ -553,7 +601,7 @@ const AlignmentDatabasesearch = () => {
                 <span>Save</span>
               </>
             )}
-          </button>
+          </button> */}
           <button
             className="align-button-giraffe align-move-to-billing-btn"
             onClick={handleMoveToBilling}
@@ -568,6 +616,34 @@ const AlignmentDatabasesearch = () => {
       <div className="align-filter-section-zebra">
         <div className="align-filter-container-hippo">
           <div className="align-filter-row-rhino">
+            {/* NEW: Work Order Dropdown */}
+            <select
+              value={selectedWorkOrder}
+              onChange={(e) => setSelectedWorkOrder(e.target.value)}
+              className="align-dropdown-cheetah"
+            >
+              <option value="">Select Work Order</option>
+              {workOrders.map((workOrder, index) => (
+                <option key={`work_order_${index}`} value={workOrder}>
+                  {workOrder}
+                </option>
+              ))}
+            </select>
+
+            {/* NEW: Building Name Dropdown */}
+            <select
+              value={selectedBuildingName}
+              onChange={(e) => setSelectedBuildingName(e.target.value)}
+              className="align-dropdown-cheetah"
+            >
+              <option value="">Select Building Name</option>
+              {buildingNames.map((buildingName, index) => (
+                <option key={`building_${index}`} value={buildingName}>
+                  {buildingName}
+                </option>
+              ))}
+            </select>
+
             {/* Drawing No Dropdown */}
             <select
               value={selectedDrawingNo}
@@ -599,6 +675,11 @@ const AlignmentDatabasesearch = () => {
             {/* Search Button */}
             <button className="align-search-button-leopard" onClick={handleSearch} disabled={loading}>
               <span>Search</span>
+            </button>
+
+            {/* Clear Filters Button */}
+            <button className="align-clear-button-tiger" onClick={handleClearFilters}>
+              <span>Clear</span>
             </button>
           </div>
         </div>
@@ -658,6 +739,7 @@ const AlignmentDatabasesearch = () => {
             <thead>
               <tr>
                 <th>Order #</th>
+                <th>RA NO</th> {/* NEW: RA NO Column */}
                 <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
                 <th>Mark Qty</th>
@@ -683,10 +765,30 @@ const AlignmentDatabasesearch = () => {
               {filteredData.map((row, index) => (
                 <tr key={`row_${index}`} className="align-table-row-fox">
                   <td>
-                    <div className="align-order-icon-rabbit">
-                      <IoMdOpen />
-                    </div>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="text"
+                        value={editFormData.orderId}
+                        onChange={(e) => handleEditInputChange("orderId", e.target.value)}
+                        className="align-edit-input-deer"
+                      />
+                    ) : (
+                      <div className="align-order-icon-rabbit">{row.orderId || <IoMdOpen />}</div>
+                    )}
                   </td>
+                  <td>
+                    {editingRow === row.lineId ? (
+                      <input
+                        type="text"
+                        value={editFormData.raNo}
+                        onChange={(e) => handleEditInputChange("raNo", e.target.value)}
+                        className="align-edit-input-deer"
+                      />
+                    ) : (
+                      row.raNo || "-"
+                    )}
+                  </td>{" "}
+                  {/* NEW: RA NO Column */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -816,7 +918,6 @@ const AlignmentDatabasesearch = () => {
                   <td>
                     <span className="align-status-badge-moose">Alignment</span>
                   </td>
-
                   {/* Alignment Process Columns */}
                   {ALIGNMENT_STAGES.map((stage) => (
                     <td key={`${row.lineId}_${stage}`} className="align-process-cell">
@@ -837,7 +938,6 @@ const AlignmentDatabasesearch = () => {
                       </div>
                     </td>
                   ))}
-
                   <td>
                     <div className="align-actions-container-yak">
                       {editingRow === row.lineId ? (
@@ -881,12 +981,14 @@ const AlignmentDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="align-empty-row-camel">
-                  <td colSpan="19">
+                  <td colSpan="20">
+                    {" "}
+                    {/* Updated colspan for new RA NO column */}
                     <div className="align-empty-state-llama">
                       <div className="align-empty-text-alpaca">
-                        {selectedDrawingNo || selectedMarkNo
+                        {selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedBuildingName
                           ? "No records found for the selected criteria."
-                          : "Please select Drawing No and/or Mark No and click Search to view records."}
+                          : "Please select at least one filter and click Search to view records."}
                       </div>
                     </div>
                   </td>

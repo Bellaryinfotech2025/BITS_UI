@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
-import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdEdit, MdDelete } from "react-icons/md"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import "./ErectionDatabasesearch.css"
+import { IoMdOpen } from "react-icons/io"
+import '../ErectionNewComponent/ErectionDatabasesearch.css'
 
 const ErectionDatabasesearch = () => {
   // API Base URL
@@ -17,10 +18,14 @@ const ErectionDatabasesearch = () => {
   const [filteredData, setFilteredData] = useState([])
   const [drawingNumbers, setDrawingNumbers] = useState([])
   const [markNumbers, setMarkNumbers] = useState([])
+  const [workOrders, setWorkOrders] = useState([])
+  const [plantLocations, setPlantLocations] = useState([])
 
   // Filter states
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
+  const [selectedPlantLocation, setSelectedPlantLocation] = useState("")
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
@@ -41,6 +46,10 @@ const ErectionDatabasesearch = () => {
 
   // Erection process states - tracks checkbox states for each row
   const [erectionStages, setErectionStages] = useState({})
+
+  // RA NO states
+  const [raNoValues, setRaNoValues] = useState({})
+  const [editingRaNo, setEditingRaNo] = useState(null)
 
   // Erection stages in order
   const ERECTION_STAGES = ["cutting", "fitUp", "welding", "finishing"]
@@ -69,6 +78,14 @@ const ErectionDatabasesearch = () => {
         welding: rowData.weldingStage === "Y",
         finishing: rowData.finishingStage === "Y",
       },
+    }))
+  }
+
+  // Initialize RA NO values from backend data
+  const initializeRaNoFromData = (lineId, raNo) => {
+    setRaNoValues((prev) => ({
+      ...prev,
+      [lineId]: raNo || "",
     }))
   }
 
@@ -104,6 +121,58 @@ const ErectionDatabasesearch = () => {
     })
   }
 
+  // Handle RA NO input change
+  const handleRaNoChange = (lineId, value) => {
+    setRaNoValues((prev) => ({
+      ...prev,
+      [lineId]: value,
+    }))
+  }
+
+  // Save RA NO for a specific row
+  const handleSaveRaNo = async (lineId) => {
+    try {
+      setSaving(true)
+
+      const raNoValue = raNoValues[lineId] || ""
+
+      const updateData = {
+        raNo: raNoValue,
+        lastUpdatedBy: "system",
+      }
+
+      console.log("Saving RA NO for line ID:", lineId, "Value:", raNoValue)
+
+      const response = await fetch(`${API_BASE_URL}/updateErectionDrawingEntry/details?lineId=${lineId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (response.ok) {
+        toast.success("RA NO saved successfully!")
+        setEditingRaNo(null)
+
+        // Update the table data to reflect the change
+        setTableData((prevData) => prevData.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue } : row)))
+        setFilteredData((prevData) =>
+          prevData.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue } : row)),
+        )
+      } else {
+        const errorText = await response.text()
+        console.error("Save RA NO failed:", errorText)
+        toast.error(`Failed to save RA NO: ${errorText}`)
+      }
+    } catch (error) {
+      console.error("Error saving RA NO:", error)
+      toast.error("Error saving RA NO: " + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Save erection stages to backend
   const handleSaveErectionStages = async () => {
     try {
@@ -113,7 +182,7 @@ const ErectionDatabasesearch = () => {
       const erectionUpdates = Object.keys(erectionStages).map((lineId) => {
         const stages = erectionStages[lineId]
         return {
-          lineId: lineId,
+          lineId: Number.parseInt(lineId), // Convert to Long
           cuttingStage: stages.cutting ? "Y" : "N",
           fitUpStage: stages.fitUp ? "Y" : "N",
           weldingStage: stages.welding ? "Y" : "N",
@@ -128,28 +197,43 @@ const ErectionDatabasesearch = () => {
 
       console.log("Saving erection stages:", erectionUpdates)
 
-      const response = await fetch(`${API_BASE_URL}/updateErectionStages/details`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          erectionStages: erectionUpdates,
-        }),
-      })
+      // Update each entry individually
+      let successCount = 0
+      for (const update of erectionUpdates) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/updateErectionDrawingEntry/details?lineId=${update.lineId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              cuttingStage: update.cuttingStage,
+              fitUpStage: update.fitUpStage,
+              weldingStage: update.weldingStage,
+              finishingStage: update.finishingStage,
+              lastUpdatedBy: "system",
+            }),
+          })
 
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(`Successfully updated erection stages for ${result.updatedCount} entries!`)
+          if (response.ok) {
+            successCount++
+          } else {
+            console.error(`Failed to update entry ${update.lineId}`)
+          }
+        } catch (error) {
+          console.error(`Error updating entry ${update.lineId}:`, error)
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully updated erection stages for ${successCount} entries!`)
 
         // Refresh data to get updated values
         if (selectedDrawingNo || selectedMarkNo) {
           handleSearch()
         }
       } else {
-        const errorText = await response.text()
-        console.error("Save erection stages failed:", errorText)
-        toast.error(`Failed to save erection stages: ${errorText}`)
+        toast.error("Failed to update any erection stages")
       }
     } catch (error) {
       console.error("Error saving erection stages:", error)
@@ -164,26 +248,57 @@ const ErectionDatabasesearch = () => {
     fetchDropdownData()
   }, [])
 
-  // Fetch dropdown data for Drawing No and Mark No
+  // Fetch dropdown data for Drawing No, Mark No, Work Order, and Plant Location - FROM ERECTION DATA ONLY
   const fetchDropdownData = async () => {
     try {
       setLoading(true)
 
-      // Fetch distinct drawing numbers
+      // Fetch distinct drawing numbers from erection entries
       const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctErectionDrawingEntryDrawingNumbers/details`)
       if (drawingResponse.ok) {
         const drawingData = await drawingResponse.json()
         setDrawingNumbers(drawingData || [])
-        console.log("Drawing Numbers:", drawingData)
+        console.log("Erection Drawing Numbers:", drawingData)
       }
 
-      // Fetch distinct mark numbers
+      // Fetch distinct mark numbers from erection entries
       const markResponse = await fetch(`${API_BASE_URL}/getDistinctErectionDrawingEntryMarkNumbers/details`)
       if (markResponse.ok) {
         const markData = await markResponse.json()
         setMarkNumbers(markData || [])
         setAvailableMarkNosForAlignment(markData || [])
-        console.log("Mark Numbers:", markData)
+        console.log("Erection Mark Numbers:", markData)
+      }
+
+      // FIXED: Get work orders and plant locations from erection entries only
+      // Get all erection entries to extract unique work orders and plant locations
+      const allErectionResponse = await fetch(`${API_BASE_URL}/getAllErectionDrawingEntriesComplete/details`)
+      if (allErectionResponse.ok) {
+        const allErectionData = await allErectionResponse.json()
+
+        // Extract unique work orders from attribute1V
+        const uniqueWorkOrders = [
+          ...new Set(
+            allErectionData
+              .map((entry) => entry.attribute1V)
+              .filter((workOrder) => workOrder && workOrder.trim() !== ""),
+          ),
+        ].sort()
+
+        // Extract unique plant locations from attribute2V
+        const uniquePlantLocations = [
+          ...new Set(
+            allErectionData.map((entry) => entry.attribute2V).filter((location) => location && location.trim() !== ""),
+          ),
+        ].sort()
+
+        setWorkOrders(uniqueWorkOrders)
+        setPlantLocations(uniquePlantLocations)
+
+        console.log("Erection Work Orders:", uniqueWorkOrders)
+        console.log("Erection Plant Locations:", uniquePlantLocations)
+      } else {
+        console.error("Error fetching erection entries for dropdowns")
       }
     } catch (error) {
       console.error("Error fetching dropdown data:", error)
@@ -195,8 +310,8 @@ const ErectionDatabasesearch = () => {
 
   // Handle search button click - FIXED to show ALL related rows
   const handleSearch = async () => {
-    if (!selectedDrawingNo && !selectedMarkNo) {
-      toast.warning("Please select at least Drawing No or Mark No to search")
+    if (!selectedDrawingNo && !selectedMarkNo && !selectedWorkOrder && !selectedPlantLocation) {
+      toast.warning("Please select at least one filter criteria to search")
       return
     }
 
@@ -235,6 +350,16 @@ const ErectionDatabasesearch = () => {
         console.log("After mark filter:", filteredResults.length, "entries")
       }
 
+      if (selectedWorkOrder) {
+        filteredResults = filteredResults.filter((item) => item.attribute1V === selectedWorkOrder)
+        console.log("After work order filter:", filteredResults.length, "entries")
+      }
+
+      if (selectedPlantLocation) {
+        filteredResults = filteredResults.filter((item) => item.attribute2V === selectedPlantLocation)
+        console.log("After plant location filter:", filteredResults.length, "entries")
+      }
+
       setTableData(filteredResults)
       setFilteredData(filteredResults)
 
@@ -242,16 +367,17 @@ const ErectionDatabasesearch = () => {
       if (filteredResults.length > 0) {
         const firstRow = filteredResults[0]
         setSelectedFilters({
-          workOrder: firstRow.attribute1V || "",
-          buildingName: firstRow.attribute2V || "",
+          workOrder: selectedWorkOrder || firstRow.attribute1V || "",
+          buildingName: selectedPlantLocation || firstRow.attribute2V || "",
           drawingNo: selectedDrawingNo,
           markNo: selectedMarkNo,
         })
       }
 
-      // Initialize erection stages for all rows
+      // Initialize erection stages and RA NO for all rows
       filteredResults.forEach((row) => {
         initializeErectionStagesFromData(row.lineId, row)
+        initializeRaNoFromData(row.lineId, row.raNo)
       })
 
       toast.info(`Found ${filteredResults.length} records`)
@@ -288,6 +414,8 @@ const ErectionDatabasesearch = () => {
       drawingWeight: row.drawingWeight || "",
       markWeight: row.markWeight || "",
       totalMarkedWgt: row.totalMarkedWgt || "",
+      orderId: row.orderId || "",
+      raNo: row.raNo || "",
     })
   }
 
@@ -311,6 +439,8 @@ const ErectionDatabasesearch = () => {
         drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
         markWeight: Number.parseFloat(editFormData.markWeight) || null,
         totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
+        orderId: editFormData.orderId ? Number.parseInt(editFormData.orderId) : null,
+        raNo: editFormData.raNo,
         lastUpdatedBy: "system",
       }
 
@@ -415,6 +545,7 @@ const ErectionDatabasesearch = () => {
 
       // Create alignment entries with proper data format
       const alignmentEntries = entriesToMove.map((item) => ({
+        lineId: item.lineId, // Preserve the same line_id
         drawingNo: item.drawingNo || "",
         markNo: item.markNo || "",
         markedQty: item.markedQty || 1,
@@ -427,6 +558,8 @@ const ErectionDatabasesearch = () => {
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
         totalItemWeight: item.totalItemWeight || 0,
+        orderId: item.orderId || null,
+        raNo: item.raNo || "",
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
@@ -435,7 +568,7 @@ const ErectionDatabasesearch = () => {
         attribute1V: item.attribute1V || null,
         attribute2V: item.attribute2V || null,
         attribute3V: item.attribute3V || null,
-        attribute4V: item.attribute4V || null,
+        attribute4V: item.attribute4N || null,
         attribute5V: item.attribute5V || null,
         attribute1N: item.attribute1N || null,
         attribute2N: item.attribute2N || null,
@@ -531,7 +664,7 @@ const ErectionDatabasesearch = () => {
           <h3>Search for Erection Details</h3>
         </div>
         <div className="erect-header-buttons">
-          <button
+          {/* <button
             className="erect-button-giraffe erect-save-stages-btn"
             onClick={handleSaveErectionStages}
             disabled={saving || loading || filteredData.length === 0}
@@ -547,7 +680,7 @@ const ErectionDatabasesearch = () => {
                 <span>Save</span>
               </>
             )}
-          </button>
+          </button> */}
           <button
             className="erect-button-giraffe erect-move-to-alignment-btn"
             onClick={handleMoveToAlignment}
@@ -562,6 +695,34 @@ const ErectionDatabasesearch = () => {
       <div className="erect-filter-section-zebra">
         <div className="erect-filter-container-hippo">
           <div className="erect-filter-row-rhino">
+            {/* Work Order Dropdown */}
+            <select
+              value={selectedWorkOrder}
+              onChange={(e) => setSelectedWorkOrder(e.target.value)}
+              className="erect-dropdown-cheetah"
+            >
+              <option value="">Select Work Order</option>
+              {workOrders.map((workOrder, index) => (
+                <option key={`work_order_${index}`} value={workOrder}>
+                  {workOrder}
+                </option>
+              ))}
+            </select>
+
+            {/* Building Name (Plant Location) Dropdown */}
+            <select
+              value={selectedPlantLocation}
+              onChange={(e) => setSelectedPlantLocation(e.target.value)}
+              className="erect-dropdown-cheetah"
+            >
+              <option value="">Select Building Name</option>
+              {plantLocations.map((location, index) => (
+                <option key={`plant_location_${index}`} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+
             {/* Drawing No Dropdown */}
             <select
               value={selectedDrawingNo}
@@ -652,6 +813,7 @@ const ErectionDatabasesearch = () => {
             <thead>
               <tr>
                 <th>Order #</th>
+                <th>RA NO</th>
                 <th>Total Mark Weight</th>
                 <th>Mark Wgt</th>
                 <th>Mark Qty</th>
@@ -665,12 +827,14 @@ const ErectionDatabasesearch = () => {
                 <th>Item Weight</th>
                 <th>Total Item Weight</th>
                 <th>Status</th>
+                
                 {/* Erection Process Columns */}
                 <th className="erect-process-header">Cutting</th>
                 <th className="erect-process-header">Fit Up</th>
                 <th className="erect-process-header">Welding</th>
                 <th className="erect-process-header">Finishing</th>
                 <th>Actions</th>
+                
               </tr>
             </thead>
             <tbody>
@@ -680,6 +844,37 @@ const ErectionDatabasesearch = () => {
                     <div className="erect-order-icon-rabbit">
                       <IoMdOpen />
                     </div>
+                  </td>
+                  <td>
+                    {editingRaNo === row.lineId ? (
+                      <div className="erect-ra-no-edit-container">
+                        <input
+                          type="text"
+                          value={raNoValues[row.lineId] || ""}
+                          onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
+                          className="erect-edit-input-deer"
+                          placeholder="Enter RA NO"
+                        />
+                        <button
+                          onClick={() => handleSaveRaNo(row.lineId)}
+                          className="erect-ra-no-save-btn"
+                          disabled={saving}
+                        >
+                          {saving ? "..." : "✓"}
+                        </button>
+                        <button onClick={() => setEditingRaNo(null)} className="erect-ra-no-cancel-btn">
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="erect-ra-no-display"
+                        onClick={() => setEditingRaNo(row.lineId)}
+                        title="Click to edit RA NO"
+                      >
+                        {row.raNo || "Click to add RA NO"}
+                      </div>
+                    )}
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
@@ -811,7 +1006,7 @@ const ErectionDatabasesearch = () => {
                     <span className="erect-status-badge-moose">Erection</span>
                   </td>
 
-                  {/* Erection Process Columns */}
+                  {/* Erection Process Columns - Display fabrication stage status */}
                   {ERECTION_STAGES.map((stage) => (
                     <td key={`${row.lineId}_${stage}`} className="erect-process-cell">
                       <div className="erect-checkbox-container">
@@ -875,12 +1070,12 @@ const ErectionDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="erect-empty-row-camel">
-                  <td colSpan="19">
+                  <td colSpan="20">
                     <div className="erect-empty-state-llama">
                       <div className="erect-empty-text-alpaca">
-                        {selectedDrawingNo || selectedMarkNo
+                        {selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedPlantLocation
                           ? "No records found for the selected criteria."
-                          : "Please select Drawing No and/or Mark No and click Search to view records."}
+                          : "Please select filter criteria and click Search to view records."}
                       </div>
                     </div>
                   </td>

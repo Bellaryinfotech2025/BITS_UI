@@ -216,7 +216,7 @@ const RegisterPage = () => {
           // Navigate after toast is shown
           setTimeout(() => {
             // Force navigation to login page
-            window.location.href = "/loginbilling"
+            window.location.href = "/login/billing"
           }, 5000)
         }, 3000)
       } catch (err) {
@@ -266,7 +266,7 @@ const RegisterPage = () => {
   }
 
   const navigateToLogin = () => {
-    navigate("/loginbilling")
+    navigate("/login/billing")
   }
 
   // Render the current step
@@ -330,7 +330,7 @@ const RegisterPage = () => {
 
             <div className="vercel-footer">
               <p>
-                Already have an account? <Link to="/loginbilling">Log In</Link>
+                Already have an account? <Link to="/login/billing">Log In</Link>
               </p>
             </div>
           </form>

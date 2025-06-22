@@ -27,7 +27,7 @@ function App() {
 
             {/* <Route path="/" element={<LandingPage/>}/> */}
             <Route path="/" element={<RegisterPage/>}/>
-            <Route path="/loginbilling" element={<LoginPage/>}/>
+            <Route path="/login/billing" element={<LoginPage/>}/>
              
             <Route path="/software/bellarybillingapplication/user/dashboard/details/" element={<MainDashboard/>}/>
 

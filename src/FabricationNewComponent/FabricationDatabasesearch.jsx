@@ -503,7 +503,7 @@ const FabricationDatabasesearch = () => {
     })
   }
 
-  // Handle save to erection
+  // Handle save to erection - FIXED to transfer ALL rows with correct order_id
   const handleSaveToErection = async () => {
     if (selectedMarkNosForErection.length === 0) {
       toast.warning("Please select at least one Mark No.")
@@ -513,15 +513,13 @@ const FabricationDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Get all entries for selected mark numbers - only one entry per mark number
+      // Get ALL entries for selected mark numbers - FIXED: Get ALL rows, not just first one
       const entriesToMove = []
 
-      // For each selected mark number, find the first entry with that mark number
+      // For each selected mark number, find ALL entries with that mark number
       for (const markNo of selectedMarkNosForErection) {
-        const entry = tableData.find((item) => item.markNo === markNo)
-        if (entry) {
-          entriesToMove.push(entry)
-        }
+        const entries = tableData.filter((item) => item.markNo === markNo)
+        entriesToMove.push(...entries) // Add ALL entries, not just one
       }
 
       if (entriesToMove.length === 0) {
@@ -529,8 +527,11 @@ const FabricationDatabasesearch = () => {
         return
       }
 
-      // Create erection entries with proper data format
+      console.log(`Found ${entriesToMove.length} entries to move for ${selectedMarkNosForErection.length} mark numbers`)
+
+      // Create erection entries with proper data format and CORRECT order_id
       const erectionEntries = entriesToMove.map((item) => ({
+        lineId: item.lineId, // Preserve the same line_id
         drawingNo: item.drawingNo || "",
         markNo: item.markNo || "",
         markedQty: item.markedQty || 1,
@@ -543,17 +544,20 @@ const FabricationDatabasesearch = () => {
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
         totalItemWeight: item.totalItemWeight || 0,
+        // FIXED: Properly set order_id from the fabrication entry
+        orderId: item.orderId || item.attribute1N || null, // Use orderId or attribute1N as fallback
+        raNo: item.raNo || null,
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
         status: "erection",
-        // Copy attributes
-        attribute1V: item.attribute1V || null,
-        attribute2V: item.attribute2V || null,
+        // Copy attributes - IMPORTANT: These contain work order and plant location
+        attribute1V: item.attribute1V || null, // Work Order
+        attribute2V: item.attribute2V || null, // Plant Location
         attribute3V: item.attribute3V || null,
         attribute4V: item.attribute4V || null,
         attribute5V: item.attribute5V || null,
-        attribute1N: item.attribute1N || null,
+        attribute1N: item.attribute1N || null, // This might contain order_id
         attribute2N: item.attribute2N || null,
         attribute3N: item.attribute3N || null,
         attribute4N: item.attribute4N || null,
@@ -561,12 +565,17 @@ const FabricationDatabasesearch = () => {
         // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
-        raNo: item.raNo || null,
+        // Copy fabrication stages
+        cuttingStage: item.cuttingStage || "N",
+        fitUpStage: item.fitUpStage || "N",
+        weldingStage: item.weldingStage || "N",
+        finishingStage: item.finishingStage || "N",
       }))
 
-      console.log("Moving to erection:", erectionEntries)
+      console.log("Moving to erection:", erectionEntries.length, "entries")
+      console.log("Sample entry with order_id:", erectionEntries[0])
 
-      // Call the erection API (you may need to implement this endpoint)
+      // Call the erection API
       const response = await fetch(`${API_BASE_URL}/createBulkErectionDrawingEntriesWithDuplicateCheck/details`, {
         method: "POST",
         headers: {
@@ -581,10 +590,12 @@ const FabricationDatabasesearch = () => {
         // Show detailed feedback
         if (result.skippedCount > 0) {
           toast.warning(
-            `${result.createdCount} entries created, ${result.skippedCount} skipped as duplicates. Skipped: ${result.skippedDuplicates.join(", ")}`,
+            `${result.createdCount} entries created, ${result.skippedCount} skipped as duplicates. Total processed: ${entriesToMove.length}`,
           )
         } else {
-          toast.success(`${result.createdCount} Mark No(s) moved to Erection successfully!`)
+          toast.success(
+            `${result.createdCount} entries moved to Erection successfully! (${entriesToMove.length} total entries processed)`,
+          )
         }
 
         setShowMoveToErectionPopup(false)
