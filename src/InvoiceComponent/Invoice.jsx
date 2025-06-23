@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react"
-import axios from "axios"
-import { FaFileInvoice, FaTimes } from "react-icons/fa"
-import "../InvoiceComponent/Invoice.css"
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { FaFileInvoice, FaTimes } from "react-icons/fa";
+import "../InvoiceComponent/Invoice.css";
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
