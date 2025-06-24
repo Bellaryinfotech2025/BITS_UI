@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react"
-import axios from "axios"
-import { FaFileInvoice, FaTimes, FaSearch } from "react-icons/fa"
-import "../InvoiceComponent/Invoice.css"
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { FaFileInvoice, FaTimes, FaSearch } from "react-icons/fa";
+import "../InvoiceComponent/Invoice.css";
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
@@ -277,7 +277,7 @@ const Invoice = () => {
           {/* FIXED: Enhanced Customer Details Section with better debugging */}
           {invoiceDetails.customerDetails && (
             <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
-              <h4 style={{ margin: "0 0 15px 0", color: "#2c3e50", fontSize: "16px" }}>Customer Details</h4>
+              <h4 style={{ margin: "0 0 15px 0", color: "#2c3e50", fontSize: "16px" }}>CUSTOMER DETAILS</h4>
 
               {/* Debug info - remove in production */}
               {/* {process.env.NODE_ENV === "development" && (
