@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { MdSave, MdAdd } from "react-icons/md"
-import { FaCheck, FaChevronUp, FaChevronDown } from "react-icons/fa"
+import { FaCheck, FaChevronUp, FaChevronDown, FaSearch } from "react-icons/fa"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
@@ -17,7 +17,7 @@ const DrawingEntry = () => {
   const [drawingEntryData, setDrawingEntryData] = useState({
     id: "drawing_entry_1",
     workOrder: "",
-    orderId: null, // NEW FIELD: Store the order_id from bits_po_entry_header
+    orderId: null,
     plantLocation: "",
     department: "",
     workLocation: "",
@@ -47,6 +47,12 @@ const DrawingEntry = () => {
   const [searchTerms, setSearchTerms] = useState({})
   const [filteredSectionCodes, setFilteredSectionCodes] = useState({})
   const [showDropdowns, setShowDropdowns] = useState({})
+  const [filteredWorkOrders, setFilteredWorkOrders] = useState([])
+  const [dropdownPositions, setDropdownPositions] = useState({})
+
+  // Refs for dropdown positioning
+  const dropdownRefs = useRef({})
+  const fieldRefs = useRef({})
 
   // Saved entries for display
   const [savedEntries, setSavedEntries] = useState([])
@@ -63,7 +69,7 @@ const DrawingEntry = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest(".drAOsearchableSelectgi")) {
+      if (!event.target.closest(".drAOenhancedDropdownContainer")) {
         setShowDropdowns({})
       }
     }
@@ -73,6 +79,20 @@ const DrawingEntry = () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [])
+
+  // Handle scroll events to update dropdown positions
+  useEffect(() => {
+    const handleScroll = () => {
+      Object.keys(showDropdowns).forEach((key) => {
+        if (showDropdowns[key] && fieldRefs.current[key]) {
+          updateDropdownPosition(key)
+        }
+      })
+    }
+
+    window.addEventListener("scroll", handleScroll, true)
+    return () => window.removeEventListener("scroll", handleScroll, true)
+  }, [showDropdowns])
 
   // Calculate total item weight from all BOM rows and update Drawing Entry Mark Wgt
   const totalItemWeight = useMemo(() => {
@@ -99,15 +119,37 @@ const DrawingEntry = () => {
     updateMarkWeight()
   }, [totalItemWeight])
 
+  // Enhanced dropdown positioning function
+  const updateDropdownPosition = (fieldId) => {
+    const fieldElement = fieldRefs.current[fieldId]
+    if (!fieldElement) return
+
+    const rect = fieldElement.getBoundingClientRect()
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+
+    const position = {
+      top: rect.bottom + scrollTop + 2,
+      left: rect.left + scrollLeft,
+      width: Math.max(rect.width, 250),
+      maxWidth: 350,
+    }
+
+    setDropdownPositions((prev) => ({
+      ...prev,
+      [fieldId]: position,
+    }))
+  }
+
   // Fetch work orders from bits_po_entry_header table
   const fetchWorkOrders = async () => {
     try {
-      console.log("Fetching work orders from bits_po_entry_header table...")
+      console.log("🔄 Fetching work orders from bits_po_entry_header table...")
       const response = await fetch(`${API_BASE_URL}/getworkorder/number`)
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Raw work order data from database:", data)
+        console.log("✅ Raw work order data from database:", data)
 
         if (Array.isArray(data) && data.length > 0) {
           const formattedOptions = data.map((workOrder) => ({
@@ -115,22 +157,26 @@ const DrawingEntry = () => {
             label: workOrder,
           }))
           setWorkOrderOptions(formattedOptions)
-          console.log("Successfully fetched work orders from database:", formattedOptions)
+          setFilteredWorkOrders(formattedOptions)
+          console.log("✅ Successfully fetched work orders from database:", formattedOptions)
         } else {
-          console.warn("No work orders found in database")
+          console.warn("⚠️ No work orders found in database")
           setWorkOrderOptions([])
+          setFilteredWorkOrders([])
           toast.warning("No work orders found in database. Please add some work orders first.")
         }
       } else {
-        console.error("Failed to fetch work orders, status:", response.status)
+        console.error("❌ Failed to fetch work orders, status:", response.status)
         const errorText = await response.text()
         console.error("Error response:", errorText)
         setWorkOrderOptions([])
+        setFilteredWorkOrders([])
         toast.error(`Failed to fetch work orders: ${response.status} - ${errorText}`)
       }
     } catch (error) {
-      console.error("Error fetching work orders:", error)
+      console.error("❌ Error fetching work orders:", error)
       setWorkOrderOptions([])
+      setFilteredWorkOrders([])
       toast.error(`Error connecting to server: ${error.message}`)
     }
   }
@@ -138,12 +184,12 @@ const DrawingEntry = () => {
   // Fetch section codes from API with error handling
   const fetchSectionCodes = async () => {
     try {
-      console.log("Fetching section codes...")
+      console.log("🔄 Fetching section codes...")
       const response = await fetch(`${API_BASE_URL}/service_code_entry/codes`)
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Raw section code data:", data)
+        console.log("✅ Raw section code data:", data)
 
         if (Array.isArray(data) && data.length > 0) {
           const formattedOptions = data.map((code) => ({
@@ -151,19 +197,19 @@ const DrawingEntry = () => {
             label: code,
           }))
           setSectionCodeOptions(formattedOptions)
-          console.log("Successfully fetched section codes:", formattedOptions)
+          console.log("✅ Successfully fetched section codes:", formattedOptions)
         } else {
-          console.warn("No section codes found")
+          console.warn("⚠️ No section codes found")
           setSectionCodeOptions([])
           toast.warning("No section codes found in database")
         }
       } else {
-        console.error("Failed to fetch section codes, status:", response.status)
+        console.error("❌ Failed to fetch section codes, status:", response.status)
         setSectionCodeOptions([])
         toast.error("Failed to fetch section codes from server")
       }
     } catch (error) {
-      console.error("Error fetching section codes:", error)
+      console.error("❌ Error fetching section codes:", error)
       setSectionCodeOptions([])
       toast.error(`Error fetching section codes: ${error.message}`)
     }
@@ -172,12 +218,12 @@ const DrawingEntry = () => {
   // Fetch line numbers from bits_po_entry_lines table with error handling
   const fetchLineNumbers = async () => {
     try {
-      console.log("Fetching line numbers...")
+      console.log("🔄 Fetching line numbers...")
       const response = await fetch(`${API_BASE_URL}/getAllBitsLines/details`)
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Raw line number data:", data)
+        console.log("✅ Raw line number data:", data)
 
         if (Array.isArray(data) && data.length > 0) {
           const formattedOptions = data.map((line) => ({
@@ -186,19 +232,19 @@ const DrawingEntry = () => {
             lineData: line,
           }))
           setLineNumberOptions(formattedOptions)
-          console.log("Successfully fetched line numbers:", formattedOptions)
+          console.log("✅ Successfully fetched line numbers:", formattedOptions)
         } else {
-          console.warn("No line numbers found")
+          console.warn("⚠️ No line numbers found")
           setLineNumberOptions([])
           toast.warning("No line numbers found in database")
         }
       } else {
-        console.error("Failed to fetch line numbers, status:", response.status)
+        console.error("❌ Failed to fetch line numbers, status:", response.status)
         setLineNumberOptions([])
         toast.error("Failed to fetch line numbers from server")
       }
     } catch (error) {
-      console.error("Error fetching line numbers:", error)
+      console.error("❌ Error fetching line numbers:", error)
       setLineNumberOptions([])
       toast.error(`Error fetching line numbers: ${error.message}`)
     }
@@ -207,12 +253,12 @@ const DrawingEntry = () => {
   // Fetch work order details when a work order is selected
   const fetchWorkOrderDetails = async (workOrder) => {
     try {
-      console.log(`Fetching details for work order: ${workOrder}`)
+      console.log(`🔄 Fetching details for work order: ${workOrder}`)
       const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrder}`)
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Work order details from database:", data)
+        console.log("✅ Work order details from database:", data)
 
         // Check different possible field names for order_id
         const orderId = data.orderId || data.order_id || data.id || null
@@ -233,11 +279,11 @@ const DrawingEntry = () => {
           toast.warning(`Work order ${workOrder} loaded but no Order ID found`)
         }
       } else {
-        console.error("Failed to fetch work order details")
+        console.error("❌ Failed to fetch work order details")
         toast.error(`Failed to fetch details for work order ${workOrder}`)
       }
     } catch (error) {
-      console.error("Error fetching work order details:", error)
+      console.error("❌ Error fetching work order details:", error)
       toast.error(`Error fetching work order details: ${error.message}`)
     }
   }
@@ -245,12 +291,12 @@ const DrawingEntry = () => {
   // Fetch section code details when a section code is selected
   const fetchSectionCodeDetails = async (sectionCode, rowId) => {
     try {
-      console.log(`Fetching details for section code: ${sectionCode}`)
+      console.log(`🔄 Fetching details for section code: ${sectionCode}`)
       const response = await fetch(`${API_BASE_URL}/service_code_entry/code/${sectionCode}`)
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Section code details:", data)
+        console.log("✅ Section code details:", data)
 
         setBomEntryRows((prev) =>
           prev.map((row) => {
@@ -281,27 +327,12 @@ const DrawingEntry = () => {
           }),
         )
       } else {
-        console.error("Failed to fetch section code details")
+        console.error("❌ Failed to fetch section code details")
         toast.error(`Failed to fetch details for section code ${sectionCode}`)
       }
     } catch (error) {
-      console.error("Error fetching section code details:", error)
+      console.error("❌ Error fetching section code details:", error)
       toast.error(`Error fetching section code details: ${error.message}`)
-    }
-  }
-
-  // Calculate dropdown position for fixed positioning
-  const calculateDropdownPosition = (inputElement) => {
-    if (!inputElement) return { top: 0, left: 0 }
-
-    const rect = inputElement.getBoundingClientRect()
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
-
-    return {
-      top: rect.bottom + scrollTop + 2, // 2px gap below input
-      left: rect.left + scrollLeft,
-      width: rect.width,
     }
   }
 
@@ -315,23 +346,6 @@ const DrawingEntry = () => {
       const filtered = sectionCodeOptions.filter((option) => option.value.toLowerCase().includes(term.toLowerCase()))
       setFilteredSectionCodes((prev) => ({ ...prev, [rowId]: filtered }))
     }
-
-    // Show dropdown when typing and calculate position
-    setShowDropdowns((prev) => ({ ...prev, [rowId]: true }))
-
-    // Calculate and set dropdown position
-    setTimeout(() => {
-      const inputElement = document.querySelector(`input[data-row-id="${rowId}"]`)
-      if (inputElement) {
-        const position = calculateDropdownPosition(inputElement)
-        const dropdown = document.querySelector(`[data-dropdown-id="${rowId}"]`)
-        if (dropdown) {
-          dropdown.style.top = `${position.top}px`
-          dropdown.style.left = `${position.left}px`
-          dropdown.style.minWidth = `${Math.max(position.width, 200)}px`
-        }
-      }
-    }, 10)
   }
 
   // Handle section code selection
@@ -346,8 +360,8 @@ const DrawingEntry = () => {
       }),
     )
 
-    // Update search term to show selected value
-    setSearchTerms((prev) => ({ ...prev, [rowId]: sectionCode }))
+    // Clear search term
+    setSearchTerms((prev) => ({ ...prev, [rowId]: "" }))
 
     // Hide dropdown
     setShowDropdowns((prev) => ({ ...prev, [rowId]: false }))
@@ -356,6 +370,39 @@ const DrawingEntry = () => {
     if (sectionCode) {
       fetchSectionCodeDetails(sectionCode, rowId)
     }
+  }
+
+  // Handle work order search
+  const handleWorkOrderSearch = (term) => {
+    setSearchTerms((prev) => ({ ...prev, workOrder: term }))
+
+    if (!term) {
+      setFilteredWorkOrders(workOrderOptions)
+    } else {
+      const filtered = workOrderOptions.filter((option) => option.value.toLowerCase().includes(term.toLowerCase()))
+      setFilteredWorkOrders(filtered)
+    }
+  }
+
+  // Handle work order selection
+  const handleWorkOrderSelect = (workOrder) => {
+    handleDrawingEntryInputChange({ target: { name: "workOrder", value: workOrder } })
+    setShowDropdowns((prev) => ({ ...prev, workOrder: false }))
+    setSearchTerms((prev) => ({ ...prev, workOrder: "" }))
+  }
+
+  // Enhanced dropdown toggle with positioning
+  const toggleDropdown = (fieldId) => {
+    setShowDropdowns((prev) => {
+      const newState = { ...prev, [fieldId]: !prev[fieldId] }
+
+      // If opening dropdown, calculate position
+      if (newState[fieldId]) {
+        setTimeout(() => updateDropdownPosition(fieldId), 10)
+      }
+
+      return newState
+    })
   }
 
   // Generate unique ID for new rows
@@ -707,6 +754,88 @@ const DrawingEntry = () => {
   const isSaveEnabled =
     drawingEntryData.drawingNo && drawingEntryData.markNo && drawingEntryData.markQty && bomEntryRows.length > 0
 
+  // Enhanced Dropdown Component
+  const EnhancedDropdown = ({
+    fieldId,
+    value,
+    placeholder,
+    options,
+    filteredOptions,
+    onSelect,
+    onSearch,
+    searchPlaceholder,
+  }) => {
+    const position = dropdownPositions[fieldId] || {}
+
+    return (
+      <div className="drAOenhancedDropdownContainer">
+        <div
+          ref={(el) => (fieldRefs.current[fieldId] = el)}
+          className="drAOenhancedDropdownField"
+          onClick={() => toggleDropdown(fieldId)}
+        >
+          <input
+            type="text"
+            value={value || placeholder}
+            readOnly
+            className="drAOenhancedDropdownInput"
+            style={{ cursor: "pointer" }}
+          />
+          <button
+            type="button"
+            className="drAOenhancedDropdownArrow"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleDropdown(fieldId)
+            }}
+          >
+            {showDropdowns[fieldId] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+          </button>
+        </div>
+
+        {showDropdowns[fieldId] && (
+          <div
+            className="drAOenhancedDropdownPanel"
+            style={{
+              position: "fixed",
+              top: position.top,
+              left: position.left,
+              width: position.width,
+              maxWidth: position.maxWidth,
+              zIndex: 999999,
+            }}
+          >
+            <div className="drAOenhancedDropdownSearch">
+              <FaSearch className="drAOenhancedDropdownSearchIcon" />
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                value={searchTerms[fieldId] || ""}
+                onChange={(e) => onSearch(e.target.value)}
+                className="drAOenhancedDropdownSearchInput"
+                autoFocus
+              />
+            </div>
+            <div className="drAOenhancedDropdownOptions">
+              {(filteredOptions || options).map((option, index) => (
+                <div
+                  key={`${fieldId}_${option.value}_${index}`}
+                  className="drAOenhancedDropdownOption"
+                  onClick={() => onSelect(option.value)}
+                >
+                  {option.label}
+                </div>
+              ))}
+              {(filteredOptions || options).length === 0 && (
+                <div className="drAOenhancedDropdownEmpty">Search your section in the above search field</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="drAOelephantgi">
       {/* Header */}
@@ -777,23 +906,16 @@ const DrawingEntry = () => {
                   </div>
                 </td>
                 <td className="drAOdropdownCellgi">
-                  <div className="drAOsearchableSelectgi">
-                    <select
-                      value={drawingEntryData.workOrder}
-                      onChange={(e) =>
-                        handleDrawingEntryInputChange({ target: { name: "workOrder", value: e.target.value } })
-                      }
-                      className="drAOfoxgi"
-                      style={{ width: "100%", padding: "8px 10px" }}
-                    >
-                      <option value="">Select Work Order...</option>
-                      {workOrderOptions.map((option, index) => (
-                        <option key={`wo_${option.value}_${index}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <EnhancedDropdown
+                    fieldId="workOrder"
+                    value={drawingEntryData.workOrder}
+                    placeholder="Select Work Order..."
+                    options={workOrderOptions}
+                    filteredOptions={filteredWorkOrders}
+                    onSelect={handleWorkOrderSelect}
+                    onSearch={handleWorkOrderSearch}
+                    searchPlaceholder="Search work orders..."
+                  />
                 </td>
                 <td>
                   <input
@@ -987,54 +1109,16 @@ const DrawingEntry = () => {
                     />
                   </td>
                   <td className="drAOdropdownCellgi">
-                    <div className="drAOsearchableSelectgi">
-                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                        <input
-                          type="text"
-                          placeholder="Search or select section code..."
-                          value={searchTerms[formData.id] || ""}
-                          onChange={(e) => handleSectionCodeSearch(formData.id, e.target.value)}
-                          onFocus={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: true }))}
-                          className="drAOsearchInputgi"
-                          data-row-id={formData.id}
-                          style={{ paddingRight: "30px" }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowDropdowns((prev) => ({ ...prev, [formData.id]: !prev[formData.id] }))}
-                          style={{
-                            position: "absolute",
-                            right: "5px",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "2px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {showDropdowns[formData.id] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
-                        </button>
-                      </div>
-                      {showDropdowns[formData.id] && (
-                        <div
-                          className="drAOdropdownListgi"
-                          data-dropdown-id={formData.id}
-                          style={{ position: "fixed", zIndex: 999999 }}
-                        >
-                          {(filteredSectionCodes[formData.id] || sectionCodeOptions).map((option, index) => (
-                            <div
-                              key={`${formData.id}_${option.value}_${index}`}
-                              className="drAOdropdownItemgi"
-                              onClick={() => handleSectionCodeSelect(formData.id, option.value)}
-                            >
-                              {option.label}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <EnhancedDropdown
+                      fieldId={formData.id}
+                      value={formData.sectionCode}
+                      placeholder="Select Section Code..."
+                      options={sectionCodeOptions}
+                      filteredOptions={filteredSectionCodes[formData.id]}
+                      onSelect={(value) => handleSectionCodeSelect(formData.id, value)}
+                      onSearch={(term) => handleSectionCodeSearch(formData.id, term)} 
+                      searchPlaceholder="Search section codes..."
+                    />
                   </td>
                   <td>
                     <input
@@ -1087,6 +1171,12 @@ const DrawingEntry = () => {
                       name="itemQty"
                       value={formData.itemQty}
                       onChange={(e) => handleBomInputChange(formData.id, e)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          handleAddBomRow()
+                        }
+                      }}
                       className="drAOfoxgi drAOserviceInputgi"
                       placeholder="Item Qty"
                       min="1"
