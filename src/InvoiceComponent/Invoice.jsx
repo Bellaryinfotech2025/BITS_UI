@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FaFileInvoice, FaTimes, FaSearch } from "react-icons/fa";
+import { MdOutlineFileDownload } from "react-icons/md";
 import "../InvoiceComponent/Invoice.css";
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
@@ -226,9 +227,9 @@ const Invoice = () => {
         <h1 className="invoice-title">Search for Billing Details</h1>
         <div className="invoice-actions">
           <button className="invoice-btn" onClick={handleInvoiceClick}>
-            Invoice
+            Invoice No
           </button>
-          <button className="completed-btn">Completed</button>
+          <button className="completed-btn"> <MdOutlineFileDownload/> Download Invoice</button>
         </div>
       </div>
 
