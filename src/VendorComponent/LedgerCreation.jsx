@@ -376,7 +376,7 @@ const LedgerCreation = () => {
       <div className="ledger-scrollable-container">
         <div className="ledger-container">
           <div className="ledger-header-section">
-            <h1 className="ledger-app-title">Bellary Infotech</h1>
+            <h1 className="ledger-app-title">Bellary Infotech Solutions</h1>
             <p className="ledger-app-subtitle">Billing Software - Ledger Creation</p>
           </div>
 

@@ -1011,7 +1011,7 @@ const VendorProfile = () => {
       <div className="ven-scrollable-container">
         <div className="ven-container">
           <div className="ven-header-section">
-            <h1 className="ven-app-title">Bellary Infotech</h1>
+            <h1 className="ven-app-title">Bellary Infotech Solutions</h1>
             <p className="ven-app-subtitle">Billing Software - Company Profile Management</p>
           </div>
 

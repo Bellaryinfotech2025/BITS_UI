@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from "react"
-import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { MdSave, MdDelete, MdEdit, MdAdd, MdSearch } from "react-icons/md"
-import { FaCheck } from "react-icons/fa"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import '../RawMeterialEntry Component/RawMaterialEntry.css'
+import { useState, useEffect, useRef } from "react";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { MdSave, MdDelete, MdEdit, MdAdd, MdSearch } from "react-icons/md";
+import { FaCheck, FaChevronDown } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "../RawMeterialEntry Component/RawMaterialEntry.css";
 
 const RawMaterialEntry = () => {
   // API Base URL
-  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
+  const API_BASE_URL = "http://localhost:5522/api/V2.0"
 
   // State for dropdowns
   const [workOrderOptions, setWorkOrderOptions] = useState([])
@@ -16,15 +16,17 @@ const RawMaterialEntry = () => {
   const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
   const [selectedPlantLocation, setSelectedPlantLocation] = useState("")
 
+  // NEW: Dropdown search states
+  const [workOrderSearch, setWorkOrderSearch] = useState("")
+  const [plantLocationSearch, setPlantLocationSearch] = useState("")
+  const [showWorkOrderDropdown, setShowWorkOrderDropdown] = useState(false)
+  const [showPlantLocationDropdown, setShowPlantLocationDropdown] = useState(false)
+
   // Service Entry State
   const [serviceRows, setServiceRows] = useState([])
   const [savedServiceRows, setSavedServiceRows] = useState([])
   const [editingRowId, setEditingRowId] = useState(null)
   const [showEntryRows, setShowEntryRows] = useState(false)
-
-  // Search State
-  const [searchWorkOrder, setSearchWorkOrder] = useState("")
-  const [searchPlantLocation, setSearchPlantLocation] = useState("")
 
   // Loading State
   const [loading, setLoading] = useState(false)
@@ -38,8 +40,10 @@ const RawMaterialEntry = () => {
     isNewRow: false,
   })
 
-  // Refs for dynamic row addition
+  // Refs for dynamic row addition and dropdowns
   const documentNoRefs = useRef({})
+  const workOrderDropdownRef = useRef(null)
+  const plantLocationDropdownRef = useRef(null)
 
   // UOM Options
   const uomOptions = [
@@ -76,8 +80,35 @@ const RawMaterialEntry = () => {
     fetchSavedServiceEntries()
   }, [])
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (workOrderDropdownRef.current && !workOrderDropdownRef.current.contains(event.target)) {
+        setShowWorkOrderDropdown(false)
+      }
+      if (plantLocationDropdownRef.current && !plantLocationDropdownRef.current.contains(event.target)) {
+        setShowPlantLocationDropdown(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
   // Check if buttons should be enabled
   const isButtonsEnabled = selectedWorkOrder && selectedPlantLocation && !loading
+
+  // Filter work order options based on search
+  const filteredWorkOrderOptions = workOrderOptions.filter((option) =>
+    option.label.toLowerCase().includes(workOrderSearch.toLowerCase()),
+  )
+
+  // Filter plant location options based on search
+  const filteredPlantLocationOptions = plantLocationOptions.filter((option) =>
+    option.label.toLowerCase().includes(plantLocationSearch.toLowerCase()),
+  )
 
   // Fetch work orders and plant locations from bits_po_entry_header
   const fetchWorkOrdersAndPlantLocations = async () => {
@@ -133,6 +164,63 @@ const RawMaterialEntry = () => {
       }
     } catch (error) {
       console.error("Error fetching saved service entries:", error)
+    }
+  }
+
+  // NEW: Search function to filter service entries by work order and plant location
+  const handleSearchEntries = async () => {
+    if (!selectedWorkOrder && !selectedPlantLocation) {
+      toast.warning("Please select Work Order or Building Name to search")
+      return
+    }
+
+    try {
+      setSearching(true)
+      let searchResults = []
+
+      // Get all entries first
+      const allResponse = await fetch(`${API_BASE_URL}/rawmaterialentry`)
+      if (allResponse.ok) {
+        const allData = await allResponse.json()
+        searchResults = allData || []
+      }
+
+      // Filter by selected work order and plant location
+      let filteredResults = searchResults
+
+      if (selectedWorkOrder) {
+        filteredResults = filteredResults.filter((entry) => entry.workOrder === selectedWorkOrder)
+      }
+
+      // Note: Since plantLocation is not stored in raw_material_entry table,
+      // we'll need to get the plant location from bits_po_entry_header based on workOrder
+      if (selectedPlantLocation && selectedWorkOrder) {
+        // Verify that the selected work order belongs to the selected plant location
+        const headerResponse = await fetch(`${API_BASE_URL}/getAllBitsHeaders/details`)
+        if (headerResponse.ok) {
+          const headerData = await headerResponse.json()
+          const matchingHeaders = headerData.filter(
+            (header) => header.workOrder === selectedWorkOrder && header.plantLocation === selectedPlantLocation,
+          )
+
+          if (matchingHeaders.length === 0) {
+            filteredResults = [] // No matching combination
+          }
+        }
+      }
+
+      setSavedServiceRows(filteredResults)
+
+      if (filteredResults.length > 0) {
+        toast.success(`Found ${filteredResults.length} entries for the selected criteria`)
+      } else {
+        toast.info("No entries found for the selected Work Order and Building Name combination")
+      }
+    } catch (error) {
+      console.error("Error searching entries:", error)
+      toast.error("Error searching entries")
+    } finally {
+      setSearching(false)
     }
   }
 
@@ -204,53 +292,6 @@ const RawMaterialEntry = () => {
           documentNoRefs.current[newRow.id].focus()
         }
       }, 100)
-    }
-  }
-
-  // Search function to filter service entries
-  const handleSearch = async () => {
-    try {
-      setSearching(true)
-
-      let searchResults = []
-
-      // Search by work order if provided
-      if (searchWorkOrder) {
-        const workOrderResponse = await fetch(`${API_BASE_URL}/rawmaterialentry/workorder/${searchWorkOrder}`)
-        if (workOrderResponse.ok) {
-          const workOrderData = await workOrderResponse.json()
-          searchResults = [...searchResults, ...workOrderData]
-        }
-      }
-
-      // If no work order search, get all entries
-      if (!searchWorkOrder && !searchPlantLocation) {
-        const allResponse = await fetch(`${API_BASE_URL}/rawmaterialentry`)
-        if (allResponse.ok) {
-          const allData = await allResponse.json()
-          searchResults = allData
-        }
-      }
-
-      // Filter by plant location if provided (client-side filtering)
-      if (searchPlantLocation) {
-        searchResults = searchResults.filter((entry) =>
-          entry.plantLocation?.toLowerCase().includes(searchPlantLocation.toLowerCase()),
-        )
-      }
-
-      setSavedServiceRows(searchResults || [])
-
-      if (searchResults && searchResults.length > 0) {
-        toast.success(`Found ${searchResults.length} service entries`)
-      } else {
-        toast.info("No service entries found for the search criteria")
-      }
-    } catch (error) {
-      console.error("Error searching service entries:", error)
-      toast.error("Error searching service entries")
-    } finally {
-      setSearching(false)
     }
   }
 
@@ -417,7 +458,16 @@ const RawMaterialEntry = () => {
         // Clear entry rows and refresh saved data
         setServiceRows([])
         setShowEntryRows(false)
+
+        // NEW: Automatically refresh the table to show saved data
         await fetchSavedServiceEntries()
+
+        // NEW: If search criteria are selected, automatically filter the results
+        if (selectedWorkOrder || selectedPlantLocation) {
+          setTimeout(() => {
+            handleSearchEntries()
+          }, 500) // Small delay to ensure data is saved
+        }
       } else {
         const errorText = await response.text()
         console.error("Error response:", errorText)
@@ -433,46 +483,114 @@ const RawMaterialEntry = () => {
 
   return (
     <div className="main-container">
-      {/* Control Section - Half Width */}
+      {/* Control Section */}
       <div className="control-section">
         <div className="dropdowns-and-buttons">
-          {/* Work Order Dropdown */}
+          {/* Work Order Dropdown with Search */}
           <div className="dropdown-group">
             <label htmlFor="workOrder">Work Order:</label>
-            <select
-              id="workOrder"
-              value={selectedWorkOrder}
-              onChange={(e) => setSelectedWorkOrder(e.target.value)}
-              className="dropdown-select"
-              disabled={loading}
-            >
-              <option value="">Select Work Order</option>
-              {workOrderOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="modern-dropdown" ref={workOrderDropdownRef}>
+              <div className="dropdown-header" onClick={() => setShowWorkOrderDropdown(!showWorkOrderDropdown)}>
+                <span className="dropdown-value">{selectedWorkOrder || "Select Work Order"}</span>
+                <FaChevronDown className={`dropdown-arrow ${showWorkOrderDropdown ? "rotated" : ""}`} />
+              </div>
+              {showWorkOrderDropdown && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-search">
+                    <input
+                      type="text"
+                      placeholder="Search work orders..."
+                      value={workOrderSearch}
+                      onChange={(e) => setWorkOrderSearch(e.target.value)}
+                      className="search-input"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="dropdown-options">
+                    {filteredWorkOrderOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className="dropdown-option"
+                        onClick={() => {
+                          setSelectedWorkOrder(option.value)
+                          setShowWorkOrderDropdown(false)
+                          setWorkOrderSearch("")
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                    ))}
+                    {filteredWorkOrderOptions.length === 0 && (
+                      <div className="dropdown-option disabled">No work orders found</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Plant Location Dropdown */}
+          {/* Plant Location Dropdown with Search */}
           <div className="dropdown-group">
             <label htmlFor="plantLocation">Building Name:</label>
-            <select
-              id="plantLocation"
-              value={selectedPlantLocation}
-              onChange={(e) => setSelectedPlantLocation(e.target.value)}
-              className="dropdown-select"
-              disabled={loading}
-            >
-              <option value="">Select Building Name</option>
-              {plantLocationOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="modern-dropdown" ref={plantLocationDropdownRef}>
+              <div className="dropdown-header" onClick={() => setShowPlantLocationDropdown(!showPlantLocationDropdown)}>
+                <span className="dropdown-value">{selectedPlantLocation || "Select Building Name"}</span>
+                <FaChevronDown className={`dropdown-arrow ${showPlantLocationDropdown ? "rotated" : ""}`} />
+              </div>
+              {showPlantLocationDropdown && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-search">
+                    <input
+                      type="text"
+                      placeholder="Search building names..."
+                      value={plantLocationSearch}
+                      onChange={(e) => setPlantLocationSearch(e.target.value)}
+                      className="search-input"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="dropdown-options">
+                    {filteredPlantLocationOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className="dropdown-option"
+                        onClick={() => {
+                          setSelectedPlantLocation(option.value)
+                          setShowPlantLocationDropdown(false)
+                          setPlantLocationSearch("")
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                    ))}
+                    {filteredPlantLocationOptions.length === 0 && (
+                      <div className="dropdown-option disabled">No building names found</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* NEW: Search Button */}
+          <button
+            className="search-button"
+            onClick={handleSearchEntries}
+            disabled={(!selectedWorkOrder && !selectedPlantLocation) || searching}
+            title="Search Entries"
+          >
+            {searching ? (
+              <>
+                <AiOutlineLoading3Quarters className="spin-icon" />
+                <span>Searching...</span>
+              </>
+            ) : (
+              <>
+                <MdSearch />
+                <span>Search</span>
+              </>
+            )}
+          </button>
 
           {/* Add Button */}
           <button
@@ -503,17 +621,10 @@ const RawMaterialEntry = () => {
             )}
           </button>
         </div>
-
-        {/* Search Section */}
-        {showEntryRows && (
-          <div className="search-section">
-        
-          </div>
-        )}
       </div>
 
       {/* Service Entry Table */}
-      {showEntryRows && (
+      {(showEntryRows || savedServiceRows.length > 0) && (
         <div className="table-section">
           <div className="table-wrapper">
             <table className="service-table">
@@ -799,7 +910,10 @@ const RawMaterialEntry = () => {
                   <tr className="empty-row">
                     <td colSpan="11">
                       <div className="empty-message">
-                        <div className="empty-text">No service entries found.</div>
+                        <div className="empty-text">
+                          No service entries found. Select Work Order and Building Name, then click Search to view
+                          entries or Add to create new ones.
+                        </div>
                       </div>
                     </td>
                   </tr>
