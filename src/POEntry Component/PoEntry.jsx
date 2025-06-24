@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-import { IoMdOpen } from "react-icons/io"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { TiEdit } from "react-icons/ti"
-import { MdDelete, MdSave, MdAdd, MdClose } from "react-icons/md";
-import { FaCheck } from "react-icons/fa";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import "../POEntry Component/PoEntry.css";
+import { MdDelete, MdSave, MdAdd, MdClose } from "react-icons/md"
+import { FaCheck, FaSearch } from "react-icons/fa"
+import { ToastContainer, toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import "../POEntry Component/PoEntry.css"
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
@@ -21,10 +19,45 @@ const POEntry = ({ onClose }) => {
   const [serviceFormRows, setServiceFormRows] = useState([])
   const [serviceLoading, setServiceLoading] = useState(false)
 
+  // NEW: Customer Management State
+  const [customers, setCustomers] = useState([])
+  const [selectedCustomer, setSelectedCustomer] = useState("")
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const [filteredCustomers, setFilteredCustomers] = useState([])
+  const [customerDropdownEnabled, setCustomerDropdownEnabled] = useState(false)
+  const [savedOrderId, setSavedOrderId] = useState(null)
+
   // Initialize with one form row
   useEffect(() => {
     setFormRows([createNewFormRow()])
+    fetchCustomers()
   }, [])
+
+  // Filter customers based on search
+  useEffect(() => {
+    if (customerSearch) {
+      const filtered = customers.filter(
+        (customer) =>
+          customer.ledgerName.toLowerCase().includes(customerSearch.toLowerCase()) ||
+          (customer.contactPersonName &&
+            customer.contactPersonName.toLowerCase().includes(customerSearch.toLowerCase())),
+      )
+      setFilteredCustomers(filtered)
+    } else {
+      setFilteredCustomers(customers)
+    }
+  }, [customerSearch, customers])
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/getAllCustomers/details`)
+      setCustomers(response.data)
+      setFilteredCustomers(response.data)
+    } catch (error) {
+      console.error("Error fetching customers:", error)
+    }
+  }
 
   const createNewFormRow = () => ({
     id: Date.now() + Math.random(),
@@ -80,6 +113,55 @@ const POEntry = ({ onClose }) => {
     setServiceFormRows((prev) => [...prev, createNewServiceRow()])
   }
 
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer.ledgerName)
+    setShowCustomerDropdown(false)
+    setCustomerSearch("")
+  }
+
+  // NEW: Submit for Invoice function
+  const handleSubmitForInvoice = async () => {
+    if (!selectedCustomer) {
+      toast.error("Please select a customer before submitting for invoice")
+      return
+    }
+
+    if (!savedOrderId) {
+      toast.error("Please save the order first before submitting for invoice")
+      return
+    }
+
+    try {
+      const selectedCustomerData = customers.find((c) => c.ledgerName === selectedCustomer)
+      if (!selectedCustomerData) {
+        toast.error("Selected customer not found")
+        return
+      }
+
+      // Update the order with customer ID
+      const response = await axios.put(`${API_BASE_URL}/updateCustomer/details`, null, {
+        params: {
+          orderId: savedOrderId,
+          customerId: selectedCustomerData.id,
+        },
+      })
+
+      if (response.data.success) {
+        showSuccessToast("Order successfully submitted for invoice with customer details!")
+
+        // Reset form
+        setFormRows([createNewFormRow()])
+        setServiceFormRows([])
+        setSelectedCustomer("")
+        setCustomerDropdownEnabled(false)
+        setSavedOrderId(null)
+      }
+    } catch (error) {
+      console.error("Error submitting for invoice:", error)
+      toast.error("Failed to submit for invoice: " + (error.response?.data || error.message))
+    }
+  }
+
   const showSuccessToast = (message) => {
     toast.success(
       <div className="AOsuccessToastKI">
@@ -98,106 +180,88 @@ const POEntry = ({ onClose }) => {
     )
   }
 
-  // ENHANCED: Updated save function to use new backend endpoints
+  // ENHANCED: Updated save function
   const handleSaveBoth = async () => {
     try {
       setLoading(true)
       setServiceLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      console.log("Starting save process...");
+      console.log("Starting save process...")
 
       // First save the work order header
       const savedHeaders = []
       for (const formData of formRows) {
         const { id, ...dataToSave } = formData
-        console.log("Saving work order:", dataToSave);
-        
+        console.log("Saving work order:", dataToSave)
+
         const response = await axios.post(`${API_BASE_URL}/createBitsHeader/details`, dataToSave, {
           headers: {
             "Content-Type": "application/json",
           },
         })
-        
+
         if (response.data) {
-          console.log("Saved work order response:", response.data);
+          console.log("Saved work order response:", response.data)
           savedHeaders.push(response.data)
+          setSavedOrderId(response.data.orderId) // Store the saved order ID
         }
       }
 
       // If we have service rows to save and we successfully saved a header
       if (serviceFormRows.length > 0 && savedHeaders.length > 0) {
-        const savedHeader = savedHeaders[0];
-        const workOrderId = savedHeader?.orderId;  // This is the key - use orderId
-        const workOrderNo = savedHeader?.workOrder;
+        const savedHeader = savedHeaders[0]
+        const workOrderId = savedHeader?.orderId
+        const workOrderNo = savedHeader?.workOrder
 
-        console.log("Work Order ID:", workOrderId, "Work Order No:", workOrderNo);
+        console.log("Work Order ID:", workOrderId, "Work Order No:", workOrderNo)
 
-        // Validate we have the required IDs
         if (!workOrderId) {
-          throw new Error("Failed to get work order ID from saved header");
+          throw new Error("Failed to get work order ID from saved header")
         }
 
         if (!workOrderNo) {
-          throw new Error("Failed to get work order number from saved header");
+          throw new Error("Failed to get work order number from saved header")
         }
 
-        // ENHANCED: Use bulk create method for better performance and proper foreign key handling
-        const serviceDataToSave = serviceFormRows.map(formData => {
-          const { id, ...dataToSave } = formData;
+        const serviceDataToSave = serviceFormRows.map((formData) => {
+          const { id, ...dataToSave } = formData
           return {
             ...dataToSave,
             qty: dataToSave.qty ? Number.parseFloat(dataToSave.qty) : null,
-            unitPrice: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null, // Use unitPrice instead of rate
-            totalPrice: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null, // Use totalPrice instead of amount
-            workOrderRef: workOrderNo, // Keep for backward compatibility
-            // orderId will be set automatically by the backend
-          };
-        });
+            unitPrice: dataToSave.rate ? Number.parseFloat(dataToSave.rate) : null,
+            totalPrice: dataToSave.amount ? Number.parseFloat(dataToSave.amount) : null,
+            workOrderRef: workOrderNo,
+          }
+        })
 
-        console.log("Saving service orders with bulk method:", serviceDataToSave);
+        console.log("Saving service orders with bulk method:", serviceDataToSave)
 
-        // ENHANCED: Use the new bulk create endpoint that properly handles foreign keys and line numbering
         const serviceResponse = await axios.post(
-          `${API_BASE_URL}/createMultipleBitsLines/details?orderId=${workOrderId}`, 
-          serviceDataToSave, 
+          `${API_BASE_URL}/createMultipleBitsLines/details?orderId=${workOrderId}`,
+          serviceDataToSave,
           {
             headers: {
               "Content-Type": "application/json",
             },
-          }
-        );
-        
-        console.log("Bulk saved service orders response:", serviceResponse.data);
+          },
+        )
 
-        // Verify the response
-        if (serviceResponse.data && Array.isArray(serviceResponse.data)) {
-          console.log(`Successfully created ${serviceResponse.data.length} service lines`);
-          serviceResponse.data.forEach((line, index) => {
-            console.log(`Service Line ${index + 1}:`, {
-              lineId: line.lineId,
-              orderId: line.orderId,
-              lineNumber: line.lineNumber,
-              serNo: line.serNo,
-              serviceCode: line.serviceCode
-            });
-          });
-        }
+        console.log("Bulk saved service orders response:", serviceResponse.data)
       }
 
-      // Reset forms
-      setFormRows([createNewFormRow()])
-      setServiceFormRows([])
-      
-      showSuccessToast("Work Order and Service Order data successfully saved with proper relationships!")
-      
+      // Enable customer dropdown after successful save
+      setCustomerDropdownEnabled(true)
+
+      showSuccessToast("Work Order and Service Order data successfully saved! You can now select a customer.")
     } catch (error) {
       console.error("Error saving data:", error)
-      let errorMessage = "Failed to save data";
+      let errorMessage = "Failed to save data"
       if (error.response?.data) {
-        errorMessage += ": " + (typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data));
+        errorMessage +=
+          ": " + (typeof error.response.data === "string" ? error.response.data : JSON.stringify(error.response.data))
       } else if (error.message) {
-        errorMessage += ": " + error.message;
+        errorMessage += ": " + error.message
       }
       toast.error(errorMessage)
     } finally {
@@ -216,13 +280,8 @@ const POEntry = ({ onClose }) => {
     }
   }
 
-  // Check if formRows has elements before accessing workOrder
   const isSaveDisabled = () => {
-    return loading || 
-           serviceLoading || 
-           formRows.length === 0 || 
-           !formRows[0] || 
-           !formRows[0].workOrder;
+    return loading || serviceLoading || formRows.length === 0 || !formRows[0] || !formRows[0].workOrder
   }
 
   return (
@@ -232,12 +291,8 @@ const POEntry = ({ onClose }) => {
         <div className="AOtigerKI">
           <h3>Work Order Entry Form</h3>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button 
-            className="AOcheetahKI AOsaveBtnKI" 
-            onClick={handleSaveBoth} 
-            disabled={isSaveDisabled()}
-          >
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button className="AOcheetahKI AOsaveBtnKI" onClick={handleSaveBoth} disabled={isSaveDisabled()}>
             {loading || serviceLoading ? (
               <>
                 <AiOutlineLoading3Quarters className="AOspinIconKI" />
@@ -250,6 +305,117 @@ const POEntry = ({ onClose }) => {
               </>
             )}
           </button>
+
+          {/* NEW: Customer Name Dropdown */}
+          <div className="customer-dropdown-container" style={{ position: "relative", minWidth: "200px" }}>
+            <div
+              className={`customer-dropdown-header ${!customerDropdownEnabled ? "disabled" : ""}`}
+              onClick={() => customerDropdownEnabled && setShowCustomerDropdown(!showCustomerDropdown)}
+              style={{
+                background: customerDropdownEnabled ? "white" : "#f5f5f5",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                padding: "10px 12px",
+                cursor: customerDropdownEnabled ? "pointer" : "not-allowed",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontSize: "14px",
+                color: customerDropdownEnabled ? "#2d3748" : "#a0aec0",
+                opacity: customerDropdownEnabled ? 1 : 0.6,
+              }}
+            >
+              <span>{selectedCustomer || "Customer Name"}</span>
+              <span style={{ fontSize: "12px", color: "#a0aec0" }}>▼</span>
+            </div>
+            {showCustomerDropdown && customerDropdownEnabled && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "white",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                  zIndex: 1000,
+                  maxHeight: "300px",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ padding: "12px", borderBottom: "1px solid #e2e8f0" }}>
+                  <div style={{ position: "relative" }}>
+                    <FaSearch
+                      style={{
+                        position: "absolute",
+                        left: "10px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#a0aec0",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search customers..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 8px 8px 30px",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "6px",
+                        fontSize: "14px",
+                        outline: "none",
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                  {filteredCustomers.map((customer) => (
+                    <div
+                      key={customer.id}
+                      onClick={() => handleCustomerSelect(customer)}
+                      style={{
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "#2d3748",
+                        borderBottom: "1px solid #f7fafc",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                      }}
+                      onMouseEnter={(e) => (e.target.style.background = "#f7fafc")}
+                      onMouseLeave={(e) => (e.target.style.background = "white")}
+                    >
+                      <div style={{ fontWeight: "500" }}>{customer.ledgerName}</div>
+                      {customer.contactPersonName && (
+                        <div style={{ fontSize: "12px", color: "#666" }}>{customer.contactPersonName}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* NEW: Submit for Invoice Button */}
+          <button
+            className="AOcheetahKI"
+            onClick={handleSubmitForInvoice}
+            disabled={!customerDropdownEnabled || !selectedCustomer}
+            style={{
+              backgroundColor: customerDropdownEnabled && selectedCustomer ? "#28a745" : "#6c757d",
+              cursor: customerDropdownEnabled && selectedCustomer ? "pointer" : "not-allowed",
+            }}
+          >
+            <FaCheck className="AObuttonIconKI" />
+            <span>Submit for Invoice</span>
+          </button>
+
           <button className="AOcancelButtonKI" onClick={handleCancel}>
             <MdClose className="AOrefreshIconKI" />
             <span>Cancel</span>
@@ -441,9 +607,7 @@ const POEntry = ({ onClose }) => {
               <tr key={formData.id} className="AObearKI">
                 <td>
                   <div className="AOwolfKI">
-                    <span style={{ fontSize: "12px", color: "#666" }}>
-                      {index + 1}
-                    </span>
+                    <span style={{ fontSize: "12px", color: "#666" }}>{index + 1}</span>
                   </div>
                 </td>
                 <td>
@@ -523,9 +687,7 @@ const POEntry = ({ onClose }) => {
                   />
                 </td>
                 <td>
-                  <span className="AOdeerKI">
-                    {serviceLoading ? "Saving..." : "Ready"}
-                  </span>
+                  <span className="AOdeerKI">{serviceLoading ? "Saving..." : "Ready"}</span>
                 </td>
                 <td>
                   <div className="AOmooseKI">
@@ -562,36 +724,43 @@ const POEntry = ({ onClose }) => {
 
       {/* Enhanced Loading Overlay */}
       {(loading || serviceLoading) && (
-        <div className="AOloadingOverlayKI" style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: "white",
-            padding: "30px",
-            borderRadius: "10px",
-            textAlign: "center",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.3)"
-          }}>
-            <AiOutlineLoading3Quarters 
-              style={{ 
-                fontSize: "40px", 
-                color: "#007bff", 
-                animation: "spin 1s linear infinite" 
-              }} 
+        <div
+          className="AOloadingOverlayKI"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "30px",
+              borderRadius: "10px",
+              textAlign: "center",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            }}
+          >
+            <AiOutlineLoading3Quarters
+              style={{
+                fontSize: "40px",
+                color: "#007bff",
+                animation: "spin 1s linear infinite",
+              }}
             />
             <div style={{ marginTop: "15px", fontSize: "16px", color: "#333" }}>
-              {loading && serviceLoading ? "Saving work order and service lines..." : 
-               loading ? "Saving work order..." : 
-               "Saving service lines with proper relationships..."}
+              {loading && serviceLoading
+                ? "Saving work order and service lines..."
+                : loading
+                  ? "Saving work order..."
+                  : "Saving service lines with proper relationships..."}
             </div>
             <div style={{ marginTop: "10px", fontSize: "12px", color: "#666" }}>
               Please wait while we establish proper foreign key relationships...
