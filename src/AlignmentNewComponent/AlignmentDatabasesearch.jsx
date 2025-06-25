@@ -43,6 +43,11 @@ const AlignmentDatabasesearch = () => {
   const [editingRow, setEditingRow] = useState(null)
   const [editFormData, setEditFormData] = useState({})
 
+  // RA NO edit states - NEW
+  const [editingRaNo, setEditingRaNo] = useState({}) // Track which RA NO fields are being edited
+  const [raNoValues, setRaNoValues] = useState({}) // Track RA NO input values
+  const [savingRaNo, setSavingRaNo] = useState({}) // Track which RA NO fields are being saved
+
   // Alignment process states - tracks checkbox states for each row
   const [alignmentStages, setAlignmentStages] = useState({})
 
@@ -74,6 +79,87 @@ const AlignmentDatabasesearch = () => {
         finishing: rowData.finishingStage === "Y",
       },
     }))
+  }
+
+  // Initialize RA NO values from data - NEW
+  const initializeRaNoFromData = (lineId, raNo) => {
+    setRaNoValues((prev) => ({
+      ...prev,
+      [lineId]: raNo || "",
+    }))
+  }
+
+  // Handle RA NO input change - NEW
+  const handleRaNoInputChange = (lineId, value) => {
+    setRaNoValues((prev) => ({
+      ...prev,
+      [lineId]: value,
+    }))
+  }
+
+  // Handle RA NO save - NEW
+  const handleSaveRaNo = async (lineId) => {
+    try {
+      setSavingRaNo((prev) => ({ ...prev, [lineId]: true }))
+
+      const raNoValue = raNoValues[lineId] || ""
+
+      // Prepare update data with only RA NO field
+      const updateData = {
+        raNo: raNoValue.trim() || null,
+        lastUpdatedBy: "system",
+      }
+
+      console.log(`Updating RA NO for lineId ${lineId}:`, updateData)
+
+      const response = await fetch(`${API_BASE_URL}/updateAlignmentDrawingEntry/details?lineId=${lineId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (response.ok) {
+        toast.success("RA NO updated successfully!")
+        
+        // Update the table data with new RA NO value
+        setTableData((prev) =>
+          prev.map((row) =>
+            row.lineId === lineId ? { ...row, raNo: raNoValue.trim() || null } : row
+          )
+        )
+        setFilteredData((prev) =>
+          prev.map((row) =>
+            row.lineId === lineId ? { ...row, raNo: raNoValue.trim() || null } : row
+          )
+        )
+
+        // Exit edit mode for this RA NO field
+        setEditingRaNo((prev) => ({ ...prev, [lineId]: false }))
+      } else {
+        const errorText = await response.text()
+        console.error("RA NO update failed:", errorText)
+        toast.error(`Failed to update RA NO: ${errorText}`)
+      }
+    } catch (error) {
+      console.error("Error updating RA NO:", error)
+      toast.error("Error updating RA NO: " + error.message)
+    } finally {
+      setSavingRaNo((prev) => ({ ...prev, [lineId]: false }))
+    }
+  }
+
+  // Handle RA NO edit mode toggle - NEW
+  const handleEditRaNo = (lineId, currentValue) => {
+    setEditingRaNo((prev) => ({ ...prev, [lineId]: true }))
+    setRaNoValues((prev) => ({ ...prev, [lineId]: currentValue || "" }))
+  }
+
+  // Handle RA NO cancel edit - NEW
+  const handleCancelRaNoEdit = (lineId, originalValue) => {
+    setEditingRaNo((prev) => ({ ...prev, [lineId]: false }))
+    setRaNoValues((prev) => ({ ...prev, [lineId]: originalValue || "" }))
   }
 
   // Handle alignment stage checkbox change with sequential logic
@@ -279,9 +365,10 @@ const AlignmentDatabasesearch = () => {
         markNo: selectedMarkNo,
       })
 
-      // Initialize alignment stages for all rows
+      // Initialize alignment stages and RA NO values for all rows
       data.forEach((row) => {
         initializeAlignmentStagesFromData(row.lineId, row)
+        initializeRaNoFromData(row.lineId, row.raNo) // NEW: Initialize RA NO values
       })
 
       toast.info(`Found ${data.length} records`)
@@ -316,6 +403,8 @@ const AlignmentDatabasesearch = () => {
       markNo: "",
     })
     setAlignmentStages({})
+    setRaNoValues({}) // NEW: Clear RA NO values
+    setEditingRaNo({}) // NEW: Clear RA NO edit states
     toast.info("All filters cleared")
   }
 
@@ -585,23 +674,6 @@ const AlignmentDatabasesearch = () => {
           <h3>Search for Alignment Details</h3>
         </div>
         <div className="align-header-buttons">
-          {/* <button
-            className="align-button-giraffe align-save-stages-btn"
-            onClick={handleSaveAlignmentStages}
-            disabled={saving || loading || filteredData.length === 0}
-          >
-            {saving ? (
-              <>
-                <AiOutlineLoading3Quarters className="align-spin-icon-polar" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <MdSave />
-                <span>Save</span>
-              </>
-            )}
-          </button> */}
           <button
             className="align-button-giraffe align-move-to-billing-btn"
             onClick={handleMoveToBilling}
@@ -776,19 +848,58 @@ const AlignmentDatabasesearch = () => {
                       <div className="align-order-icon-rabbit">{row.orderId || <IoMdOpen />}</div>
                     )}
                   </td>
+                  {/* NEW: Enhanced RA NO Column with inline editing */}
                   <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.raNo}
-                        onChange={(e) => handleEditInputChange("raNo", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      row.raNo || "-"
-                    )}
-                  </td>{" "}
-                  {/* NEW: RA NO Column */}
+                    <div className="align-ra-no-container">
+                      {editingRaNo[row.lineId] ? (
+                        <div className="align-ra-no-edit-wrapper">
+                          <input
+                            type="text"
+                            value={raNoValues[row.lineId] || ""}
+                            onChange={(e) => handleRaNoInputChange(row.lineId, e.target.value)}
+                            placeholder="Enter RA NO"
+                            className="align-ra-no-input"
+                            disabled={savingRaNo[row.lineId]}
+                          />
+                          <div className="align-ra-no-actions">
+                            <button
+                              onClick={() => handleSaveRaNo(row.lineId)}
+                              className="align-ra-no-save-btn"
+                              disabled={savingRaNo[row.lineId]}
+                              title="Save RA NO"
+                            >
+                              {savingRaNo[row.lineId] ? (
+                                <AiOutlineLoading3Quarters className="align-ra-no-spinner" />
+                              ) : (
+                                <MdSave />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleCancelRaNoEdit(row.lineId, row.raNo)}
+                              className="align-ra-no-cancel-btn"
+                              disabled={savingRaNo[row.lineId]}
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="align-ra-no-display-wrapper">
+                          <span className="align-ra-no-value">
+                            {row.raNo || "-"}
+                          </span>
+                          <button
+                            onClick={() => handleEditRaNo(row.lineId, row.raNo)}
+                            className="align-ra-no-edit-btn"
+                            title="Edit RA NO"
+                          >
+                            <MdEdit />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -982,8 +1093,6 @@ const AlignmentDatabasesearch = () => {
               {filteredData.length === 0 && !loading && (
                 <tr className="align-empty-row-camel">
                   <td colSpan="20">
-                    {" "}
-                    {/* Updated colspan for new RA NO column */}
                     <div className="align-empty-state-llama">
                       <div className="align-empty-text-alpaca">
                         {selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedBuildingName
@@ -1057,6 +1166,145 @@ const AlignmentDatabasesearch = () => {
       )}
 
       <ToastContainer />
+
+      {/* NEW: CSS Styles for RA NO editing */}
+      <style jsx>{`
+        .align-ra-no-container {
+          min-width: 150px;
+          position: relative;
+        }
+
+        .align-ra-no-edit-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          width: 100%;
+        }
+
+        .align-ra-no-input {
+          flex: 1;
+          padding: 4px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 12px;
+          min-width: 100px;
+          background-color: #fff;
+        }
+
+        .align-ra-no-input:focus {
+          outline: none;
+          border-color: #007bff;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .align-ra-no-input:disabled {
+          background-color: #f8f9fa;
+          cursor: not-allowed;
+        }
+
+        .align-ra-no-actions {
+          display: flex;
+          gap: 2px;
+        }
+
+        .align-ra-no-save-btn,
+        .align-ra-no-cancel-btn,
+        .align-ra-no-edit-btn {
+          padding: 4px 6px;
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 24px;
+          height: 24px;
+          transition: all 0.2s ease;
+        }
+
+        .align-ra-no-save-btn {
+          background-color: #28a745;
+          color: white;
+        }
+
+        .align-ra-no-save-btn:hover:not(:disabled) {
+          background-color: #218838;
+        }
+
+        .align-ra-no-save-btn:disabled {
+          background-color: #6c757d;
+          cursor: not-allowed;
+        }
+
+        .align-ra-no-cancel-btn {
+          background-color: #dc3545;
+          color: white;
+        }
+
+        .align-ra-no-cancel-btn:hover:not(:disabled) {
+          background-color: #c82333;
+        }
+
+        .align-ra-no-edit-btn {
+          background-color: #007bff;
+          color: white;
+          opacity: 0.7;
+          transition: opacity 0.2s ease;
+        }
+
+        .align-ra-no-edit-btn:hover {
+          background-color: #0056b3;
+          opacity: 1;
+        }
+
+        .align-ra-no-display-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .align-ra-no-value {
+          flex: 1;
+          font-size: 13px;
+          color: #333;
+        }
+
+        .align-ra-no-spinner {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .align-ra-no-container {
+            min-width: 120px;
+          }
+
+          .align-ra-no-input {
+            min-width: 80px;
+            font-size: 11px;
+          }
+
+          .align-ra-no-save-btn,
+          .align-ra-no-cancel-btn,
+          .align-ra-no-edit-btn {
+            min-width: 20px;
+            height: 20px;
+            font-size: 10px;
+          }
+        }
+      `}</style>
     </div>
   )
 }

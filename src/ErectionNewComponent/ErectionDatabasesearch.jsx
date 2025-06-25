@@ -5,7 +5,7 @@ import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import "./ErectionDatabasesearch.css"
 import { IoMdOpen } from "react-icons/io"
-import '../ErectionNewComponent/ErectionDatabasesearch.css'
+import "../ErectionNewComponent/ErectionDatabasesearch.css"
 
 const ErectionDatabasesearch = () => {
   // API Base URL
@@ -47,9 +47,9 @@ const ErectionDatabasesearch = () => {
   // Erection process states - tracks checkbox states for each row
   const [erectionStages, setErectionStages] = useState({})
 
-  // RA NO states
+  // RA NO states - Modified for individual row editing
   const [raNoValues, setRaNoValues] = useState({})
-  const [editingRaNo, setEditingRaNo] = useState(null)
+  const [savingRaNo, setSavingRaNo] = useState({}) // Track saving state per row
 
   // Erection stages in order
   const ERECTION_STAGES = ["cutting", "fitUp", "welding", "finishing"]
@@ -81,11 +81,11 @@ const ErectionDatabasesearch = () => {
     }))
   }
 
-  // Initialize RA NO values from backend data
+  // Initialize RA NO values from backend data - ALWAYS SHOW EMPTY for new entries
   const initializeRaNoFromData = (lineId, raNo) => {
     setRaNoValues((prev) => ({
       ...prev,
-      [lineId]: raNo || "",
+      [lineId]: "", // Always start with empty field regardless of backend data
     }))
   }
 
@@ -129,37 +129,37 @@ const ErectionDatabasesearch = () => {
     }))
   }
 
-  // Save RA NO for a specific row
+  // Save RA NO for a specific row using new POST API
   const handleSaveRaNo = async (lineId) => {
     try {
-      setSaving(true)
+      setSavingRaNo((prev) => ({ ...prev, [lineId]: true }))
 
       const raNoValue = raNoValues[lineId] || ""
 
-      const updateData = {
-        raNo: raNoValue,
-        lastUpdatedBy: "system",
+      if (!raNoValue.trim()) {
+        toast.warning("Please enter RA NO before saving")
+        return
       }
 
       console.log("Saving RA NO for line ID:", lineId, "Value:", raNoValue)
 
-      const response = await fetch(`${API_BASE_URL}/updateErectionDrawingEntry/details?lineId=${lineId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      // Use new POST API endpoint
+      const response = await fetch(
+        `${API_BASE_URL}/saveErectionRaNo/details?lineId=${lineId}&raNo=${encodeURIComponent(raNoValue)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-        body: JSON.stringify(updateData),
-      })
+      )
 
       if (response.ok) {
+        const result = await response.json()
         toast.success("RA NO saved successfully!")
-        setEditingRaNo(null)
 
-        // Update the table data to reflect the change
-        setTableData((prevData) => prevData.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue } : row)))
-        setFilteredData((prevData) =>
-          prevData.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue } : row)),
-        )
+        // Keep the entered value in the field (don't update from backend)
+        console.log("RA NO saved successfully:", result)
       } else {
         const errorText = await response.text()
         console.error("Save RA NO failed:", errorText)
@@ -169,7 +169,7 @@ const ErectionDatabasesearch = () => {
       console.error("Error saving RA NO:", error)
       toast.error("Error saving RA NO: " + error.message)
     } finally {
-      setSaving(false)
+      setSavingRaNo((prev) => ({ ...prev, [lineId]: false }))
     }
   }
 
@@ -664,23 +664,6 @@ const ErectionDatabasesearch = () => {
           <h3>Search for Erection Details</h3>
         </div>
         <div className="erect-header-buttons">
-          {/* <button
-            className="erect-button-giraffe erect-save-stages-btn"
-            onClick={handleSaveErectionStages}
-            disabled={saving || loading || filteredData.length === 0}
-          >
-            {saving ? (
-              <>
-                <AiOutlineLoading3Quarters className="erect-spin-icon-polar" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <MdSave />
-                <span>Save</span>
-              </>
-            )}
-          </button> */}
           <button
             className="erect-button-giraffe erect-move-to-alignment-btn"
             onClick={handleMoveToAlignment}
@@ -827,14 +810,13 @@ const ErectionDatabasesearch = () => {
                 <th>Item Weight</th>
                 <th>Total Item Weight</th>
                 <th>Status</th>
-                
+
                 {/* Erection Process Columns */}
                 <th className="erect-process-header">Cutting</th>
                 <th className="erect-process-header">Fit Up</th>
                 <th className="erect-process-header">Welding</th>
                 <th className="erect-process-header">Finishing</th>
                 <th>Actions</th>
-                
               </tr>
             </thead>
             <tbody>
@@ -846,35 +828,27 @@ const ErectionDatabasesearch = () => {
                     </div>
                   </td>
                   <td>
-                    {editingRaNo === row.lineId ? (
-                      <div className="erect-ra-no-edit-container">
-                        <input
-                          type="text"
-                          value={raNoValues[row.lineId] || ""}
-                          onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
-                          className="erect-edit-input-deer"
-                          placeholder="Enter RA NO"
-                        />
-                        <button
-                          onClick={() => handleSaveRaNo(row.lineId)}
-                          className="erect-ra-no-save-btn"
-                          disabled={saving}
-                        >
-                          {saving ? "..." : "✓"}
-                        </button>
-                        <button onClick={() => setEditingRaNo(null)} className="erect-ra-no-cancel-btn">
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        className="erect-ra-no-display"
-                        onClick={() => setEditingRaNo(row.lineId)}
-                        title="Click to edit RA NO"
+                    <div className="erect-ra-no-container">
+                      <input
+                        type="text"
+                        value={raNoValues[row.lineId] || ""}
+                        onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
+                        className="erect-ra-no-input"
+                        placeholder="Enter RA NO"
+                      />
+                      <button
+                        onClick={() => handleSaveRaNo(row.lineId)}
+                        className="erect-ra-no-save-icon"
+                        disabled={savingRaNo[row.lineId]}
+                        title="Save RA NO"
                       >
-                        {row.raNo || "Click to add RA NO"}
-                      </div>
-                    )}
+                        {savingRaNo[row.lineId] ? (
+                          <AiOutlineLoading3Quarters className="erect-saving-spinner" />
+                        ) : (
+                          <MdSave />
+                        )}
+                      </button>
+                    </div>
                   </td>
                   <td>
                     {editingRow === row.lineId ? (
@@ -1144,6 +1118,96 @@ const ErectionDatabasesearch = () => {
       )}
 
       <ToastContainer />
+
+      <style jsx>{`
+        /* RA NO Container Styles */
+        .erect-ra-no-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .erect-ra-no-input {
+          flex: 1;
+          padding: 6px 10px;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          font-size: 14px;
+          background-color: #ffffff;
+          transition: border-color 0.2s ease;
+          min-width: 120px;
+        }
+
+        .erect-ra-no-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .erect-ra-no-input::placeholder {
+          color: #9ca3af;
+          font-style: italic;
+        }
+
+        .erect-ra-no-save-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          background-color: #10b981;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 14px;
+        }
+
+        .erect-ra-no-save-icon:hover:not(:disabled) {
+          background-color: #059669;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .erect-ra-no-save-icon:disabled {
+          background-color: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .erect-saving-spinner {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .erect-ra-no-container {
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .erect-ra-no-input {
+            min-width: 100px;
+          }
+
+          .erect-ra-no-save-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+          }
+        }
+      `}</style>
     </div>
   )
 }
