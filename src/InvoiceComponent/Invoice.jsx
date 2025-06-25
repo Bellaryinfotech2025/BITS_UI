@@ -5,6 +5,7 @@ import { MdOutlineFileDownload } from "react-icons/md";
 import "../InvoiceComponent/Invoice.css";
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
+const VENDOR_API_BASE_URL = "http://195.35.45.56:5522/api/vendor-profile"
 
 const Invoice = () => {
   const [workOrders, setWorkOrders] = useState([])
@@ -31,10 +32,21 @@ const Invoice = () => {
   const [customerDetails, setCustomerDetails] = useState(null)
   const [workOrderDetails, setWorkOrderDetails] = useState(null)
 
-  // Fetch work orders and customers on component mount
+  // Vendor Profile State
+  const [vendorDetails, setVendorDetails] = useState(null)
+  const [residenceTelephone, setResidenceTelephone] = useState("")
+  const [officeTelephone, setOfficeTelephone] = useState("")
+
+  // NEW: Tax Summary State
+  const [remarks, setRemarks] = useState("")
+  const [preparedBy, setPreparedBy] = useState("")
+  const [checkedBy, setCheckedBy] = useState("")
+
+  // Fetch work orders, customers, and vendor profile on component mount
   useEffect(() => {
     fetchWorkOrders()
     fetchCustomers()
+    fetchLatestVendorProfile()
   }, [])
 
   // Filter work orders based on search
@@ -81,6 +93,37 @@ const Invoice = () => {
     } catch (error) {
       console.error("Error fetching customers:", error)
     }
+  }
+
+  // Fetch latest vendor profile
+  const fetchLatestVendorProfile = async () => {
+    try {
+      const response = await axios.get(`${VENDOR_API_BASE_URL}/latest`)
+      if (response.data) {
+        setVendorDetails(response.data)
+        console.log("Latest vendor profile fetched:", response.data)
+      }
+    } catch (error) {
+      console.error("Error fetching latest vendor profile:", error)
+      // Don't show error to user as vendor profile is optional
+    }
+  }
+
+  // Helper function to combine address fields
+  const formatVendorAddress = (vendor) => {
+    if (!vendor) return ""
+
+    const addressParts = [
+      vendor.street,
+      vendor.area,
+      vendor.villagePost,
+      vendor.mandalTq,
+      vendor.district,
+      vendor.state,
+      vendor.pinCode,
+    ].filter((part) => part && part.trim() !== "")
+
+    return addressParts.join(", ")
   }
 
   // FIXED: Enhanced fetch work order and customer details
@@ -221,6 +264,95 @@ const Invoice = () => {
     }, 0)
   }
 
+  // NEW: Tax calculation functions
+  const calculateSGST = () => {
+    const total = calculateTotal()
+    return (total * 9) / 100 // 9% SGST
+  }
+
+  const calculateCGST = () => {
+    const total = calculateTotal()
+    return (total * 9) / 100 // 9% CGST
+  }
+
+  const calculateTotalTax = () => {
+    return calculateSGST() + calculateCGST()
+  }
+
+  const calculateTotalAfterTax = () => {
+    return calculateTotal() + calculateTotalTax()
+  }
+
+  // NEW: Number to words conversion function
+  const numberToWords = (num) => {
+    if (num === 0) return "Zero Rupees Only"
+
+    const ones = [
+      "",
+      "One",
+      "Two",
+      "Three",
+      "Four",
+      "Five",
+      "Six",
+      "Seven",
+      "Eight",
+      "Nine",
+      "Ten",
+      "Eleven",
+      "Twelve",
+      "Thirteen",
+      "Fourteen",
+      "Fifteen",
+      "Sixteen",
+      "Seventeen",
+      "Eighteen",
+      "Nineteen",
+    ]
+
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    const convertHundreds = (n) => {
+      let result = ""
+      if (n > 99) {
+        result += ones[Math.floor(n / 100)] + " Hundred "
+        n %= 100
+      }
+      if (n > 19) {
+        result += tens[Math.floor(n / 10)] + " "
+        n %= 10
+      }
+      if (n > 0) {
+        result += ones[n] + " "
+      }
+      return result
+    }
+
+    const convertThousands = (n) => {
+      if (n >= 1000000) {
+        return convertThousands(Math.floor(n / 1000000)) + "Million " + convertThousands(n % 1000000)
+      }
+      if (n >= 100000) {
+        return convertHundreds(Math.floor(n / 100000)) + "Lakh " + convertThousands(n % 100000)
+      }
+      if (n >= 1000) {
+        return convertHundreds(Math.floor(n / 1000)) + "Thousand " + convertHundreds(n % 1000)
+      }
+      return convertHundreds(n)
+    }
+
+    const rupees = Math.floor(num)
+    const paise = Math.round((num - rupees) * 100)
+
+    let result = convertThousands(rupees).trim() + " Rupees"
+
+    if (paise > 0) {
+      result += " and " + convertThousands(paise).trim() + " Paise"
+    }
+
+    return result + " Only"
+  }
+
   return (
     <div className="invoice-container">
       <div className="invoice-header">
@@ -229,7 +361,10 @@ const Invoice = () => {
           <button className="invoice-btn" onClick={handleInvoiceClick}>
             Invoice No
           </button>
-          <button className="completed-btn"> <MdOutlineFileDownload/> Download Invoice</button>
+          <button className="completed-btn">
+            {" "}
+            <MdOutlineFileDownload /> Download Invoice
+          </button>
         </div>
       </div>
 
@@ -275,17 +410,96 @@ const Invoice = () => {
             )}
           </div>
 
-          {/* FIXED: Enhanced Customer Details Section with better debugging */}
+          {/* Vendor Details Section - Above Customer Details */}
+          {vendorDetails && (
+            <div
+              style={{
+                marginTop: "20px",
+                padding: "15px",
+                backgroundColor: "#f0f8ff",
+                borderRadius: "8px",
+                border: "1px solid #e1e5e9",
+              }}
+            >
+              <h4 style={{ margin: "0 0 15px 0", color: "#2c3e50", fontSize: "16px" }}>VENDOR DETAILS</h4>
+              <div className="invoice-info">
+                <div className="info-item">
+                  <span className="info-label">NAME OF THE SERVICE PROVIDER</span>
+                  <span className="info-value">{vendorDetails.companyName || "N/A"}</span>
+                </div>
+
+                <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                  <span className="info-label">ADDRESS</span>
+                  <span className="info-value">{formatVendorAddress(vendorDetails) || "N/A"}</span>
+                </div>
+
+                <div className="info-item">
+                  <span className="info-label">GST REGISTRATION NO</span>
+                  <span className="info-value">{vendorDetails.gstNo || "Not Available"}</span>
+                </div>
+
+                <div className="info-item">
+                  <span className="info-label">IT PAN NO</span>
+                  <span className="info-value">{vendorDetails.panNo || "Not Available"}</span>
+                </div>
+
+                <div className="info-item">
+                  <span className="info-label">CONTACT PERSON</span>
+                  <span className="info-value">{vendorDetails.contactPerson || "N/A"}</span>
+                </div>
+
+                <div className="info-item">
+                  <span className="info-label">CONTACT NUMBER</span>
+                  <span className="info-value">{vendorDetails.contactNumber || "N/A"}</span>
+                </div>
+
+                <div className="info-item">
+                  <span className="info-label">EMAIL</span>
+                  <span className="info-value">{vendorDetails.email || "N/A"}</span>
+                </div>
+
+                <div className="info-item">
+                  <span className="info-label">TELEPHONE (RESIDENCE)</span>
+                  <input
+                    type="text"
+                    value={residenceTelephone}
+                    onChange={(e) => setResidenceTelephone(e.target.value)}
+                    placeholder="Enter residence telephone"
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "4px",
+                      fontSize: "14px",
+                      width: "100%",
+                      marginTop: "4px",
+                    }}
+                  />
+                </div>
+                <div className="info-item">
+                  <span className="info-label">TELEPHONE (OFFICE)</span>
+                  <input
+                    type="text"
+                    value={officeTelephone}
+                    onChange={(e) => setOfficeTelephone(e.target.value)}
+                    placeholder="Enter Office telephone"
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "4px",
+                      fontSize: "14px",
+                      width: "100%",
+                      marginTop: "4px",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced Customer Details Section */}
           {invoiceDetails.customerDetails && (
             <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
               <h4 style={{ margin: "0 0 15px 0", color: "#2c3e50", fontSize: "16px" }}>CUSTOMER DETAILS</h4>
-
-              {/* Debug info - remove in production */}
-              {/* {process.env.NODE_ENV === "development" && (
-                <div style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}>
-                  Debug: {JSON.stringify(invoiceDetails.customerDetails)}
-                </div>
-              )} */}
 
               <div className="invoice-info">
                 <div className="info-item">
@@ -293,9 +507,6 @@ const Invoice = () => {
                   <span className="info-value">{invoiceDetails.customerDetails.ledgerName || "N/A"}</span>
                 </div>
 
-                
-
-                {/* FIXED: Better handling of GSTIN display */}
                 <div className="info-item">
                   <span className="info-label">GST REGISTRATION NO</span>
                   <span className="info-value">
@@ -306,7 +517,6 @@ const Invoice = () => {
                   </span>
                 </div>
 
-                {/* FIXED: Better handling of PAN display */}
                 <div className="info-item">
                   <span className="info-label">IT PAN NO</span>
                   <span className="info-value">
@@ -316,20 +526,6 @@ const Invoice = () => {
                       "Not Available"}
                   </span>
                 </div>
-
-                {/* {invoiceDetails.customerDetails.state && (
-                  <div className="info-item">
-                    <span className="info-label">State</span>
-                    <span className="info-value">{invoiceDetails.customerDetails.state}</span>
-                  </div>
-                )}
-
-                {invoiceDetails.customerDetails.district && (
-                  <div className="info-item">
-                    <span className="info-label">District</span>
-                    <span className="info-value">{invoiceDetails.customerDetails.district}</span>
-                  </div>
-                )} */}
 
                 {invoiceDetails.customerDetails.fullAddress && (
                   <div className="info-item" style={{ gridColumn: "1 / -1" }}>
@@ -375,7 +571,6 @@ const Invoice = () => {
           </div>
         </div>
 
-        {/* FIXED: Enhanced Customer Name Dropdown with GSTIN/PAN display */}
         <div className="dropdown-container">
           <div className="custom-dropdown">
             <div className="dropdown-header" onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}>
@@ -488,16 +683,147 @@ const Invoice = () => {
           </tbody>
           {invoiceData.length > 0 && (
             <tfoot>
+              {/* Original Total Amount Row */}
               <tr className="total-row">
                 <td colSpan="6" className="total-label">
-                  Total Amount:
+                  Total Amount Before Tax:
                 </td>
                 <td className="total-amount">{formatCurrency(calculateTotal())}</td>
+              </tr>
+
+              {/* NEW: Tax Calculation Rows */}
+              <tr className="tax-row">
+                <td colSpan="6" className="tax-label">
+                  SGST @ 9%:
+                </td>
+                <td className="tax-amount">{formatCurrency(calculateSGST())}</td>
+              </tr>
+
+              <tr className="tax-row">
+                <td colSpan="6" className="tax-label">
+                  CGST @ 9%:
+                </td>
+                <td className="tax-amount">{formatCurrency(calculateCGST())}</td>
+              </tr>
+
+              {/* NEW: IGST Row */}
+              <tr className="tax-row">
+                <td colSpan="6" className="tax-label">
+                  IGST:
+                </td>
+                <td className="tax-amount">-</td>
+              </tr>
+
+              <tr className="tax-row">
+                <td colSpan="6" className="tax-label">
+                  Amount Tax @GST:
+                </td>
+                <td className="tax-amount">{formatCurrency(calculateTotalTax())}</td>
+              </tr>
+
+              <tr className="total-after-tax-row">
+                <td colSpan="6" className="total-after-tax-label">
+                  Total Amount After Tax:
+                </td>
+                <td className="total-after-tax-amount">{formatCurrency(calculateTotalAfterTax())}</td>
+              </tr>
+
+              {/* NEW: ROUND OFF Row */}
+              <tr className="tax-row">
+                <td colSpan="6" className="tax-label">
+                  ROUND OFF:
+                </td>
+                <td className="tax-amount">-</td>
+              </tr>
+
+              <tr className="final-total-row">
+                <td colSpan="6" className="final-total-label">
+                  Total:
+                </td>
+                <td className="final-total-amount">{formatCurrency(calculateTotalAfterTax())}</td>
+              </tr>
+
+              <tr className="amount-in-words-row">
+                <td colSpan="7" className="amount-in-words">
+                  <strong>Amount in Words: </strong>
+                  {numberToWords(calculateTotalAfterTax())}
+                </td>
               </tr>
             </tfoot>
           )}
         </table>
+
+        {/* NEW: Amount in Words Section - Outside table */}
+        {/* {invoiceData.length > 0 && (
+          <div className="amount-in-words-section">
+            <div className="amount-in-words-content">
+              <strong>Amount in Words: </strong>
+              {numberToWords(calculateTotalAfterTax())}
+            </div>
+          </div>
+        )} */}
       </div>
+
+      {/* MOVED: Additional Invoice Summary Section - Outside table container */}
+       {invoiceData.length > 0 && (
+          <div className="amount-in-words-section">
+            <div className="amount-in-words-content">
+              <strong>Amount in Words: </strong>
+              {numberToWords(calculateTotalAfterTax())}
+            </div>
+          </div>
+        )}
+      {invoiceData.length > 0 && (
+        <div className="invoice-summary-section">
+          <div className="summary-row">
+            <div className="summary-field full-width">
+              <label className="summary-label">Remarks:</label>
+              <input
+                type="text"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="Enter remarks here..."
+                className="summary-input"
+              />
+            </div>
+          </div>
+
+          <div className="summary-row">
+            <div className="summary-field">
+              <label className="summary-label">Prepared By:</label>
+              <input
+                type="text"
+                value={preparedBy}
+                onChange={(e) => setPreparedBy(e.target.value)}
+                placeholder="Enter name of preparer..."
+                className="summary-input"
+              />
+            </div>
+
+            <div className="summary-field">
+              <label className="summary-label">Checked By:</label>
+              <input
+                type="text"
+                value={checkedBy}
+                onChange={(e) => setCheckedBy(e.target.value)}
+                placeholder="Enter name of checker..."
+                className="summary-input"
+              />
+            </div>
+          </div>
+
+          {/* NEW: Signature Section */}
+          <div className="signature-section">
+            <div className="signature-field">
+              <label className="signature-label">Signature of the Authorised Agent</label>
+              <div className="signature-space">
+                <div className="signature-line"></div>
+                <div className="signature-company">For Bellary InfoTech Solutions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Modal */}
       {showInvoiceModal && (

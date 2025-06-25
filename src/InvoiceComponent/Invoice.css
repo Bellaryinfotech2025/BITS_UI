@@ -483,3 +483,287 @@
     padding: 8px 6px;
   }
 }
+
+
+/********************************************invoice tax styles***************************------------------*/
+/* NEW: Tax Summary Styles - Add these to your existing Invoice.css */
+
+/* Tax calculation rows */
+.tax-row {
+  background: #f8f9fa;
+  font-weight: 500;
+  border-top: 1px solid #e2e8f0;
+}
+
+.tax-label {
+  text-align: right;
+  font-size: 14px;
+  color: #4a5568;
+  padding: 12px;
+}
+
+.tax-amount {
+  font-size: 14px;
+  color: #2d3748;
+  font-weight: 600;
+  padding: 12px;
+}
+
+/* Total after tax row */
+.total-after-tax-row {
+  background: #e6fffa;
+  font-weight: 600;
+  border-top: 2px solid #38b2ac;
+}
+
+.total-after-tax-label {
+  text-align: right;
+  font-size: 15px;
+  color: #2c7a7b;
+  padding: 12px;
+}
+
+.total-after-tax-amount {
+  font-size: 16px;
+  color: #2c7a7b;
+  font-weight: 700;
+  padding: 12px;
+}
+
+/* Final total row */
+.final-total-row {
+  background: #2d3748;
+  color: white;
+  font-weight: 700;
+  border-top: 3px solid #1a202c;
+}
+
+.final-total-label {
+  text-align: right;
+  font-size: 16px;
+  padding: 14px 12px;
+}
+
+.final-total-amount {
+  font-size: 18px;
+  font-weight: 800;
+  padding: 14px 12px;
+}
+
+/* Amount in words row - Enhanced visibility */
+.amount-in-words-row {
+  background: #f7fafc !important;
+  border-top: 2px solid #e2e8f0 !important;
+  display: table-row !important;
+  visibility: visible !important;
+}
+
+.amount-in-words {
+  padding: 16px 12px !important;
+  font-size: 14px !important;
+  color: #2d3748 !important;
+  text-align: left !important;
+  font-style: italic !important;
+  line-height: 1.5 !important;
+  display: table-cell !important;
+  visibility: visible !important;
+}
+
+.amount-in-words strong {
+  font-weight: 700 !important;
+  color: #1a202c !important;
+}
+
+/* FIXED: Invoice Summary Section - Better visibility */
+.invoice-summary-section {
+  background: white;
+  padding: 25px;
+  border: 1px solid #e2e8f0;
+  border-top: 2px solid #4299e1;
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.summary-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.summary-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-field.full-width {
+  flex: none;
+  width: 100%;
+}
+
+.summary-label {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-input {
+  padding: 12px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #2d3748;
+  background: white;
+  transition: all 0.2s;
+  min-height: 45px;
+}
+
+.summary-input:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  background: #f7fafc;
+}
+
+.summary-input::placeholder {
+  color: #a0aec0;
+  font-style: italic;
+}
+
+/* Enhanced Signature Section */
+.signature-section {
+  margin-top: 40px;
+  padding-top: 25px;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.signature-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 300px;
+}
+
+.signature-label {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 14px;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.signature-space {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.signature-line {
+  width: 100%;
+  height: 80px;
+  border-bottom: 2px solid #2d3748;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.signature-company {
+  font-size: 13px;
+  color: #4a5568;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* NEW: Standalone Amount in Words Section */
+.amount-in-words-section {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-top: 2px solid #4299e1;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.amount-in-words-content {
+  font-size: 16px;
+  color: #2d3748;
+  line-height: 1.6;
+  text-align: left;
+  font-style: italic;
+}
+
+.amount-in-words-content strong {
+  font-weight: 700;
+  color: #1a202c;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments for tax summary */
+@media (max-width: 768px) {
+  .tax-label,
+  .total-after-tax-label,
+  .final-total-label {
+    font-size: 12px;
+    padding: 10px 8px;
+  }
+
+  .tax-amount,
+  .total-after-tax-amount,
+  .final-total-amount {
+    font-size: 13px;
+    padding: 10px 8px;
+  }
+
+  .amount-in-words {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  .summary-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .invoice-summary-section {
+    padding: 16px;
+  }
+
+  .signature-field {
+    max-width: 100%;
+    align-items: center;
+  }
+
+  .signature-space {
+    width: 250px;
+  }
+
+  /* Responsive for amount in words section */
+  .amount-in-words-section {
+    padding: 15px;
+    margin-top: 8px;
+    margin-bottom: 15px;
+  }
+
+  .amount-in-words-content {
+    font-size: 14px;
+  }
+}
