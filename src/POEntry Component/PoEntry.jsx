@@ -409,11 +409,11 @@ const POEntry = ({ onClose }) => {
             disabled={!customerDropdownEnabled || !selectedCustomer}
             style={{
               backgroundColor: customerDropdownEnabled && selectedCustomer ? "#28a745" : "#6c757d",
-              cursor: customerDropdownEnabled && selectedCustomer ? "pointer" : "not-allowed",
+              cursor: customerDropdownEnabled && selectedCustomer ? "pointer" : "not-allowed",width:'300px'
             }}
           >
             <FaCheck className="AObuttonIconKI" />
-            <span>Submit for Invoice</span>
+            <span>Add Customer details to Invoice</span>
           </button>
 
           <button className="AOcancelButtonKI" onClick={handleCancel}>

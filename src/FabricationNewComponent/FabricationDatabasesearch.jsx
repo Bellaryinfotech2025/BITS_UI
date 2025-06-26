@@ -21,27 +21,36 @@ const FabricationDatabasesearch = () => {
   const [drawingNumbers, setDrawingNumbers] = useState([])
   const [markNumbers, setMarkNumbers] = useState([])
 
-  // NEW: Additional dropdown data
+  // Additional dropdown data
   const [workOrders, setWorkOrders] = useState([])
   const [plantLocations, setPlantLocations] = useState([])
+  const [serialNumbers, setSerialNumbers] = useState([]) // Serial numbers from bits_po_entry_lines
+  const [raNumbers, setRaNumbers] = useState([]) // RA numbers from bits_drawing_entry
 
   // Filter states
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
   const [selectedMarkNo, setSelectedMarkNo] = useState("")
-
-  // NEW: Additional filter states
   const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
   const [selectedPlantLocation, setSelectedPlantLocation] = useState("")
+  const [selectedSerialNo, setSelectedSerialNo] = useState("")
 
-  // Selected filter values for display
+  // NEW: RA NO state for filter section
+  const [filterRaNo, setFilterRaNo] = useState("")
+  const [savingFilterRaNo, setSavingFilterRaNo] = useState(false)
+
+  // Selected filter values for display with aggregated data
   const [selectedFilters, setSelectedFilters] = useState({
     workOrder: "",
     buildingName: "",
     drawingNo: "",
     markNo: "",
+    // Aggregated values to display in filters section
+    totalMarkWeight: 0,
+    markWgt: 0,
+    markQty: 0,
   })
 
-  // NEW: RA.NO states
+  // RA.NO states for table rows
   const [raNoValues, setRaNoValues] = useState({})
   const [savingRaNo, setSavingRaNo] = useState({})
 
@@ -178,7 +187,7 @@ const FabricationDatabasesearch = () => {
     }
   }
 
-  // NEW: Handle RA.NO input change
+  // Handle RA.NO input change for table rows
   const handleRaNoChange = (lineId, value) => {
     setRaNoValues((prev) => ({
       ...prev,
@@ -186,7 +195,7 @@ const FabricationDatabasesearch = () => {
     }))
   }
 
-  // NEW: Save RA.NO to backend
+  // Save RA.NO to backend for table rows
   const handleSaveRaNo = async (lineId) => {
     const raNoValue = raNoValues[lineId]
     if (!raNoValue || raNoValue.trim() === "") {
@@ -194,15 +203,28 @@ const FabricationDatabasesearch = () => {
       return
     }
 
+    // Find the row data to get drawing no and mark no
+    const rowData = filteredData.find((row) => row.lineId === lineId)
+    if (!rowData) {
+      toast.error("Row data not found")
+      return
+    }
+
     try {
       setSavingRaNo((prev) => ({ ...prev, [lineId]: true }))
 
-      const response = await fetch(
-        `${API_BASE_URL}/updateDrawingEntryRaNo/details?lineId=${lineId}&raNo=${encodeURIComponent(raNoValue.trim())}`,
-        {
-          method: "PUT",
+      const response = await fetch(`${API_BASE_URL}/updateDrawingEntryRaNo/details`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
         },
-      )
+        body: JSON.stringify({
+          lineId: String(lineId), // FIXED: Ensure lineId is string
+          drawingNo: String(rowData.drawingNo || ""),
+          markNo: String(rowData.markNo || ""),
+          raNo: String(raNoValue.trim()),
+        }),
+      })
 
       if (response.ok) {
         toast.success("RA.NO saved successfully!")
@@ -223,6 +245,89 @@ const FabricationDatabasesearch = () => {
     }
   }
 
+  // NEW: Save RA.NO from filter section to selected drawing/mark entries
+  const handleSaveFilterRaNo = async () => {
+    if (!filterRaNo || filterRaNo.trim() === "") {
+      toast.warning("Please enter RA.NO value")
+      return
+    }
+
+    if (!selectedDrawingNo || !selectedMarkNo) {
+      toast.warning("Please select both Drawing No and Mark No before saving RA.NO")
+      return
+    }
+
+    try {
+      setSavingFilterRaNo(true)
+
+      // Find all entries that match the selected drawing and mark numbers
+      const matchingEntries = filteredData.filter(
+        (row) => row.drawingNo === selectedDrawingNo && row.markNo === selectedMarkNo,
+      )
+
+      if (matchingEntries.length === 0) {
+        toast.warning("No entries found for the selected Drawing No and Mark No")
+        return
+      }
+
+      // Update RA.NO for all matching entries
+      const updatePromises = matchingEntries.map((entry) =>
+        fetch(`${API_BASE_URL}/updateDrawingEntryRaNo/details`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            lineId: String(entry.lineId), // FIXED: Ensure lineId is string
+            drawingNo: String(entry.drawingNo || ""),
+            markNo: String(entry.markNo || ""),
+            raNo: String(filterRaNo.trim()),
+          }),
+        }),
+      )
+
+      const responses = await Promise.all(updatePromises)
+      const successCount = responses.filter((response) => response.ok).length
+
+      if (successCount === matchingEntries.length) {
+        toast.success(`RA.NO saved successfully for ${successCount} entries!`)
+
+        // Update the table data to reflect the saved values
+        setTableData((prev) =>
+          prev.map((row) =>
+            row.drawingNo === selectedDrawingNo && row.markNo === selectedMarkNo
+              ? { ...row, raNo: filterRaNo.trim() }
+              : row,
+          ),
+        )
+        setFilteredData((prev) =>
+          prev.map((row) =>
+            row.drawingNo === selectedDrawingNo && row.markNo === selectedMarkNo
+              ? { ...row, raNo: filterRaNo.trim() }
+              : row,
+          ),
+        )
+
+        // Update raNoValues state for table inputs
+        const updatedRaNoValues = { ...raNoValues }
+        matchingEntries.forEach((entry) => {
+          updatedRaNoValues[entry.lineId] = filterRaNo.trim()
+        })
+        setRaNoValues(updatedRaNoValues)
+
+        // Clear the filter input
+        setFilterRaNo("")
+      } else {
+        toast.error(`Failed to save RA.NO for some entries. ${successCount}/${matchingEntries.length} successful.`)
+      }
+    } catch (error) {
+      console.error("Error saving filter RA.NO:", error)
+      toast.error("Error saving RA.NO: " + error.message)
+    } finally {
+      setSavingFilterRaNo(false)
+    }
+  }
+
   // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData()
@@ -234,23 +339,38 @@ const FabricationDatabasesearch = () => {
       setLoading(true)
 
       // Fetch distinct drawing numbers
+      console.log("Fetching drawing numbers from:", `${API_BASE_URL}/getDistinctBitsDrawingEntryDrawingNumbers/details`)
       const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctBitsDrawingEntryDrawingNumbers/details`)
+      console.log("Drawing response status:", drawingResponse.status)
       if (drawingResponse.ok) {
         const drawingData = await drawingResponse.json()
+        console.log("Drawing Numbers received:", drawingData)
         setDrawingNumbers(drawingData || [])
-        console.log("Drawing Numbers:", drawingData)
+      } else {
+        console.error("Error fetching drawing numbers:", drawingResponse.status, drawingResponse.statusText)
+        const errorText = await drawingResponse.text()
+        console.error("Error details:", errorText)
+        toast.error(`Error fetching drawing numbers: ${drawingResponse.statusText}`)
       }
 
       // Fetch distinct mark numbers
+      console.log("Fetching mark numbers from:", `${API_BASE_URL}/getDistinctBitsDrawingEntryMarkNumbers/details`)
       const markResponse = await fetch(`${API_BASE_URL}/getDistinctBitsDrawingEntryMarkNumbers/details`)
+      console.log("Mark response status:", markResponse.status)
       if (markResponse.ok) {
         const markData = await markResponse.json()
+        console.log("Mark Numbers received:", markData)
         setMarkNumbers(markData || [])
         setAvailableMarkNosForErection(markData || [])
-        console.log("Mark Numbers:", markData)
+      } else {
+        console.error("Error fetching mark numbers:", markResponse.status, markResponse.statusText)
+        const errorText = await markResponse.text()
+        console.error("Error details:", errorText)
+        toast.error(`Error fetching mark numbers: ${markResponse.statusText}`)
       }
 
-      // NEW: Fetch work orders
+      // Rest of the fetch operations remain the same...
+      // Fetch work orders
       const workOrderResponse = await fetch(`${API_BASE_URL}/getworkorder/number`)
       if (workOrderResponse.ok) {
         const workOrderData = await workOrderResponse.json()
@@ -261,7 +381,7 @@ const FabricationDatabasesearch = () => {
         toast.error(`Error fetching work orders: ${workOrderResponse.statusText}`)
       }
 
-      // NEW: Fetch plant locations
+      // Fetch plant locations
       const plantLocationResponse = await fetch(`${API_BASE_URL}/getAllPlantLocations/details`)
       if (plantLocationResponse.ok) {
         const plantLocationData = await plantLocationResponse.json()
@@ -271,12 +391,62 @@ const FabricationDatabasesearch = () => {
         console.error("Error fetching plant locations:", plantLocationResponse.statusText)
         toast.error(`Error fetching plant locations: ${plantLocationResponse.statusText}`)
       }
+
+      // NEW: Fetch serial numbers from bits_po_entry_lines
+      const serialNumberResponse = await fetch(`${API_BASE_URL}/getDistinctSerialNumbers/details`)
+      if (serialNumberResponse.ok) {
+        const serialNumberData = await serialNumberResponse.json()
+        setSerialNumbers(serialNumberData || [])
+        console.log("Serial Numbers:", serialNumberData)
+      } else {
+        console.error("Error fetching serial numbers:", serialNumberResponse.statusText)
+        // Don't show error toast for this as it's a new endpoint
+        setSerialNumbers([])
+      }
+
+      // NEW: Fetch RA NO values from bits_drawing_entry
+      const raNoResponse = await fetch(`${API_BASE_URL}/getDistinctRaNumbers/details`)
+      if (raNoResponse.ok) {
+        const raNoData = await raNoResponse.json()
+        setRaNumbers(raNoData || [])
+        console.log("RA Numbers:", raNoData)
+      } else {
+        console.error("Error fetching RA numbers:", raNoResponse.statusText)
+        setRaNumbers([])
+      }
     } catch (error) {
       console.error("Error fetching dropdown data:", error)
       toast.error(`Error fetching dropdown data: ${error.message}`)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Calculate aggregated values from filtered data
+  const calculateAggregatedValues = (data) => {
+    if (!data || data.length === 0) {
+      return {
+        totalMarkWeight: 0,
+        markWgt: 0,
+        markQty: 0,
+      }
+    }
+
+    const totals = data.reduce(
+      (acc, row) => {
+        acc.totalMarkWeight += Number.parseFloat(row.totalMarkedWgt || 0)
+        acc.markWgt += Number.parseFloat(row.markWeight || 0)
+        acc.markQty += Number.parseFloat(row.markedQty || 0)
+        return acc
+      },
+      {
+        totalMarkWeight: 0,
+        markWgt: 0,
+        markQty: 0,
+      },
+    )
+
+    return totals
   }
 
   // Handle search button click
@@ -330,12 +500,19 @@ const FabricationDatabasesearch = () => {
       setTableData(data)
       setFilteredData(data)
 
-      // Set selected filter values for display
+      // Calculate aggregated values
+      const aggregatedValues = calculateAggregatedValues(data)
+
+      // Set selected filter values for display with aggregated data
       setSelectedFilters({
         workOrder: selectedWorkOrder,
         buildingName: selectedPlantLocation,
         drawingNo: selectedDrawingNo,
         markNo: selectedMarkNo,
+        // Add aggregated values
+        totalMarkWeight: aggregatedValues.totalMarkWeight,
+        markWgt: aggregatedValues.markWgt,
+        markQty: aggregatedValues.markQty,
       })
 
       // Initialize fabrication stages for all rows
@@ -361,6 +538,9 @@ const FabricationDatabasesearch = () => {
         buildingName: "",
         drawingNo: "",
         markNo: "",
+        totalMarkWeight: 0,
+        markWgt: 0,
+        markQty: 0,
       })
     } finally {
       setLoading(false)
@@ -555,8 +735,7 @@ const FabricationDatabasesearch = () => {
         attribute1V: item.attribute1V || null, // Work Order
         attribute2V: item.attribute2V || null, // Plant Location
         attribute3V: item.attribute3V || null,
-        attribute4V: item.attribute4V || null,
-        attribute5V: item.attribute5V || null,
+        attribute4V: item.attribute5V || null,
         attribute1N: item.attribute1N || null, // This might contain order_id
         attribute2N: item.attribute2N || null,
         attribute3N: item.attribute3N || null,
@@ -694,7 +873,7 @@ const FabricationDatabasesearch = () => {
       <div className="fab-filter-section-zebra">
         <div className="fab-filter-container-hippo">
           <div className="fab-filter-row-rhino">
-            {/* NEW: Work Order Dropdown */}
+            {/* Work Order Dropdown */}
             <select
               value={selectedWorkOrder}
               onChange={(e) => setSelectedWorkOrder(e.target.value)}
@@ -708,7 +887,7 @@ const FabricationDatabasesearch = () => {
               ))}
             </select>
 
-            {/* NEW: Building Name (Plant Location) Dropdown */}
+            {/* Building Name (Plant Location) Dropdown */}
             <select
               value={selectedPlantLocation}
               onChange={(e) => setSelectedPlantLocation(e.target.value)}
@@ -718,6 +897,20 @@ const FabricationDatabasesearch = () => {
               {plantLocations.map((location, index) => (
                 <option key={`plant_location_${index}`} value={location}>
                   {location}
+                </option>
+              ))}
+            </select>
+
+            {/* Serial No Dropdown */}
+            <select
+              value={selectedSerialNo}
+              onChange={(e) => setSelectedSerialNo(e.target.value)}
+              className="fab-dropdown-cheetah"
+            >
+              <option value="">Select Serial No</option>
+              {serialNumbers.map((serialNo, index) => (
+                <option key={`serial_no_${index}`} value={serialNo}>
+                  {serialNo}
                 </option>
               ))}
             </select>
@@ -736,19 +929,46 @@ const FabricationDatabasesearch = () => {
               ))}
             </select>
 
-            {/* Mark No Dropdown */}
-            <select
-              value={selectedMarkNo}
-              onChange={(e) => setSelectedMarkNo(e.target.value)}
-              className="fab-dropdown-cheetah"
-            >
-              <option value="">Select Mark No</option>
-              {markNumbers?.map((markNo, index) => (
-                <option key={`mark_${index}`} value={markNo}>
-                  {markNo}
-                </option>
-              ))}
-            </select>
+            {/* Mark No Dropdown with RA NO field */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <select
+                value={selectedMarkNo}
+                onChange={(e) => setSelectedMarkNo(e.target.value)}
+                className="fab-dropdown-cheetah"
+              >
+                <option value="">Select Mark No</option>
+                {markNumbers?.map((markNo, index) => (
+                  <option key={`mark_${index}`} value={markNo}>
+                    {markNo}
+                  </option>
+                ))}
+              </select>
+
+              {/* RA NO Free Text Field with proper functionality */}
+              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <label style={{ fontSize: "14px", fontWeight: "500", color: "#2d3748", whiteSpace: "nowrap" }}>
+                  RA NO:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter the RA NO"
+                  value={filterRaNo}
+                  onChange={(e) => setFilterRaNo(e.target.value)}
+                  className="fab-edit-input-deer"
+                  style={{ minWidth: "150px" }}
+                  disabled={!selectedMarkNo || !selectedDrawingNo}
+                />
+                <button
+                  className="fab-action-button-elk fab-save-button-impala"
+                  title="Save RA NO"
+                  onClick={handleSaveFilterRaNo}
+                  disabled={!selectedMarkNo || !selectedDrawingNo || savingFilterRaNo}
+                  style={{ minWidth: "32px", height: "32px" }}
+                >
+                  {savingFilterRaNo ? <AiOutlineLoading3Quarters className="fab-spin-icon-polar" /> : <MdSave />}
+                </button>
+              </div>
+            </div>
 
             {/* Search Button */}
             <button className="fab-search-button-leopard" onClick={handleSearch} disabled={loading}>
@@ -758,7 +978,7 @@ const FabricationDatabasesearch = () => {
         </div>
       </div>
 
-      {/* Selected Filters Display */}
+      {/* Selected Filters Display with Aggregated Values */}
       {(selectedFilters.workOrder ||
         selectedFilters.buildingName ||
         selectedFilters.drawingNo ||
@@ -791,6 +1011,30 @@ const FabricationDatabasesearch = () => {
                   <span className="fab-filter-value">{selectedFilters.markNo}</span>
                 </div>
               )}
+              {selectedSerialNo && (
+                <div className="fab-filter-item">
+                  <span className="fab-filter-label">Serial No:</span>
+                  <span className="fab-filter-value">{selectedSerialNo}</span>
+                </div>
+              )}
+
+              {/* Display aggregated values */}
+              {filteredData.length > 0 && (
+                <>
+                  <div className="fab-filter-item">
+                    <span className="fab-filter-label">Total Mark Weight:</span>
+                    <span className="fab-filter-value">{formatNumber(selectedFilters.totalMarkWeight)}</span>
+                  </div>
+                  <div className="fab-filter-item">
+                    <span className="fab-filter-label">Mark Wgt:</span>
+                    <span className="fab-filter-value">{formatNumber(selectedFilters.markWgt)}</span>
+                  </div>
+                  <div className="fab-filter-item">
+                    <span className="fab-filter-label">Mark Qty:</span>
+                    <span className="fab-filter-value">{formatNumber(selectedFilters.markQty)}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -812,10 +1056,11 @@ const FabricationDatabasesearch = () => {
             <thead>
               <tr>
                 <th>Order #</th>
-                <th>Total Mark Weight</th>
-                <th>Mark Wgt</th>
-                <th>Mark Qty</th>
-                <th>Item No</th>
+                {/* COMMENTED OUT COLUMNS - KEEP CODE BUT HIDDEN */}
+                {/* <th>Total Mark Weight</th> */}
+                {/* <th>Mark Wgt</th> */}
+                {/* <th>Mark Qty</th> */}
+                {/* <th>Item No</th> */}
                 <th>Section Code</th>
                 <th>Section Name</th>
                 <th>Section Weight</th>
@@ -831,7 +1076,6 @@ const FabricationDatabasesearch = () => {
                 <th className="fab-process-header">Welding</th>
                 <th className="fab-process-header">Finishing</th>
                 <th>Actions</th>
-                {/* NEW: RA.NO Column */}
                 <th>RA.NO</th>
               </tr>
             </thead>
@@ -843,45 +1087,11 @@ const FabricationDatabasesearch = () => {
                       <IoMdOpen />
                     </div>
                   </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.totalMarkedWgt}
-                        onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.totalMarkedWgt)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.markWeight}
-                        onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.markWeight)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.markedQty}
-                        onChange={(e) => handleEditInputChange("markedQty", e.target.value)}
-                        className="fab-edit-input-deer"
-                      />
-                    ) : (
-                      row.markedQty || "-"
-                    )}
-                  </td>
-                  <td>{row.attribute1N || "-"}</td>
+                  {/* COMMENTED OUT COLUMNS DATA - KEEP CODE BUT HIDDEN */}
+                  {/* <td>{formatNumber(row.totalMarkedWgt)}</td> */}
+                  {/* <td>{formatNumber(row.markWeight)}</td> */}
+                  {/* <td>{formatNumber(row.markedQty)}</td> */}
+                  {/* <td>{row.itemNo || "-"}</td> */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -1034,22 +1244,23 @@ const FabricationDatabasesearch = () => {
                     </div>
                   </td>
 
-                  {/* NEW: RA.NO Column */}
+                  {/* RA.NO COLUMN - RESTORED */}
                   <td>
-                    <div className="fab-actions-container-yak">
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                       <input
                         type="text"
+                        placeholder="Enter RA.NO"
                         value={raNoValues[row.lineId] || ""}
                         onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
                         className="fab-edit-input-deer"
-                        placeholder="Enter RA.NO"
-                        style={{ minWidth: "120px", marginRight: "5px" }}
+                        style={{ minWidth: "120px" }}
                       />
                       <button
-                        onClick={() => handleSaveRaNo(row.lineId)}
                         className="fab-action-button-elk fab-save-button-impala"
                         title="Save RA.NO"
+                        onClick={() => handleSaveRaNo(row.lineId)}
                         disabled={savingRaNo[row.lineId]}
+                        style={{ minWidth: "32px", height: "32px" }}
                       >
                         {savingRaNo[row.lineId] ? (
                           <AiOutlineLoading3Quarters className="fab-spin-icon-polar" />
@@ -1063,7 +1274,7 @@ const FabricationDatabasesearch = () => {
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="21">
+                  <td colSpan="17">
                     <div className="fab-empty-state-llama">
                       <div className="fab-empty-text-alpaca">
                         {selectedDrawingNo || selectedMarkNo
