@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { FaFileInvoice, FaTimes, FaSearch } from "react-icons/fa";
-import { MdOutlineFileDownload } from "react-icons/md";
-import "../InvoiceComponent/Invoice.css";
+import { useState, useEffect } from "react"
+import axios from "axios"
+import { FaFileInvoice, FaTimes, FaSearch } from "react-icons/fa"
+import { MdOutlineFileDownload } from "react-icons/md"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import RatingPopup from "../InvoiceComponent/RatingPopup"
+import "../InvoiceComponent/Invoice.css"
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 const VENDOR_API_BASE_URL = "http://195.35.45.56:5522/api/vendor-profile"
@@ -22,6 +25,7 @@ const Invoice = () => {
   const [invoiceDetails, setInvoiceDetails] = useState(null)
   const [serviceFromDate, setServiceFromDate] = useState("")
   const [serviceToDate, setServiceToDate] = useState("")
+  const [placeOfServiceRendered, setPlaceOfServiceRendered] = useState("")
 
   // Customer Management State
   const [customers, setCustomers] = useState([])
@@ -37,16 +41,28 @@ const Invoice = () => {
   const [residenceTelephone, setResidenceTelephone] = useState("")
   const [officeTelephone, setOfficeTelephone] = useState("")
 
-  // NEW: Tax Summary State
+  // RA NO State
+  const [raNumbers, setRaNumbers] = useState([])
+  const [filteredRaNumbers, setFilteredRaNumbers] = useState([])
+  const [raNoSearch, setRaNoSearch] = useState("")
+  const [showRaNoDropdown, setShowRaNoDropdown] = useState(false)
+
+  // Tax Summary State
   const [remarks, setRemarks] = useState("")
   const [preparedBy, setPreparedBy] = useState("")
   const [checkedBy, setCheckedBy] = useState("")
 
-  // Fetch work orders, customers, and vendor profile on component mount
+  // Download and Rating State
+  const [showInvoiceTemplate, setShowInvoiceTemplate] = useState(false)
+  const [showRatingPopup, setShowRatingPopup] = useState(false)
+  const [mappedInvoiceData, setMappedInvoiceData] = useState(null)
+
+  // Fetch work orders, customers, vendor profile, and RA numbers on component mount
   useEffect(() => {
     fetchWorkOrders()
     fetchCustomers()
     fetchLatestVendorProfile()
+    fetchRaNumbers()
   }, [])
 
   // Filter work orders based on search
@@ -74,6 +90,16 @@ const Invoice = () => {
     }
   }, [customerSearch, customers])
 
+  // Filter RA numbers based on search
+  useEffect(() => {
+    if (raNoSearch) {
+      const filtered = raNumbers.filter((raNo) => raNo.toLowerCase().includes(raNoSearch.toLowerCase()))
+      setFilteredRaNumbers(filtered)
+    } else {
+      setFilteredRaNumbers(raNumbers)
+    }
+  }, [raNoSearch, raNumbers])
+
   const fetchWorkOrders = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/getworkorder/number`)
@@ -87,11 +113,25 @@ const Invoice = () => {
   const fetchCustomers = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/getAllCustomers/details`)
-      console.log("Customers fetched:", response.data) // Debug log
+      console.log("Customers fetched:", response.data)
       setCustomers(response.data)
       setFilteredCustomers(response.data)
     } catch (error) {
       console.error("Error fetching customers:", error)
+    }
+  }
+
+  // Fetch RA numbers from bits_drawing_entry table
+  const fetchRaNumbers = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/getDistinctBitsDrawingEntryRaNumbers/details`)
+      console.log("RA Numbers fetched:", response.data)
+      setRaNumbers(response.data)
+      setFilteredRaNumbers(response.data)
+    } catch (error) {
+      console.error("Error fetching RA numbers:", error)
+      setRaNumbers([])
+      setFilteredRaNumbers([])
     }
   }
 
@@ -105,7 +145,6 @@ const Invoice = () => {
       }
     } catch (error) {
       console.error("Error fetching latest vendor profile:", error)
-      // Don't show error to user as vendor profile is optional
     }
   }
 
@@ -126,24 +165,22 @@ const Invoice = () => {
     return addressParts.join(", ")
   }
 
-  // FIXED: Enhanced fetch work order and customer details
+  // Enhanced fetch work order and customer details
   const fetchWorkOrderAndCustomerDetails = async (workOrder, customerId) => {
     try {
-      console.log("Fetching details for workOrder:", workOrder, "customerId:", customerId) // Debug log
+      console.log("Fetching details for workOrder:", workOrder, "customerId:", customerId)
 
       const response = await axios.get(`${API_BASE_URL}/getWorkOrderWithCustomer/details`, {
         params: { workOrder, customerId },
       })
 
-      console.log("API Response:", response.data) // Debug log
+      console.log("API Response:", response.data)
 
       if (response.data) {
         setWorkOrderDetails(response.data)
 
-        // FIXED: Ensure customer details include GSTIN and PAN
         const customerDetailsFromAPI = response.data.customerDetails
         if (customerDetailsFromAPI) {
-          // Merge with original customer data to ensure GSTIN and PAN are included
           const originalCustomer = customers.find((c) => c.id === customerId)
           const enhancedCustomerDetails = {
             ...customerDetailsFromAPI,
@@ -152,7 +189,7 @@ const Invoice = () => {
             ledgerName: customerDetailsFromAPI.ledgerName || originalCustomer?.ledgerName,
           }
 
-          console.log("Enhanced customer details:", enhancedCustomerDetails) // Debug log
+          console.log("Enhanced customer details:", enhancedCustomerDetails)
           setCustomerDetails(enhancedCustomerDetails)
         }
       }
@@ -169,19 +206,16 @@ const Invoice = () => {
 
     setLoading(true)
     try {
-      // First get the work order details to get the orderId
       const workOrderResponse = await axios.get(`${API_BASE_URL}/getworkorder/number/${selectedWorkOrder}`)
       const orderId = workOrderResponse.data.orderId
 
-      // Then fetch the invoice data using the orderId
       const invoiceResponse = await axios.get(`${API_BASE_URL}/getInvoiceData/details?orderId=${orderId}`)
       setInvoiceData(invoiceResponse.data)
 
-      // If customer is selected, fetch combined details
       if (selectedCustomer) {
         const selectedCustomerData = customers.find((c) => c.ledgerName === selectedCustomer)
         if (selectedCustomerData) {
-          console.log("Selected customer data:", selectedCustomerData) // Debug log
+          console.log("Selected customer data:", selectedCustomerData)
           await fetchWorkOrderAndCustomerDetails(selectedWorkOrder, selectedCustomerData.id)
         }
       }
@@ -208,7 +242,6 @@ const Invoice = () => {
       return
     }
 
-    // FIXED: Ensure customer details are properly set
     const selectedCustomerData = customers.find((c) => c.ledgerName === selectedCustomer)
 
     setInvoiceDetails({
@@ -216,10 +249,11 @@ const Invoice = () => {
       invoiceDate,
       serviceFromDate,
       serviceToDate,
+      placeOfServiceRendered,
       workOrder: selectedWorkOrder,
       raNo: selectedRaNo,
       customer: selectedCustomer,
-      customerDetails: customerDetails || selectedCustomerData, // Fallback to selected customer data
+      customerDetails: customerDetails || selectedCustomerData,
       workOrderDetails: workOrderDetails,
     })
 
@@ -228,62 +262,10 @@ const Invoice = () => {
     setInvoiceDate("")
     setServiceFromDate("")
     setServiceToDate("")
+    setPlaceOfServiceRendered("")
   }
 
-  const handleWorkOrderSelect = (workOrder) => {
-    setSelectedWorkOrder(workOrder)
-    setShowWorkOrderDropdown(false)
-    setWorkOrderSearch("")
-  }
-
-  const handleCustomerSelect = (customer) => {
-    console.log("Customer selected:", customer) // Debug log
-    setSelectedCustomer(customer.ledgerName)
-    setShowCustomerDropdown(false)
-    setCustomerSearch("")
-  }
-
-  const formatCurrency = (amount) => {
-    return amount ? `${Number.parseFloat(amount).toFixed(2)}` : "0.00"
-  }
-
-  const formatServiceDescription = (serviceCode, serviceDesc) => {
-    if (serviceCode && serviceDesc) {
-      return `(${serviceCode}) ${serviceDesc}`
-    } else if (serviceCode) {
-      return `(${serviceCode})`
-    } else if (serviceDesc) {
-      return serviceDesc
-    }
-    return "-"
-  }
-
-  const calculateTotal = () => {
-    return invoiceData.reduce((total, item) => {
-      return total + (Number.parseFloat(item.totalPrice) || 0)
-    }, 0)
-  }
-
-  // NEW: Tax calculation functions
-  const calculateSGST = () => {
-    const total = calculateTotal()
-    return (total * 9) / 100 // 9% SGST
-  }
-
-  const calculateCGST = () => {
-    const total = calculateTotal()
-    return (total * 9) / 100 // 9% CGST
-  }
-
-  const calculateTotalTax = () => {
-    return calculateSGST() + calculateCGST()
-  }
-
-  const calculateTotalAfterTax = () => {
-    return calculateTotal() + calculateTotalTax()
-  }
-
-  // NEW: Number to words conversion function
+  // Number to words conversion function
   const numberToWords = (num) => {
     if (num === 0) return "Zero Rupees Only"
 
@@ -353,184 +335,877 @@ const Invoice = () => {
     return result + " Only"
   }
 
+  // Enhanced Download Invoice Handler - Direct PDF Download
+  const handleDownloadInvoice = () => {
+    // Check if all required data is available
+    if (!invoiceDetails) {
+      toast.error("Please fill invoice details first!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      })
+      return
+    }
+
+    if (!invoiceData || invoiceData.length === 0) {
+      toast.error("No invoice data available to download!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      })
+      return
+    }
+
+    // Show loading toast
+    const loadingToast = toast.loading("Generating PDF invoice...", {
+      position: "top-right",
+    })
+
+    try {
+      // Calculate totals
+      const total = calculateTotal()
+      const totalAfterTax = calculateTotalAfterTax()
+      const sgst = calculateSGST()
+      const cgst = calculateCGST()
+      const totalTax = calculateTotalTax()
+
+      // Create PDF content directly
+      const pdfContent = generateInvoicePDFContent({
+        invoiceDetails: {
+          ...invoiceDetails,
+          placeOfServiceRendered: placeOfServiceRendered || invoiceDetails.placeOfServiceRendered,
+        },
+        customerDetails: customerDetails || invoiceDetails.customerDetails,
+        vendorDetails: {
+          ...vendorDetails,
+          address: formatVendorAddress(vendorDetails),
+          residenceTelephone: residenceTelephone,
+          officeTelephone: officeTelephone,
+        },
+        workOrderDetails: workOrderDetails || invoiceDetails.workOrderDetails,
+        tableData: invoiceData,
+        amountInWords: numberToWords(totalAfterTax),
+        remarks: remarks,
+        preparedBy: preparedBy,
+        checkedBy: checkedBy,
+        totals: {
+          subtotal: total,
+          sgst: sgst,
+          cgst: cgst,
+          totalTax: totalTax,
+          grandTotal: totalAfterTax,
+        },
+      })
+
+      // Create and download PDF
+      const blob = new Blob([pdfContent], { type: "text/html" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `Invoice-${invoiceDetails.invoiceNumber}-${invoiceDetails.customer.replace(/[^a-zA-Z0-9]/g, "_")}.html`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast)
+      toast.success("Invoice downloaded successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      })
+
+      // Show rating popup after a short delay
+      setTimeout(() => {
+        setShowRatingPopup(true)
+      }, 1500)
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast.dismiss(loadingToast)
+      toast.error("Error generating PDF invoice!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      })
+    }
+  }
+
+  // Function to generate PDF content
+  const generateInvoicePDFContent = (data) => {
+    const formatCurrency = (amount) => {
+      return amount ? `${Number.parseFloat(amount).toFixed(2)}` : "0.00"
+    }
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Tax Invoice - ${data.invoiceDetails?.invoiceNumber || "Draft"}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+        }
+        
+        .invoice-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #000;
+        }
+        
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 2px solid #000;
+            background: #f8f9fa;
+        }
+        
+        .invoice-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .original-text {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .invoice-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border-bottom: 2px solid #000;
+        }
+        
+        .left-section, .middle-section, .right-section {
+            border-right: 2px solid #000;
+            padding: 15px;
+            min-height: 300px;
+        }
+        
+        .right-section {
+            border-right: none;
+        }
+        
+        .field-row {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 8px;
+            min-height: 25px;
+        }
+        
+        .label {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+        
+        .value {
+            border-bottom: 1px solid #ccc;
+            min-height: 18px;
+            padding: 2px 0;
+            font-size: 12px;
+        }
+        
+        .address-line .value {
+            min-height: 40px;
+        }
+        
+        .contact-section {
+            margin-bottom: 20px;
+        }
+        
+        .contact-header {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .contact-name {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .reverse-charge-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .reverse-charge-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .reverse-charge-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .service-period {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+        
+        .service-place {
+            margin-top: 5px;
+            min-height: 20px;
+            border-bottom: 1px solid #ccc;
+            padding: 2px 0;
+        }
+        
+        .items-table {
+            border-bottom: 2px solid #000;
+        }
+        
+        .items-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .items-table th, .items-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .items-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .tax-section {
+            padding: 15px;
+            border-bottom: 2px solid #000;
+        }
+        
+        .tax-section table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .tax-section td {
+            padding: 5px;
+            font-size: 12px;
+        }
+        
+        .tax-label {
+            text-align: left;
+            font-weight: bold;
+            width: 70%;
+        }
+        
+        .colon {
+            text-align: center;
+            width: 5%;
+        }
+        
+        .tax-amount {
+            text-align: right;
+            width: 25%;
+            font-weight: bold;
+        }
+        
+        .bottom-section {
+            padding: 15px;
+        }
+        
+        .rupees-section {
+            margin-bottom: 20px;
+        }
+        
+        .total-amount {
+            float: right;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .remarks-section {
+            display: flex;
+            border: 2px solid #000;
+            min-height: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .remarks-left {
+            flex: 1;
+            padding: 10px;
+            border-right: 2px solid #000;
+        }
+        
+        .remarks-right {
+            flex: 1;
+            padding: 10px;
+        }
+        
+        .remarks-header, .company-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .signature-section table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .signature-cell {
+            border: 2px solid #000;
+            padding: 15px;
+            text-align: center;
+            vertical-align: top;
+            height: 80px;
+        }
+        
+        .signature-label, .signature-label-small {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .signature-space {
+            min-height: 40px;
+        }
+        
+        @media print {
+            body { -webkit-print-color-adjust: exact; }
+            .invoice-container { border: 2px solid #000 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="invoice-header">
+            <h1 class="invoice-title">TAX INVOICE</h1>
+            <div class="original-text">ORIGINAL FOR RECIPIENT</div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="invoice-content">
+            <!-- Left Section -->
+            <div class="left-section">
+                <div class="provider-section">
+                    <div class="field-row">
+                        <span class="label">Name of the Service Provider</span>
+                        <div class="value">${data.vendorDetails?.companyName || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">ADDRESS</span>
+                        <div class="value address-line">${data.vendorDetails?.address || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">GST REGISTRATION NO</span>
+                        <div class="value">${data.vendorDetails?.gstNo || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">IT PAN No</span>
+                        <div class="value">${data.vendorDetails?.panNo || ""}</div>
+                    </div>
+                </div>
+
+                <div class="receiver-section" style="margin-top: 20px;">
+                    <div class="field-row">
+                        <span class="label">NAME OF THE SERVICE RECEIVER</span>
+                        <div class="value">${data.customerDetails?.ledgerName || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">ADDRESS</span>
+                        <div class="value address-line">${data.customerDetails?.fullAddress || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">GST REGISTRATION NO</span>
+                        <div class="value">${data.customerDetails?.gstin || data.customerDetails?.gstIn || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">IT PAN No</span>
+                        <div class="value">${data.customerDetails?.pan || data.customerDetails?.panNo || ""}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Section -->
+            <div class="middle-section">
+                <div class="contact-section">
+                    <div class="contact-header">CONTACT DETAILS</div>
+                    <div class="contact-name">${data.vendorDetails?.contactPerson || ""}</div>
+                    <div class="field-row">
+                        <span class="label">MOBILE NO</span>
+                        <div class="value">${data.vendorDetails?.contactNumber || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">TELEPHONE NO.(RESI)</span>
+                        <div class="value">${data.vendorDetails?.residenceTelephone || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">TELEPHONE NO.(OFF)</span>
+                        <div class="value">${data.vendorDetails?.officeTelephone || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">E MAIL ID</span>
+                        <div class="value">${data.vendorDetails?.email || ""}</div>
+                    </div>
+                </div>
+
+                <div class="reverse-charge-section">
+                    <div class="reverse-charge-header">Reverse Charge</div>
+                    <div class="reverse-charge-value">NO</div>
+                </div>
+            </div>
+
+            <!-- Right Section -->
+            <div class="right-section">
+                <div class="invoice-details">
+                    <div class="field-row">
+                        <span class="label">Invoice No</span>
+                        <div class="value">${data.invoiceDetails?.invoiceNumber || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">Invoice Date</span>
+                        <div class="value">${data.invoiceDetails?.invoiceDate || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">RA Bill NO</span>
+                        <div class="value">${data.invoiceDetails?.raNo || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">SERVICE RENDERED PERIOD</span>
+                        <div class="service-period">
+                            <span>${data.invoiceDetails?.serviceFromDate || ""}</span>
+                            <span>${data.invoiceDetails?.serviceToDate || ""}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="work-order-section" style="margin-top: 20px;">
+                    <div class="field-row">
+                        <span class="label">W.O No</span>
+                        <div class="value">${data.invoiceDetails?.workOrder || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">W.O Date</span>
+                        <div class="value">${data.workOrderDetails?.workOrderDate || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">Cost Centre</span>
+                        <div class="value">${data.workOrderDetails?.department || ""}</div>
+                    </div>
+                    <div class="field-row">
+                        <span class="label">PLACE OF SERVICE RENDERED</span>
+                        <div class="service-place">${data.invoiceDetails?.placeOfServiceRendered || ""}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="items-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>SL NO.</th>
+                        <th>DESCRIPTION OF SUPPLY</th>
+                        <th>SAC CODE</th>
+                        <th>UOM</th>
+                        <th>Qty</th>
+                        <th>Rate/ Rs.</th>
+                        <th>AMOUNT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${
+                      data.tableData && data.tableData.length > 0
+                        ? data.tableData
+                            .map(
+                              (item, index) => `
+                            <tr>
+                                <td>${item.serNo || index + 1}</td>
+                                <td>${item.serviceDesc || item.serviceCode || ""}</td>
+                                <td>${item.serviceCode || ""}</td>
+                                <td>${item.uom || ""}</td>
+                                <td>${item.qty || ""}</td>
+                                <td>${formatCurrency(item.unitPrice)}</td>
+                                <td>${formatCurrency(item.totalPrice)}</td>
+                            </tr>
+                        `,
+                            )
+                            .join("")
+                        : Array.from(
+                            { length: 4 },
+                            (_, index) => `
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
+                        `,
+                          ).join("")
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tax Calculation Section -->
+        <div class="tax-section">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="tax-label">TOTAL AMOUNT BEFORE TAX</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">${formatCurrency(data.totals?.subtotal || 0)}</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">CGST @ 9 %</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">${formatCurrency(data.totals?.cgst || 0)}</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">SGST @ 9 %</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">${formatCurrency(data.totals?.sgst || 0)}</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">IGST</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">-</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">TAX AMOUNT GST</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">${formatCurrency(data.totals?.totalTax || 0)}</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">TOTAL AMOUNT AFTER TAX</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">${formatCurrency(data.totals?.grandTotal || 0)}</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">ROUND OFF</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">-</td>
+                    </tr>
+                    <tr>
+                        <td class="tax-label">TOTAL</td>
+                        <td class="colon">:</td>
+                        <td class="tax-amount">${formatCurrency(data.totals?.grandTotal || 0)}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bottom Section -->
+        <div class="bottom-section">
+            <div class="rupees-section">
+                <div class="field-row">
+                    <span class="label">Rupees in words</span>
+                    <div class="value">${data.amountInWords || ""}</div>
+                </div>
+                <div class="field-row">
+                    <span class="label">TOTAL</span>
+                    <span class="total-amount">${formatCurrency(data.totals?.grandTotal || 0)}</span>
+                </div>
+            </div>
+
+            <div class="remarks-section">
+                <div class="remarks-left">
+                    <div class="remarks-header">Remarks</div>
+                    <div class="remarks-content">${data.remarks || ""}</div>
+                </div>
+                <div class="remarks-right">
+                    <div class="company-header">For Bellary InfoTech Solutions</div>
+                    <div class="company-content"></div>
+                </div>
+            </div>
+
+            <div class="signature-section">
+                <table>
+                    <tbody>
+                        <tr>
+                            <td class="signature-cell">
+                                <div class="signature-label-small">Prepared by</div>
+                                <div class="signature-space">${data.preparedBy || ""}</div>
+                            </td>
+                            <td class="signature-cell">
+                                <div class="signature-label-small">Checked by</div>
+                                <div class="signature-space">${data.checkedBy || ""}</div>
+                            </td>
+                            <td class="signature-cell">
+                                <div class="signature-label">Signature of Authorised Agent</div>
+                                <div class="signature-space"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print when document loads
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
+  `
+  }
+
+  const handleWorkOrderSelect = (workOrder) => {
+    setSelectedWorkOrder(workOrder)
+    setShowWorkOrderDropdown(false)
+  }
+
+  const handleCustomerSelect = (customer) => {
+    console.log("Customer selected:", customer)
+    setSelectedCustomer(customer.ledgerName)
+    setShowCustomerDropdown(false)
+    setCustomerSearch("")
+  }
+
+  const handleRaNoSelect = (raNo) => {
+    setSelectedRaNo(raNo)
+    setShowRaNoDropdown(false)
+    setRaNoSearch("")
+  }
+
+  const formatCurrency = (amount) => {
+    return amount ? `${Number.parseFloat(amount).toFixed(2)}` : "0.00"
+  }
+
+  const formatServiceDescription = (serviceCode, serviceDesc) => {
+    if (serviceCode && serviceDesc) {
+      return `(${serviceCode}) ${serviceDesc}`
+    } else if (serviceCode) {
+      return `(${serviceCode})`
+    } else if (serviceDesc) {
+      return serviceDesc
+    }
+    return "-"
+  }
+
+  const calculateTotal = () => {
+    return invoiceData.reduce((total, item) => {
+      return total + (Number.parseFloat(item.totalPrice) || 0)
+    }, 0)
+  }
+
+  const calculateSGST = () => {
+    const total = calculateTotal()
+    return (total * 9) / 100
+  }
+
+  const calculateCGST = () => {
+    const total = calculateTotal()
+    return (total * 9) / 100
+  }
+
+  const calculateTotalTax = () => {
+    return calculateSGST() + calculateCGST()
+  }
+
+  const calculateTotalAfterTax = () => {
+    return calculateTotal() + calculateTotalTax()
+  }
+
+  const handleRatingSubmit = (rating) => {
+    console.log("Rating submitted:", rating)
+    setShowRatingPopup(false)
+  }
+
   return (
-    <div className="invoice-container">
-      <div className="invoice-header">
-        <h1 className="invoice-title">Search for Billing Details</h1>
-        <div className="invoice-actions">
-          <button className="invoice-btn" onClick={handleInvoiceClick}>
-            Invoice No
-          </button>
-          <button className="completed-btn">
-            {" "}
-            <MdOutlineFileDownload /> Download Invoice
-          </button>
+    <div className="modern-invoice-container">
+      {/* New Header Design */}
+      <div className="modern-header">
+        <div className="header-content">
+          <div className="title-section">
+            <h1 className="main-title">Invoice Management System</h1>
+            <p className="subtitle">Search and generate billing details</p>
+          </div>
+          <div className="action-buttons">
+            <button className="btn-primary" onClick={handleInvoiceClick}>
+              <span>📄</span> Invoice No
+            </button>
+            <button className="btn-secondary" onClick={handleDownloadInvoice}>
+              <MdOutlineFileDownload /> Download Invoice
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Enhanced Invoice Details Display */}
       {invoiceDetails && (
-        <div className="invoice-details-display">
-          <div className="invoice-info">
-            <div className="info-item">
-              <span className="info-label">Invoice No</span>
-              <span className="info-value">{invoiceDetails.invoiceNumber}</span>
+        <div className="invoice-details-card">
+          <div className="card-header">
+            <h3>Invoice Details</h3>
+          </div>
+          <div className="details-grid">
+            <div className="detail-item">
+              <span className="detail-label">Invoice No</span>
+              <span className="detail-value">{invoiceDetails.invoiceNumber}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">INVOICE DATE</span>
-              <span className="info-value">{invoiceDetails.invoiceDate}</span>
+            <div className="detail-item">
+              <span className="detail-label">Invoice Date</span>
+              <span className="detail-value">{invoiceDetails.invoiceDate}</span>
             </div>
-            <div className="info-item">
-              <span className="info-label">Service Rendered Period</span>
-              <span className="info-value">
+            <div className="detail-item">
+              <span className="detail-label">Service Period</span>
+              <span className="detail-value">
                 {invoiceDetails.serviceFromDate} to {invoiceDetails.serviceToDate}
               </span>
             </div>
-            <div className="info-item">
-              <span className="info-label">WO.NO</span>
-              <span className="info-value">{invoiceDetails.workOrder}</span>
+            <div className="detail-item">
+              <span className="detail-label">Work Order</span>
+              <span className="detail-value">{invoiceDetails.workOrder}</span>
             </div>
             {invoiceDetails.workOrderDetails?.workOrderDate && (
-              <div className="info-item">
-                <span className="info-label">WO.Date</span>
-                <span className="info-value">{invoiceDetails.workOrderDetails.workOrderDate}</span>
+              <div className="detail-item">
+                <span className="detail-label">WO Date</span>
+                <span className="detail-value">{invoiceDetails.workOrderDetails.workOrderDate}</span>
               </div>
             )}
             {invoiceDetails.workOrderDetails?.department && (
-              <div className="info-item">
-                <span className="info-label">Cost Centered</span>
-                <span className="info-value">{invoiceDetails.workOrderDetails.department}</span>
+              <div className="detail-item">
+                <span className="detail-label">Department</span>
+                <span className="detail-value">{invoiceDetails.workOrderDetails.department}</span>
+              </div>
+            )}
+            {invoiceDetails.placeOfServiceRendered && (
+              <div className="detail-item">
+                <span className="detail-label">Service Location</span>
+                <span className="detail-value">{invoiceDetails.placeOfServiceRendered}</span>
               </div>
             )}
             {invoiceDetails.raNo && (
-              <div className="info-item">
-                <span className="info-label">RA No</span>
-                <span className="info-value">{invoiceDetails.raNo}</span>
+              <div className="detail-item">
+                <span className="detail-label">RA Number</span>
+                <span className="detail-value">{invoiceDetails.raNo}</span>
               </div>
             )}
           </div>
 
-          {/* Vendor Details Section - Above Customer Details */}
+          {/* Vendor Details Section */}
           {vendorDetails && (
-            <div
-              style={{
-                marginTop: "20px",
-                padding: "15px",
-                backgroundColor: "#f0f8ff",
-                borderRadius: "8px",
-                border: "1px solid #e1e5e9",
-              }}
-            >
-              <h4 style={{ margin: "0 0 15px 0", color: "#2c3e50", fontSize: "16px" }}>VENDOR DETAILS</h4>
-              <div className="invoice-info">
-                <div className="info-item">
-                  <span className="info-label">NAME OF THE SERVICE PROVIDER</span>
-                  <span className="info-value">{vendorDetails.companyName || "N/A"}</span>
+            <div className="vendor-section">
+              <h4 className="section-title">Vendor Information</h4>
+              <div className="details-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Service Provider</span>
+                  <span className="detail-value">{vendorDetails.companyName || "N/A"}</span>
                 </div>
-
-                <div className="info-item" style={{ gridColumn: "1 / -1" }}>
-                  <span className="info-label">ADDRESS</span>
-                  <span className="info-value">{formatVendorAddress(vendorDetails) || "N/A"}</span>
+                <div className="detail-item full-width">
+                  <span className="detail-label">Address</span>
+                  <span className="detail-value">{formatVendorAddress(vendorDetails) || "N/A"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">GST REGISTRATION NO</span>
-                  <span className="info-value">{vendorDetails.gstNo || "Not Available"}</span>
+                <div className="detail-item">
+                  <span className="detail-label">GST Number</span>
+                  <span className="detail-value">{vendorDetails.gstNo || "Not Available"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">IT PAN NO</span>
-                  <span className="info-value">{vendorDetails.panNo || "Not Available"}</span>
+                <div className="detail-item">
+                  <span className="detail-label">PAN Number</span>
+                  <span className="detail-value">{vendorDetails.panNo || "Not Available"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">CONTACT PERSON</span>
-                  <span className="info-value">{vendorDetails.contactPerson || "N/A"}</span>
+                <div className="detail-item">
+                  <span className="detail-label">Contact Person</span>
+                  <span className="detail-value">{vendorDetails.contactPerson || "N/A"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">CONTACT NUMBER</span>
-                  <span className="info-value">{vendorDetails.contactNumber || "N/A"}</span>
+                <div className="detail-item">
+                  <span className="detail-label">Contact Number</span>
+                  <span className="detail-value">{vendorDetails.contactNumber || "N/A"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">EMAIL</span>
-                  <span className="info-value">{vendorDetails.email || "N/A"}</span>
+                <div className="detail-item">
+                  <span className="detail-label">Email</span>
+                  <span className="detail-value">{vendorDetails.email || "N/A"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">TELEPHONE (RESIDENCE)</span>
+                <div className="detail-item">
+                  <span className="detail-label">Residence Phone</span>
                   <input
                     type="text"
                     value={residenceTelephone}
                     onChange={(e) => setResidenceTelephone(e.target.value)}
                     placeholder="Enter residence telephone"
-                    style={{
-                      padding: "8px 12px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "4px",
-                      fontSize: "14px",
-                      width: "100%",
-                      marginTop: "4px",
-                    }}
+                    className="detail-input"
                   />
                 </div>
-                <div className="info-item">
-                  <span className="info-label">TELEPHONE (OFFICE)</span>
+                <div className="detail-item">
+                  <span className="detail-label">Office Phone</span>
                   <input
                     type="text"
                     value={officeTelephone}
                     onChange={(e) => setOfficeTelephone(e.target.value)}
-                    placeholder="Enter Office telephone"
-                    style={{
-                      padding: "8px 12px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "4px",
-                      fontSize: "14px",
-                      width: "100%",
-                      marginTop: "4px",
-                    }}
+                    placeholder="Enter office telephone"
+                    className="detail-input"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Enhanced Customer Details Section */}
+          {/* Customer Details Section */}
           {invoiceDetails.customerDetails && (
-            <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
-              <h4 style={{ margin: "0 0 15px 0", color: "#2c3e50", fontSize: "16px" }}>CUSTOMER DETAILS</h4>
-
-              <div className="invoice-info">
-                <div className="info-item">
-                  <span className="info-label">NAME OF THE SERVICE RECIEVER</span>
-                  <span className="info-value">{invoiceDetails.customerDetails.ledgerName || "N/A"}</span>
+            <div className="customer-section">
+              <h4 className="section-title">Customer Information</h4>
+              <div className="details-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Service Receiver</span>
+                  <span className="detail-value">{invoiceDetails.customerDetails.ledgerName || "N/A"}</span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">GST REGISTRATION NO</span>
-                  <span className="info-value">
+                <div className="detail-item">
+                  <span className="detail-label">GST Number</span>
+                  <span className="detail-value">
                     {invoiceDetails.customerDetails.gstin ||
                       invoiceDetails.customerDetails.gstIn ||
                       invoiceDetails.customerDetails.GSTIN ||
                       "Not Available"}
                   </span>
                 </div>
-
-                <div className="info-item">
-                  <span className="info-label">IT PAN NO</span>
-                  <span className="info-value">
+                <div className="detail-item">
+                  <span className="detail-label">PAN Number</span>
+                  <span className="detail-value">
                     {invoiceDetails.customerDetails.pan ||
                       invoiceDetails.customerDetails.panNo ||
                       invoiceDetails.customerDetails.PAN ||
                       "Not Available"}
                   </span>
                 </div>
-
                 {invoiceDetails.customerDetails.fullAddress && (
-                  <div className="info-item" style={{ gridColumn: "1 / -1" }}>
-                    <span className="info-label">Address</span>
-                    <span className="info-value">{invoiceDetails.customerDetails.fullAddress}</span>
+                  <div className="detail-item full-width">
+                    <span className="detail-label">Address</span>
+                    <span className="detail-value">{invoiceDetails.customerDetails.fullAddress}</span>
                   </div>
                 )}
               </div>
@@ -539,293 +1214,328 @@ const Invoice = () => {
         </div>
       )}
 
-      {/* Enhanced Search Controls */}
-      <div className="search-controls">
-        <div className="dropdown-container">
-          <div className="custom-dropdown">
-            <div className="dropdown-header" onClick={() => setShowWorkOrderDropdown(!showWorkOrderDropdown)}>
-              <span className="dropdown-label">{selectedWorkOrder || "Work Order No"}</span>
-              <span className="dropdown-arrow">▼</span>
-            </div>
-            {showWorkOrderDropdown && (
-              <div className="dropdown-menu">
-                <div className="dropdown-search">
-                  <input
-                    type="text"
-                    placeholder="Search work order no..."
-                    value={workOrderSearch}
-                    onChange={(e) => setWorkOrderSearch(e.target.value)}
-                    className="search-input"
-                    autoFocus
-                  />
-                </div>
-                <div className="dropdown-options">
-                  {filteredWorkOrders.map((workOrder, index) => (
-                    <div key={index} className="dropdown-option" onClick={() => handleWorkOrderSelect(workOrder)}>
-                      {workOrder}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+      {/* New Search Controls Card */}
+      <div className="search-card">
+        <div className="card-header">
+          <h3>Search Criteria</h3>
+          <p>Select your search parameters</p>
         </div>
 
-        <div className="dropdown-container">
-          <div className="custom-dropdown">
-            <div className="dropdown-header" onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}>
-              <span className="dropdown-label">{selectedCustomer || "Customer Name"}</span>
-              <span className="dropdown-arrow">▼</span>
-            </div>
-            {showCustomerDropdown && (
-              <div className="dropdown-menu">
-                <div className="dropdown-search">
-                  <div style={{ position: "relative" }}>
-                    <FaSearch
-                      style={{
-                        position: "absolute",
-                        left: "10px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#a0aec0",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Search customers, GSTIN, PAN..."
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      className="search-input"
-                      style={{ paddingLeft: "30px" }}
-                      autoFocus
-                    />
-                  </div>
+        <div className="search-form">
+          {/* Work Order Dropdown */}
+          <div className="form-field">
+            <label className="field-label">Work Order Number</label>
+            <div className="dropdown-wrapper">
+              <div className="modern-dropdown">
+                <div className="dropdown-trigger" onClick={() => setShowWorkOrderDropdown(!showWorkOrderDropdown)}>
+                  <span className="selected-value">{selectedWorkOrder || "Select Work Order"}</span>
+                  <span className={`dropdown-icon ${showWorkOrderDropdown ? "open" : ""}`}>▲</span>
                 </div>
-                <div className="dropdown-options">
-                  {filteredCustomers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      className="dropdown-option"
-                      onClick={() => handleCustomerSelect(customer)}
-                      style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-                    >
-                      <div style={{ fontWeight: "500" }}>{customer.ledgerName}</div>
-                      <div style={{ fontSize: "11px", color: "#666", display: "flex", gap: "10px" }}>
-                        {customer.gstin && <span>GSTIN: {customer.gstin}</span>}
-                        {customer.pan && <span>PAN: {customer.pan}</span>}
-                      </div>
-                      {customer.state && customer.district && (
-                        <div style={{ fontSize: "10px", color: "#888" }}>
-                          {customer.district}, {customer.state}
+                {showWorkOrderDropdown && (
+                  <div className="dropdown-panel upward">
+                    <div className="dropdown-header">
+                      <input
+                        type="text"
+                        placeholder="Search work orders..."
+                        value={workOrderSearch}
+                        onChange={(e) => setWorkOrderSearch(e.target.value)}
+                        className="dropdown-search-input"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="dropdown-list">
+                      {filteredWorkOrders.map((workOrder, index) => (
+                        <div key={index} className="dropdown-item" onClick={() => handleWorkOrderSelect(workOrder)}>
+                          {workOrder}
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Dropdown */}
+          <div className="form-field">
+            <label className="field-label">Customer Name</label>
+            <div className="dropdown-wrapper">
+              <div className="modern-dropdown">
+                <div className="dropdown-trigger" onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}>
+                  <span className="selected-value">{selectedCustomer || "Select Customer"}</span>
+                  <span className={`dropdown-icon ${showCustomerDropdown ? "open" : ""}`}>▲</span>
+                </div>
+                {showCustomerDropdown && (
+                  <div className="dropdown-panel upward">
+                    <div className="dropdown-header">
+                      <div className="search-input-wrapper">
+                        <FaSearch className="search-icon" />
+                        <input
+                          type="text"
+                          placeholder="Search customers, GSTIN, PAN..."
+                          value={customerSearch}
+                          onChange={(e) => setCustomerSearch(e.target.value)}
+                          className="dropdown-search-input with-icon"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="dropdown-list">
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="dropdown-item customer-item"
+                          onClick={() => handleCustomerSelect(customer)}
+                        >
+                          <div className="customer-name">{customer.ledgerName}</div>
+                          <div className="customer-details">
+                            {customer.gstin && <span>GSTIN: {customer.gstin}</span>}
+                            {customer.pan && <span>PAN: {customer.pan}</span>}
+                          </div>
+                          {customer.state && customer.district && (
+                            <div className="customer-location">
+                              {customer.district}, {customer.state}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RA Number Dropdown */}
+          <div className="form-field">
+            <label className="field-label">RA Number</label>
+            <div className="dropdown-wrapper">
+              <div className="modern-dropdown">
+                <div className="dropdown-trigger" onClick={() => setShowRaNoDropdown(!showRaNoDropdown)}>
+                  <span className="selected-value">{selectedRaNo || "Select RA Number"}</span>
+                  <span className={`dropdown-icon ${showRaNoDropdown ? "open" : ""}`}>▲</span>
+                </div>
+                {showRaNoDropdown && (
+                  <div className="dropdown-panel upward">
+                    <div className="dropdown-header">
+                      <div className="search-input-wrapper">
+                        <FaSearch className="search-icon" />
+                        <input
+                          type="text"
+                          placeholder="Search RA numbers..."
+                          value={raNoSearch}
+                          onChange={(e) => setRaNoSearch(e.target.value)}
+                          className="dropdown-search-input with-icon"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="dropdown-list">
+                      {filteredRaNumbers.length > 0 ? (
+                        filteredRaNumbers.map((raNo, index) => (
+                          <div key={index} className="dropdown-item" onClick={() => handleRaNoSelect(raNo)}>
+                            {raNo}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-item no-results">No RA numbers found</div>
                       )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div className="form-field">
+            <label className="field-label">&nbsp;</label>
+            <button onClick={handleSearch} disabled={loading} className="search-button">
+              {loading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <FaSearch />
+                  Search
+                </>
+              )}
+            </button>
           </div>
         </div>
-
-        <div className="select-group">
-          <select value={selectedRaNo} onChange={(e) => setSelectedRaNo(e.target.value)} className="invoice-select">
-            <option value="">Select RA NO</option>
-            <option value="RA001">RA001</option>
-            <option value="RA002">RA002</option>
-            <option value="RA003">RA003</option>
-          </select>
-        </div>
-
-        <button onClick={handleSearch} disabled={loading} className="search-btn">
-          {loading ? "Searching..." : "Search"}
-        </button>
       </div>
 
-      {/* Data Table */}
-      <div className="table-container">
-        <table className="invoice-table">
-          <thead>
-            <tr>
-              <th>Invoice</th>
-              <th>SL NO</th>
-              <th>Service Description</th>
-              <th>UOM</th>
-              <th>QTY</th>
-              <th>Rate (Rs)</th>
-              <th>Amount Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoiceData.length > 0 ? (
-              invoiceData.map((item, index) => (
-                <tr key={item.lineId || index}>
-                  <td className="invoice-icon-cell">
-                    <FaFileInvoice className="invoice-icon" />
-                  </td>
-                  <td>{item.serNo || "-"}</td>
-                  <td>{formatServiceDescription(item.serviceCode, item.serviceDesc)}</td>
-                  <td>{item.uom || "-"}</td>
-                  <td>{item.qty || 0}</td>
-                  <td>{formatCurrency(item.unitPrice)}</td>
-                  <td>{formatCurrency(item.totalPrice)}</td>
-                </tr>
-              ))
-            ) : (
+      {/* Modern Data Table */}
+      <div className="data-table-card">
+        <div className="table-header">
+          <h3>Invoice Data</h3>
+          {invoiceData.length > 0 && <span className="record-count">{invoiceData.length} records found</span>}
+        </div>
+
+        <div className="table-wrapper">
+          <table className="modern-table">
+            <thead>
               <tr>
-                <td colSpan="7" className="no-data">
-                  {selectedWorkOrder
-                    ? "No data found for the selected work order"
-                    : "Please select Work Order and Customer, then click Search to view records"}
-                </td>
+                <th>Invoice</th>
+                <th>SL NO</th>
+                <th>Service Description</th>
+                <th>UOM</th>
+                <th>QTY</th>
+                <th>Rate (Rs)</th>
+                <th>Amount Total</th>
               </tr>
+            </thead>
+            <tbody>
+              {invoiceData.length > 0 ? (
+                invoiceData.map((item, index) => (
+                  <tr key={item.lineId || index} className="table-row">
+                    <td className="icon-cell">
+                      <FaFileInvoice className="invoice-icon" />
+                    </td>
+                    <td>{item.serNo || "-"}</td>
+                    <td className="description-cell">{formatServiceDescription(item.serviceCode, item.serviceDesc)}</td>
+                    <td>{item.uom || "-"}</td>
+                    <td className="number-cell">{item.qty || 0}</td>
+                    <td className="currency-cell">₹{formatCurrency(item.unitPrice)}</td>
+                    <td className="currency-cell total-cell">₹{formatCurrency(item.totalPrice)}</td>
+                  </tr>
+                ))
+              ) : (
+                 
+                <tr>
+                  <td colSpan="7" className="empty-state">
+                    <div className="empty-content">
+                      <div className="empty-icon">📋</div>
+                      <h4>No Data Available</h4>
+                      <p>
+                        {selectedWorkOrder
+                          ? "No records found for the selected work order"
+                          : "Please select Work Order and Customer, then click Search to view records"}
+                      </p>
+                    </div>
+                  </td>
+                 
+                </tr>
+                
+              )}
+            </tbody>
+            {invoiceData.length > 0 && (
+              <tfoot>
+                <tr className="subtotal-row">
+                  <td colSpan="6" className="subtotal-label">
+                    Subtotal (Before Tax):
+                  </td>
+                  <td className="subtotal-amount">₹{formatCurrency(calculateTotal())}</td>
+                </tr>
+                <tr className="tax-row">
+                  <td colSpan="6" className="tax-label">
+                    SGST @ 9%:
+                  </td>
+                  <td className="tax-amount">₹{formatCurrency(calculateSGST())}</td>
+                </tr>
+                <tr className="tax-row">
+                  <td colSpan="6" className="tax-label">
+                    CGST @ 9%:
+                  </td>
+                  <td className="tax-amount">₹{formatCurrency(calculateCGST())}</td>
+                </tr>
+                <tr className="tax-row">
+                  <td colSpan="6" className="tax-label">
+                    IGST:
+                  </td>
+                  <td className="tax-amount">-</td>
+                </tr>
+                <tr className="tax-total-row">
+                  <td colSpan="6" className="tax-total-label">
+                    Total Tax (GST):
+                  </td>
+                  <td className="tax-total-amount">₹{formatCurrency(calculateTotalTax())}</td>
+                </tr>
+                <tr className="grand-total-row">
+                  <td colSpan="6" className="grand-total-label">
+                    Grand Total:
+                  </td>
+                  <td className="grand-total-amount">₹{formatCurrency(calculateTotalAfterTax())}</td>
+                </tr>
+                <tr className="words-row">
+                  <td colSpan="7" className="amount-words">
+                    <strong>Amount in Words: </strong>
+                    {numberToWords(calculateTotalAfterTax())}
+                  </td>
+                </tr>
+              </tfoot>
             )}
-          </tbody>
-          {invoiceData.length > 0 && (
-            <tfoot>
-              {/* Original Total Amount Row */}
-              <tr className="total-row">
-                <td colSpan="6" className="total-label">
-                  Total Amount Before Tax:
-                </td>
-                <td className="total-amount">{formatCurrency(calculateTotal())}</td>
-              </tr>
-
-              {/* NEW: Tax Calculation Rows */}
-              <tr className="tax-row">
-                <td colSpan="6" className="tax-label">
-                  SGST @ 9%:
-                </td>
-                <td className="tax-amount">{formatCurrency(calculateSGST())}</td>
-              </tr>
-
-              <tr className="tax-row">
-                <td colSpan="6" className="tax-label">
-                  CGST @ 9%:
-                </td>
-                <td className="tax-amount">{formatCurrency(calculateCGST())}</td>
-              </tr>
-
-              {/* NEW: IGST Row */}
-              <tr className="tax-row">
-                <td colSpan="6" className="tax-label">
-                  IGST:
-                </td>
-                <td className="tax-amount">-</td>
-              </tr>
-
-              <tr className="tax-row">
-                <td colSpan="6" className="tax-label">
-                  Amount Tax @GST:
-                </td>
-                <td className="tax-amount">{formatCurrency(calculateTotalTax())}</td>
-              </tr>
-
-              <tr className="total-after-tax-row">
-                <td colSpan="6" className="total-after-tax-label">
-                  Total Amount After Tax:
-                </td>
-                <td className="total-after-tax-amount">{formatCurrency(calculateTotalAfterTax())}</td>
-              </tr>
-
-              {/* NEW: ROUND OFF Row */}
-              <tr className="tax-row">
-                <td colSpan="6" className="tax-label">
-                  ROUND OFF:
-                </td>
-                <td className="tax-amount">-</td>
-              </tr>
-
-              <tr className="final-total-row">
-                <td colSpan="6" className="final-total-label">
-                  Total:
-                </td>
-                <td className="final-total-amount">{formatCurrency(calculateTotalAfterTax())}</td>
-              </tr>
-
-              <tr className="amount-in-words-row">
-                <td colSpan="7" className="amount-in-words">
-                  <strong>Amount in Words: </strong>
-                  {numberToWords(calculateTotalAfterTax())}
-                </td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
-
-        {/* NEW: Amount in Words Section - Outside table */}
-        {/* {invoiceData.length > 0 && (
-          <div className="amount-in-words-section">
-            <div className="amount-in-words-content">
-              <strong>Amount in Words: </strong>
-              {numberToWords(calculateTotalAfterTax())}
-            </div>
-          </div>
-        )} */}
+          </table>
+        </div>
       </div>
 
-      {/* MOVED: Additional Invoice Summary Section - Outside table container */}
-       {invoiceData.length > 0 && (
-          <div className="amount-in-words-section">
-            <div className="amount-in-words-content">
-              <strong>Amount in Words: </strong>
-              {numberToWords(calculateTotalAfterTax())}
-            </div>
+      {/* Amount in Words Card */}
+      {/* {invoiceData.length > 0 && (
+        <div className="amount-words-card">
+          <div className="card-header">
+            <h3>Amount in Words</h3>
           </div>
-        )}
+          <div className="words-content">{numberToWords(calculateTotalAfterTax())}</div>
+        </div>
+      )} */}
+
+      {/* Invoice Summary Card */}
       {invoiceData.length > 0 && (
-        <div className="invoice-summary-section">
-          <div className="summary-row">
-            <div className="summary-field full-width">
-              <label className="summary-label">Remarks:</label>
-              <input
-                type="text"
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                placeholder="Enter remarks here..."
-                className="summary-input"
-              />
-            </div>
-          </div>
+        <div className="summary-card">
+          
 
-          <div className="summary-row">
-            <div className="summary-field">
-              <label className="summary-label">Prepared By:</label>
-              <input
-                type="text"
-                value={preparedBy}
-                onChange={(e) => setPreparedBy(e.target.value)}
-                placeholder="Enter name of preparer..."
-                className="summary-input"
-              />
+          <div className="summary-form">
+            <div className="form-row full-width">
+              <div className="form-group">
+                <label className="form-label">Remarks</label>
+                <input
+                  type="text"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Enter any remarks or notes..."
+                  className="form-input"
+                />
+              </div>
             </div>
 
-            <div className="summary-field">
-              <label className="summary-label">Checked By:</label>
-              <input
-                type="text"
-                value={checkedBy}
-                onChange={(e) => setCheckedBy(e.target.value)}
-                placeholder="Enter name of checker..."
-                className="summary-input"
-              />
-            </div>
-          </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Prepared By</label>
+                <input
+                  type="text"
+                  value={preparedBy}
+                  onChange={(e) => setPreparedBy(e.target.value)}
+                  placeholder="Name of preparer"
+                  className="form-input"
+                />
+              </div>
 
-          {/* NEW: Signature Section */}
-          <div className="signature-section">
-            <div className="signature-field">
-              <label className="signature-label">Signature of the Authorised Agent</label>
-              <div className="signature-space">
+              <div className="form-group">
+                <label className="form-label">Checked By</label>
+                <input
+                  type="text"
+                  value={checkedBy}
+                  onChange={(e) => setCheckedBy(e.target.value)}
+                  placeholder="Name of checker"
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            <div className="signature-area">
+              <div className="signature-box">
+                <div className="signature-label">Signature of Authorized Agent</div>
                 <div className="signature-line"></div>
-                <div className="signature-company">For Bellary InfoTech Solutions</div>
+                <div className="company-name">For Bellary InfoTech Solutions</div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Invoice Modal */}
+      {/* Keep all existing modals unchanged */}
       {showInvoiceModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -878,6 +1588,16 @@ const Invoice = () => {
                   </div>
                 </div>
               </div>
+              <div className="form-group">
+                <label>Place of Service Rendered</label>
+                <input
+                  type="text"
+                  placeholder="Enter place of service rendered"
+                  value={placeOfServiceRendered}
+                  onChange={(e) => setPlaceOfServiceRendered(e.target.value)}
+                  className="modal-input"
+                />
+              </div>
             </div>
             <div className="modal-footer">
               <button className="cancel-btn" onClick={() => setShowInvoiceModal(false)}>
@@ -890,6 +1610,21 @@ const Invoice = () => {
           </div>
         </div>
       )}
+
+      <RatingPopup isOpen={showRatingPopup} onClose={() => setShowRatingPopup(false)} onSubmit={handleRatingSubmit} />
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   )
 }
