@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { IoMdOpen } from "react-icons/io"
-import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { MdSave, MdAdd } from "react-icons/md"
-import { FaCheck, FaChevronUp, FaChevronDown, FaSearch } from "react-icons/fa"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
-import "../DeleteComponent/DeleteDesign.css"
-import "../Drawing Entry Component/DrawingEntry.css"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { IoMdOpen } from "react-icons/io";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { MdSave, MdAdd } from "react-icons/md";
+import { FaCheck, FaChevronUp, FaChevronDown, FaSearch } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import DeleteConfirm from "../DeleteComponent/DeleteConfirm";
+import "../DeleteComponent/DeleteDesign.css";
+import "../Drawing Entry Component/DrawingEntry.css";
 
 const DrawingEntry = () => {
   // API Base URL

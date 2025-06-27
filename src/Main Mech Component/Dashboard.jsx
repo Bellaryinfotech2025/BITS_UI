@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard,
   CreditCard,
@@ -38,6 +38,7 @@ import ErectionDatabasesearch from "../ErectionNewComponent/ErectionDatabasesear
  
  
 import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabasesearch"
+import PaintingDatabasesearch from "../PaintingComponent/Painting";
 
  
 import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
@@ -456,7 +457,7 @@ const MainDashboard = () => {
     }
 
     if(activeMenu ==="painting"){
-      return <AlignmentDatabasesearch/>
+      return <PaintingDatabasesearch/>
     }
 
     // Handle Billing

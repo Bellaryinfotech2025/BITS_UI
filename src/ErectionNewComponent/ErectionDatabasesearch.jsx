@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react"
-import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { MdSave, MdEdit, MdDelete } from "react-icons/md"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import "./ErectionDatabasesearch.css"
-import { IoMdOpen } from "react-icons/io"
-import "../ErectionNewComponent/ErectionDatabasesearch.css"
+import { useState, useEffect, useRef } from "react";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { MdSave, MdKeyboardArrowDown } from "react-icons/md";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { IoMdOpen } from "react-icons/io";
+import { MdFileDownload } from "react-icons/md";
+import "../ErectionNewComponent/erection-database-search.css";
 
 const ErectionDatabasesearch = () => {
   // API Base URL
@@ -20,19 +20,36 @@ const ErectionDatabasesearch = () => {
   const [markNumbers, setMarkNumbers] = useState([])
   const [workOrders, setWorkOrders] = useState([])
   const [plantLocations, setPlantLocations] = useState([])
+  const [vendorNames, setVendorNames] = useState([])
 
-  // Filter states
-  const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
-  const [selectedMarkNo, setSelectedMarkNo] = useState("")
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
-  const [selectedPlantLocation, setSelectedPlantLocation] = useState("")
+  // Filter states - Modified for multiple selections
+  const [selectedDrawingNos, setSelectedDrawingNos] = useState([])
+  const [selectedMarkNos, setSelectedMarkNos] = useState([])
+  const [selectedWorkOrders, setSelectedWorkOrders] = useState([])
+  const [selectedPlantLocations, setSelectedPlantLocations] = useState([])
+  const [selectedVendorName, setSelectedVendorName] = useState("")
+
+  // Dropdown open states
+  const [dropdownStates, setDropdownStates] = useState({
+    workOrder: false,
+    buildingName: false,
+    drawingNo: false,
+    markNo: false,
+    vendor: false,
+  })
+
+  // RA NO state for filter section
+  const [filterRaNo, setFilterRaNo] = useState("")
+  const [savingFilterRaNo, setSavingFilterRaNo] = useState(false)
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
-    workOrder: "",
-    buildingName: "",
-    drawingNo: "",
-    markNo: "",
+    workOrders: [],
+    buildingNames: [],
+    drawingNos: [],
+    markNos: [],
+    raNo: "",
+    vendorName: "",
   })
 
   // Move to Alignment popup states
@@ -40,215 +57,42 @@ const ErectionDatabasesearch = () => {
   const [selectedMarkNosForAlignment, setSelectedMarkNosForAlignment] = useState([])
   const [availableMarkNosForAlignment, setAvailableMarkNosForAlignment] = useState([])
 
-  // Edit states
-  const [editingRow, setEditingRow] = useState(null)
-  const [editFormData, setEditFormData] = useState({})
+  // Show search results flag
+  const [showSearchResults, setShowSearchResults] = useState(false)
 
-  // Erection process states - tracks checkbox states for each row
-  const [erectionStages, setErectionStages] = useState({})
+  // Remarks state for each row
+  const [remarks, setRemarks] = useState({})
 
-  // RA NO states - Modified for individual row editing
-  const [raNoValues, setRaNoValues] = useState({})
-  const [savingRaNo, setSavingRaNo] = useState({}) // Track saving state per row
-
-  // Erection stages in order
-  const ERECTION_STAGES = ["cutting", "fitUp", "welding", "finishing"]
-  const STAGE_LABELS = {
-    cutting: "Cutting",
-    fitUp: "Fit Up",
-    welding: "Welding",
-    finishing: "Finishing",
+  // Refs for dropdown click outside detection
+  const dropdownRefs = {
+    workOrder: useRef(null),
+    buildingName: useRef(null),
+    drawingNo: useRef(null),
+    markNo: useRef(null),
+    vendor: useRef(null),
   }
 
-  // Backend field mapping
-  const STAGE_FIELD_MAPPING = {
-    cutting: "cuttingStage",
-    fitUp: "fitUpStage",
-    welding: "weldingStage",
-    finishing: "finishingStage",
-  }
-
-  // Initialize erection stages for a row from backend data
-  const initializeErectionStagesFromData = (lineId, rowData) => {
-    setErectionStages((prev) => ({
-      ...prev,
-      [lineId]: {
-        cutting: rowData.cuttingStage === "Y",
-        fitUp: rowData.fitUpStage === "Y",
-        welding: rowData.weldingStage === "Y",
-        finishing: rowData.finishingStage === "Y",
-      },
-    }))
-  }
-
-  // Initialize RA NO values from backend data - ALWAYS SHOW EMPTY for new entries
-  const initializeRaNoFromData = (lineId, raNo) => {
-    setRaNoValues((prev) => ({
-      ...prev,
-      [lineId]: "", // Always start with empty field regardless of backend data
-    }))
-  }
-
-  // Handle erection stage checkbox change with sequential logic
-  const handleStageChange = (lineId, stage, checked) => {
-    setErectionStages((prev) => {
-      const currentStages = prev[lineId] || {
-        cutting: false,
-        fitUp: false,
-        welding: false,
-        finishing: false,
-      }
-
-      const newStages = { ...currentStages }
-      const stageIndex = ERECTION_STAGES.indexOf(stage)
-
-      if (checked) {
-        // If checking a stage, automatically check all previous stages
-        for (let i = 0; i <= stageIndex; i++) {
-          newStages[ERECTION_STAGES[i]] = true
-        }
-      } else {
-        // If unchecking a stage, automatically uncheck all subsequent stages
-        for (let i = stageIndex; i < ERECTION_STAGES.length; i++) {
-          newStages[ERECTION_STAGES[i]] = false
-        }
-      }
-
-      return {
-        ...prev,
-        [lineId]: newStages,
-      }
-    })
-  }
-
-  // Handle RA NO input change
-  const handleRaNoChange = (lineId, value) => {
-    setRaNoValues((prev) => ({
-      ...prev,
-      [lineId]: value,
-    }))
-  }
-
-  // Save RA NO for a specific row using new POST API
-  const handleSaveRaNo = async (lineId) => {
-    try {
-      setSavingRaNo((prev) => ({ ...prev, [lineId]: true }))
-
-      const raNoValue = raNoValues[lineId] || ""
-
-      if (!raNoValue.trim()) {
-        toast.warning("Please enter RA NO before saving")
-        return
-      }
-
-      console.log("Saving RA NO for line ID:", lineId, "Value:", raNoValue)
-
-      // Use new POST API endpoint
-      const response = await fetch(
-        `${API_BASE_URL}/saveErectionRaNo/details?lineId=${lineId}&raNo=${encodeURIComponent(raNoValue)}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      )
-
-      if (response.ok) {
-        const result = await response.json()
-        toast.success("RA NO saved successfully!")
-
-        // Keep the entered value in the field (don't update from backend)
-        console.log("RA NO saved successfully:", result)
-      } else {
-        const errorText = await response.text()
-        console.error("Save RA NO failed:", errorText)
-        toast.error(`Failed to save RA NO: ${errorText}`)
-      }
-    } catch (error) {
-      console.error("Error saving RA NO:", error)
-      toast.error("Error saving RA NO: " + error.message)
-    } finally {
-      setSavingRaNo((prev) => ({ ...prev, [lineId]: false }))
-    }
-  }
-
-  // Save erection stages to backend
-  const handleSaveErectionStages = async () => {
-    try {
-      setSaving(true)
-
-      // Prepare erection stage updates
-      const erectionUpdates = Object.keys(erectionStages).map((lineId) => {
-        const stages = erectionStages[lineId]
-        return {
-          lineId: Number.parseInt(lineId), // Convert to Long
-          cuttingStage: stages.cutting ? "Y" : "N",
-          fitUpStage: stages.fitUp ? "Y" : "N",
-          weldingStage: stages.welding ? "Y" : "N",
-          finishingStage: stages.finishing ? "Y" : "N",
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      Object.keys(dropdownRefs).forEach((key) => {
+        if (dropdownRefs[key].current && !dropdownRefs[key].current.contains(event.target)) {
+          setDropdownStates((prev) => ({ ...prev, [key]: false }))
         }
       })
-
-      if (erectionUpdates.length === 0) {
-        toast.warning("No erection stages to save")
-        return
-      }
-
-      console.log("Saving erection stages:", erectionUpdates)
-
-      // Update each entry individually
-      let successCount = 0
-      for (const update of erectionUpdates) {
-        try {
-          const response = await fetch(`${API_BASE_URL}/updateErectionDrawingEntry/details?lineId=${update.lineId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              cuttingStage: update.cuttingStage,
-              fitUpStage: update.fitUpStage,
-              weldingStage: update.weldingStage,
-              finishingStage: update.finishingStage,
-              lastUpdatedBy: "system",
-            }),
-          })
-
-          if (response.ok) {
-            successCount++
-          } else {
-            console.error(`Failed to update entry ${update.lineId}`)
-          }
-        } catch (error) {
-          console.error(`Error updating entry ${update.lineId}:`, error)
-        }
-      }
-
-      if (successCount > 0) {
-        toast.success(`Successfully updated erection stages for ${successCount} entries!`)
-
-        // Refresh data to get updated values
-        if (selectedDrawingNo || selectedMarkNo) {
-          handleSearch()
-        }
-      } else {
-        toast.error("Failed to update any erection stages")
-      }
-    } catch (error) {
-      console.error("Error saving erection stages:", error)
-      toast.error("Error saving erection stages: " + error.message)
-    } finally {
-      setSaving(false)
     }
-  }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData()
+    fetchVendorNames()
   }, [])
 
-  // Fetch dropdown data for Drawing No, Mark No, Work Order, and Plant Location - FROM ERECTION DATA ONLY
+  // Fetch dropdown data for Drawing No, Mark No, Work Order, and Plant Location
   const fetchDropdownData = async () => {
     try {
       setLoading(true)
@@ -258,7 +102,6 @@ const ErectionDatabasesearch = () => {
       if (drawingResponse.ok) {
         const drawingData = await drawingResponse.json()
         setDrawingNumbers(drawingData || [])
-        console.log("Erection Drawing Numbers:", drawingData)
       }
 
       // Fetch distinct mark numbers from erection entries
@@ -267,11 +110,9 @@ const ErectionDatabasesearch = () => {
         const markData = await markResponse.json()
         setMarkNumbers(markData || [])
         setAvailableMarkNosForAlignment(markData || [])
-        console.log("Erection Mark Numbers:", markData)
       }
 
-      // FIXED: Get work orders and plant locations from erection entries only
-      // Get all erection entries to extract unique work orders and plant locations
+      // Get work orders and plant locations from erection entries
       const allErectionResponse = await fetch(`${API_BASE_URL}/getAllErectionDrawingEntriesComplete/details`)
       if (allErectionResponse.ok) {
         const allErectionData = await allErectionResponse.json()
@@ -294,11 +135,6 @@ const ErectionDatabasesearch = () => {
 
         setWorkOrders(uniqueWorkOrders)
         setPlantLocations(uniquePlantLocations)
-
-        console.log("Erection Work Orders:", uniqueWorkOrders)
-        console.log("Erection Plant Locations:", uniquePlantLocations)
-      } else {
-        console.error("Error fetching erection entries for dropdowns")
       }
     } catch (error) {
       console.error("Error fetching dropdown data:", error)
@@ -308,9 +144,72 @@ const ErectionDatabasesearch = () => {
     }
   }
 
-  // Handle search button click - FIXED to show ALL related rows
+  // Fetch vendor names
+  const fetchVendorNames = async () => {
+    try {
+      const response = await fetch("http://195.35.45.56:5522/api/vendor-profile")
+      if (response.ok) {
+        const vendorData = await response.json()
+        const companyNames = vendorData
+          .filter((vendor) => vendor.status === "ACTIVE")
+          .map((vendor) => vendor.companyName)
+          .sort()
+        setVendorNames(companyNames)
+      }
+    } catch (error) {
+      console.error("Error fetching vendor names:", error)
+    }
+  }
+
+  // Toggle dropdown
+  const toggleDropdown = (dropdownName) => {
+    setDropdownStates((prev) => {
+      const newState = { ...prev }
+      // Close all other dropdowns
+      Object.keys(newState).forEach((key) => {
+        newState[key] = key === dropdownName ? !prev[dropdownName] : false
+      })
+      return newState
+    })
+  }
+
+  // Handle checkbox selection
+  const handleCheckboxChange = (value, currentSelections, setSelections) => {
+    if (currentSelections.includes(value)) {
+      setSelections(currentSelections.filter((item) => item !== value))
+    } else {
+      setSelections([...currentSelections, value])
+    }
+  }
+
+  // Handle select all
+  const handleSelectAll = (options, currentSelections, setSelections) => {
+    if (currentSelections.length === options.length) {
+      setSelections([])
+    } else {
+      setSelections([...options])
+    }
+  }
+
+  // Add this function to handle vendor selection
+  const handleVendorChange = (vendorName) => {
+    setSelectedVendorName(vendorName)
+    if (showSearchResults) {
+      setSelectedFilters((prev) => ({
+        ...prev,
+        vendorName: vendorName,
+      }))
+    }
+  }
+
+  // Handle search button click
   const handleSearch = async () => {
-    if (!selectedDrawingNo && !selectedMarkNo && !selectedWorkOrder && !selectedPlantLocation) {
+    if (
+      selectedDrawingNos.length === 0 &&
+      selectedMarkNos.length === 0 &&
+      selectedWorkOrders.length === 0 &&
+      selectedPlantLocations.length === 0
+    ) {
       toast.warning("Please select at least one filter criteria to search")
       return
     }
@@ -318,66 +217,57 @@ const ErectionDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Use the enhanced endpoint to get ALL related entries
       const searchUrl = `${API_BASE_URL}/getEnhancedErectionDrawingEntries/details`
-
-      console.log("Fetching all erection entries for filtering...")
-
       const response = await fetch(searchUrl)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const contentType = response.headers.get("content-type")
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Response is not JSON")
-      }
-
       const allData = await response.json()
-      console.log("All erection data received:", allData.length, "entries")
 
-      // Filter the data based on selected criteria
+      // Filter the data based on selected criteria using AND logic
       let filteredResults = allData
 
-      if (selectedDrawingNo) {
-        filteredResults = filteredResults.filter((item) => item.drawingNo === selectedDrawingNo)
-        console.log("After drawing filter:", filteredResults.length, "entries")
+      // Apply Work Order filter (attribute1V)
+      if (selectedWorkOrders.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedWorkOrders.includes(item.attribute1V))
       }
 
-      if (selectedMarkNo) {
-        filteredResults = filteredResults.filter((item) => item.markNo === selectedMarkNo)
-        console.log("After mark filter:", filteredResults.length, "entries")
+      // Apply Building Name filter (attribute2V)
+      if (selectedPlantLocations.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedPlantLocations.includes(item.attribute2V))
       }
 
-      if (selectedWorkOrder) {
-        filteredResults = filteredResults.filter((item) => item.attribute1V === selectedWorkOrder)
-        console.log("After work order filter:", filteredResults.length, "entries")
+      // Apply Drawing No filter
+      if (selectedDrawingNos.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedDrawingNos.includes(item.drawingNo))
       }
 
-      if (selectedPlantLocation) {
-        filteredResults = filteredResults.filter((item) => item.attribute2V === selectedPlantLocation)
-        console.log("After plant location filter:", filteredResults.length, "entries")
+      // Apply Mark No filter
+      if (selectedMarkNos.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedMarkNos.includes(item.markNo))
       }
 
       setTableData(filteredResults)
       setFilteredData(filteredResults)
+      setShowSearchResults(true)
+
+      // Initialize remarks for new results
+      const newRemarks = {}
+      filteredResults.forEach((row, index) => {
+        newRemarks[`row_${index}`] = ""
+      })
+      setRemarks(newRemarks)
 
       // Set selected filter values for display
-      if (filteredResults.length > 0) {
-        const firstRow = filteredResults[0]
-        setSelectedFilters({
-          workOrder: selectedWorkOrder || firstRow.attribute1V || "",
-          buildingName: selectedPlantLocation || firstRow.attribute2V || "",
-          drawingNo: selectedDrawingNo,
-          markNo: selectedMarkNo,
-        })
-      }
-
-      // Initialize erection stages and RA NO for all rows
-      filteredResults.forEach((row) => {
-        initializeErectionStagesFromData(row.lineId, row)
-        initializeRaNoFromData(row.lineId, row.raNo)
+      setSelectedFilters({
+        workOrders: selectedWorkOrders,
+        buildingNames: selectedPlantLocations,
+        drawingNos: selectedDrawingNos,
+        markNos: selectedMarkNos,
+        raNo: filterRaNo,
+        vendorName: selectedVendorName,
       })
 
       toast.info(`Found ${filteredResults.length} records`)
@@ -386,120 +276,79 @@ const ErectionDatabasesearch = () => {
       toast.error(`Error searching data: ${error.message}`)
       setTableData([])
       setFilteredData([])
-      setSelectedFilters({
-        workOrder: "",
-        buildingName: "",
-        drawingNo: "",
-        markNo: "",
-      })
+      setShowSearchResults(false)
     } finally {
       setLoading(false)
     }
   }
 
-  // Handle edit button click
-  const handleEdit = (row) => {
-    setEditingRow(row.lineId)
-    setEditFormData({
-      drawingNo: row.drawingNo || "",
-      markNo: row.markNo || "",
-      markedQty: row.markedQty || "",
-      sessionCode: row.sessionCode || "",
-      sessionName: row.sessionName || "",
-      width: row.width || "",
-      length: row.length || "",
-      itemQty: row.itemQty || "",
-      itemWeight: row.itemWeight || "",
-      totalItemWeight: row.totalItemWeight || "",
-      drawingWeight: row.drawingWeight || "",
-      markWeight: row.markWeight || "",
-      totalMarkedWgt: row.totalMarkedWgt || "",
-      orderId: row.orderId || "",
-      raNo: row.raNo || "",
-    })
+  // Handle remarks change
+  const handleRemarksChange = (rowKey, value) => {
+    setRemarks((prev) => ({
+      ...prev,
+      [rowKey]: value,
+    }))
   }
 
-  // Handle save edit
-  const handleSaveEdit = async () => {
-    try {
-      setLoading(true)
+  // Save RA NO for all selected entries
+  const handleSaveFilterRaNo = async () => {
+    if (!filterRaNo.trim()) {
+      toast.warning("Please enter RA NO before saving")
+      return
+    }
 
-      // Prepare the update data with only the fields that can be updated
-      const updateData = {
-        drawingNo: editFormData.drawingNo,
-        markNo: editFormData.markNo,
-        markedQty: Number.parseFloat(editFormData.markedQty) || 0,
-        sessionCode: editFormData.sessionCode,
-        sessionName: editFormData.sessionName,
-        width: Number.parseFloat(editFormData.width) || 0,
-        length: Number.parseFloat(editFormData.length) || 0,
-        itemQty: Number.parseFloat(editFormData.itemQty) || 0,
-        itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
-        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0,
-        drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
-        markWeight: Number.parseFloat(editFormData.markWeight) || null,
-        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
-        orderId: editFormData.orderId ? Number.parseInt(editFormData.orderId) : null,
-        raNo: editFormData.raNo,
-        lastUpdatedBy: "system",
+    if (filteredData.length === 0) {
+      toast.warning("No search results to update")
+      return
+    }
+
+    try {
+      setSavingFilterRaNo(true)
+
+      let successCount = 0
+      for (const row of filteredData) {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/saveErectionRaNo/details?lineId=${row.lineId}&raNo=${encodeURIComponent(filterRaNo)}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          )
+
+          if (response.ok) {
+            successCount++
+          }
+        } catch (error) {
+          console.error(`Error updating RA NO for line ID ${row.lineId}:`, error)
+        }
       }
 
-      console.log("Sending update data:", updateData)
+      if (successCount > 0) {
+        toast.success(`RA NO saved successfully for ${successCount} entries!`)
+        // Update the filtered data to show the new RA NO
+        const updatedData = filteredData.map((row) => ({
+          ...row,
+          raNo: filterRaNo,
+        }))
+        setFilteredData(updatedData)
+        setTableData(updatedData)
 
-      const response = await fetch(`${API_BASE_URL}/updateErectionDrawingEntry/details?lineId=${editingRow}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      })
-
-      if (response.ok) {
-        toast.success("Record updated successfully!")
-        setEditingRow(null)
-        setEditFormData({})
-        handleSearch() // Refresh data
+        // Update selected filters
+        setSelectedFilters((prev) => ({
+          ...prev,
+          raNo: filterRaNo,
+        }))
       } else {
-        const errorText = await response.text()
-        console.error("Update failed:", errorText)
-        toast.error(`Failed to update record: ${errorText}`)
+        toast.error("Failed to save RA NO for any entries")
       }
     } catch (error) {
-      console.error("Error updating record:", error)
-      toast.error("Error updating record: " + error.message)
+      console.error("Error saving RA NO:", error)
+      toast.error("Error saving RA NO: " + error.message)
     } finally {
-      setLoading(false)
-    }
-  }
-
-  // Handle cancel edit
-  const handleCancelEdit = () => {
-    setEditingRow(null)
-    setEditFormData({})
-  }
-
-  // Handle delete
-  const handleDelete = async (lineId) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
-      try {
-        setLoading(true)
-
-        const response = await fetch(`${API_BASE_URL}/deleteErectionDrawingEntry/details?lineId=${lineId}`, {
-          method: "DELETE",
-        })
-
-        if (response.ok) {
-          toast.success("Record deleted successfully!")
-          handleSearch() // Refresh data
-        } else {
-          toast.error("Failed to delete record")
-        }
-      } catch (error) {
-        console.error("Error deleting record:", error)
-        toast.error("Error deleting record")
-      } finally {
-        setLoading(false)
-      }
+      setSavingFilterRaNo(false)
     }
   }
 
@@ -529,10 +378,7 @@ const ErectionDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Get ALL entries for selected mark numbers
       const entriesToMove = []
-
-      // For each selected mark number, find ALL entries with that mark number
       for (const markNo of selectedMarkNosForAlignment) {
         const entries = tableData.filter((item) => item.markNo === markNo)
         entriesToMove.push(...entries)
@@ -543,9 +389,8 @@ const ErectionDatabasesearch = () => {
         return
       }
 
-      // Create alignment entries with proper data format
       const alignmentEntries = entriesToMove.map((item) => ({
-        lineId: item.lineId, // Preserve the same line_id
+        lineId: item.lineId,
         drawingNo: item.drawingNo || "",
         markNo: item.markNo || "",
         markedQty: item.markedQty || 1,
@@ -564,30 +409,24 @@ const ErectionDatabasesearch = () => {
         createdBy: "system",
         lastUpdatedBy: "system",
         status: "alignment",
-        // Copy attributes
         attribute1V: item.attribute1V || null,
         attribute2V: item.attribute2V || null,
         attribute3V: item.attribute3V || null,
-        attribute4V: item.attribute4N || null,
+        attribute4V: item.attribute4V || null,
         attribute5V: item.attribute5V || null,
         attribute1N: item.attribute1N || null,
         attribute2N: item.attribute2N || null,
         attribute3N: item.attribute3N || null,
         attribute4N: item.attribute4N || null,
         attribute5N: item.attribute5N || null,
-        // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
-        // Copy fabrication stages
         cuttingStage: item.cuttingStage || "N",
         fitUpStage: item.fitUpStage || "N",
         weldingStage: item.weldingStage || "N",
         finishingStage: item.finishingStage || "N",
       }))
 
-      console.log("Moving to alignment:", alignmentEntries)
-
-      // Call the alignment API
       const response = await fetch(`${API_BASE_URL}/createBulkAlignmentDrawingEntries/details`, {
         method: "POST",
         headers: {
@@ -597,7 +436,6 @@ const ErectionDatabasesearch = () => {
       })
 
       if (response.ok) {
-        const result = await response.json()
         toast.success(`${entriesToMove.length} entries moved to Alignment successfully!`)
         setShowMoveToAlignmentPopup(false)
         setSelectedMarkNosForAlignment([])
@@ -614,40 +452,13 @@ const ErectionDatabasesearch = () => {
     }
   }
 
-  // Handle input change in edit form
-  const handleEditInputChange = (field, value) => {
-    setEditFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  // Format date for display (DD-MMMM-YYYY)
-  const formatDate = (dateString) => {
-    if (!dateString) return "-"
-    try {
-      const date = new Date(dateString)
-      const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ]
-      const day = date.getDate().toString().padStart(2, "0")
-      const month = months[date.getMonth()]
-      const year = date.getFullYear()
-      return `${day}-${month}-${year}`
-    } catch (error) {
-      return dateString
-    }
+  // Calculate total mark weight
+  const calculateTotalMarkWeight = () => {
+    const total = filteredData.reduce((sum, row) => {
+      const weight = Number.parseFloat(row.totalMarkedWgt) || 0
+      return sum + weight
+    }, 0)
+    return total
   }
 
   // Format number for display
@@ -656,123 +467,193 @@ const ErectionDatabasesearch = () => {
     return Number.parseFloat(value).toFixed(3)
   }
 
-  return (
-    <div className="erect-container-mammoth">
-      {/* Header */}
-      <div className="erect-header-elephant">
-        <div className="erect-title-tiger">
-          <h3>Search for Erection Details</h3>
+  // Render custom dropdown with checkboxes
+  const renderCustomDropdown = (dropdownName, options, selectedValues, setSelectedValues, placeholder) => {
+    const isOpen = dropdownStates[dropdownName]
+    const allSelected = selectedValues.length === options.length && options.length > 0
+
+    return (
+      <div className="dropdown-container" ref={dropdownRefs[dropdownName]}>
+        <div className={`dropdown-select ${isOpen ? "open" : ""}`} onClick={() => toggleDropdown(dropdownName)}>
+          <span className="dropdown-text">
+            {selectedValues.length > 0 ? `${selectedValues.length} selected` : placeholder}
+          </span>
+          <MdKeyboardArrowDown className={`dropdown-arrow ${isOpen ? "rotated" : ""}`} />
         </div>
-        <div className="erect-header-buttons">
-          <button
-            className="erect-button-giraffe erect-move-to-alignment-btn"
-            onClick={handleMoveToAlignment}
-            disabled={filteredData.length === 0}
-          >
-            <span>Completed</span>
+
+        {isOpen && (
+          <div className="dropdown-menu">
+            <div className="dropdown-option select-all">
+              <label className="option-label">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={() => handleSelectAll(options, selectedValues, setSelectedValues)}
+                  className="option-checkbox"
+                />
+                <span className="option-text">{allSelected ? "Deselect All" : "Select All"}</span>
+              </label>
+            </div>
+            <div className="dropdown-separator"></div>
+            <div className="options-list">
+              {options.map((option, index) => (
+                <div key={`${dropdownName}_${index}`} className="dropdown-option">
+                  <label className="option-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedValues.includes(option)}
+                      onChange={() => handleCheckboxChange(option, selectedValues, setSelectedValues)}
+                      className="option-checkbox"
+                    />
+                    <span className="option-text">{option}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="main-container">
+      {/* Header */}
+      <div className="header-section">
+        <div className="header-title">
+          <h1>Search for Erection Details</h1>
+        </div>
+        <div className="header-buttons">
+          <button className="save-btn">
+            <MdFileDownload />
+            Download reports
+          </button>
+          <button className="completed-btn" onClick={handleMoveToAlignment} disabled={filteredData.length === 0}>
+            Completed
           </button>
         </div>
       </div>
 
       {/* Filter Section */}
-      <div className="erect-filter-section-zebra">
-        <div className="erect-filter-container-hippo">
-          <div className="erect-filter-row-rhino">
-            {/* Work Order Dropdown */}
-            <select
-              value={selectedWorkOrder}
-              onChange={(e) => setSelectedWorkOrder(e.target.value)}
-              className="erect-dropdown-cheetah"
-            >
-              <option value="">Select Work Order</option>
-              {workOrders.map((workOrder, index) => (
-                <option key={`work_order_${index}`} value={workOrder}>
-                  {workOrder}
-                </option>
-              ))}
-            </select>
+      <div className="filter-section">
+        <div className="filter-grid">
+          {/* Work Order Dropdown */}
+          {renderCustomDropdown(
+            "workOrder",
+            workOrders,
+            selectedWorkOrders,
+            setSelectedWorkOrders,
+            "Select Work Order",
+          )}
 
-            {/* Building Name (Plant Location) Dropdown */}
-            <select
-              value={selectedPlantLocation}
-              onChange={(e) => setSelectedPlantLocation(e.target.value)}
-              className="erect-dropdown-cheetah"
-            >
-              <option value="">Select Building Name</option>
-              {plantLocations.map((location, index) => (
-                <option key={`plant_location_${index}`} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
+          {/* Building Name Dropdown */}
+          {renderCustomDropdown(
+            "buildingName",
+            plantLocations,
+            selectedPlantLocations,
+            setSelectedPlantLocations,
+            "Select Building Name",
+          )}
 
-            {/* Drawing No Dropdown */}
-            <select
-              value={selectedDrawingNo}
-              onChange={(e) => setSelectedDrawingNo(e.target.value)}
-              className="erect-dropdown-cheetah"
-            >
-              <option value="">Select Drawing No</option>
-              {drawingNumbers.map((drawingNo, index) => (
-                <option key={`drawing_${index}`} value={drawingNo}>
-                  {drawingNo}
-                </option>
-              ))}
-            </select>
+          {/* Serial No Dropdown - Using Drawing Numbers */}
+          {renderCustomDropdown(
+            "drawingNo",
+            drawingNumbers,
+            selectedDrawingNos,
+            setSelectedDrawingNos,
+            "Select Drawing No",
+          )}
 
-            {/* Mark No Dropdown */}
-            <select
-              value={selectedMarkNo}
-              onChange={(e) => setSelectedMarkNo(e.target.value)}
-              className="erect-dropdown-cheetah"
-            >
-              <option value="">Select Mark No</option>
-              {markNumbers?.map((markNo, index) => (
-                <option key={`mark_${index}`} value={markNo}>
-                  {markNo}
-                </option>
-              ))}
-            </select>
+          {/* Drawing No Dropdown - Using Mark Numbers */}
+          {renderCustomDropdown("markNo", markNumbers, selectedMarkNos, setSelectedMarkNos, "Select Mark No")}
 
-            {/* Search Button */}
-            <button className="erect-search-button-leopard" onClick={handleSearch} disabled={loading}>
-              <span>Search</span>
-            </button>
+          {/* Mark No Dropdown - Empty for now */}
+           
+        </div>
+
+        <div className="filter-row-2">
+          {/* RA NO Field */}
+          <div className="ra-no-group">
+            <label className="ra-no-label">RA NO:</label>
+            <div className="ra-no-container">
+              <input
+                type="text"
+                value={filterRaNo}
+                onChange={(e) => setFilterRaNo(e.target.value)}
+                className="ra-no-input"
+                placeholder="Enter the RA NO"
+              />
+              <button
+                onClick={handleSaveFilterRaNo}
+                className="ra-no-save"
+                disabled={savingFilterRaNo}
+                title="Save RA NO"
+              >
+                {savingFilterRaNo ? <AiOutlineLoading3Quarters className="spinner" /> : <MdSave />}
+              </button>
+            </div>
           </div>
+
+          {/* Search Button */}
+          <button className="search-btn" onClick={handleSearch} disabled={loading}>
+            {loading ? (
+              <>
+                <AiOutlineLoading3Quarters className="spinner" />
+                Searching...
+              </>
+            ) : (
+              "Search"
+            )}
+          </button>
         </div>
       </div>
 
+      {/* Vendor Name Dropdown - Show only after search results */}
+      {showSearchResults && filteredData.length > 0 && (
+        <div className="vendor-section">
+          <select
+            value={selectedVendorName}
+            onChange={(e) => handleVendorChange(e.target.value)}
+            className="vendor-select"
+          >
+            <option value="">Select Vendor</option>
+            {vendorNames.map((vendor, index) => (
+              <option key={`vendor_${index}`} value={vendor}>
+                {vendor}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Selected Filters Display */}
-      {(selectedFilters.workOrder ||
-        selectedFilters.buildingName ||
-        selectedFilters.drawingNo ||
-        selectedFilters.markNo) && (
-        <div className="erect-selected-filters-section">
-          <div className="erect-selected-filters-container">
-            <h4>Selected Filters:</h4>
-            <div className="erect-selected-filters-grid">
-              {selectedFilters.workOrder && (
-                <div className="erect-filter-item">
-                  <span className="erect-filter-label">Work Order:</span>
-                  <span className="erect-filter-value">{selectedFilters.workOrder}</span>
+      {showSearchResults && (
+        <div className="selected-filters-section">
+          <div className="selected-filters-container">
+            <h4>Applied Filters:</h4>
+            <div className="selected-filters-grid">
+              {selectedFilters.raNo && (
+                <div className="filter-item">
+                  <span className="filter-label">RA NO:</span>
+                  <span className="filter-value">{selectedFilters.raNo}</span>
                 </div>
               )}
-              {selectedFilters.buildingName && (
-                <div className="erect-filter-item">
-                  <span className="erect-filter-label">Building Name:</span>
-                  <span className="erect-filter-value">{selectedFilters.buildingName}</span>
+              {selectedFilters.workOrders.length > 0 && (
+                <div className="filter-item">
+                  <span className="filter-label">Work Orders:</span>
+                  <span className="filter-value">{selectedFilters.workOrders.join(", ")}</span>
                 </div>
               )}
-              {selectedFilters.drawingNo && (
-                <div className="erect-filter-item">
-                  <span className="erect-filter-label">Drawing No:</span>
-                  <span className="erect-filter-value">{selectedFilters.drawingNo}</span>
+              {selectedFilters.buildingNames.length > 0 && (
+                <div className="filter-item">
+                  <span className="filter-label">Building Names:</span>
+                  <span className="filter-value">{selectedFilters.buildingNames.join(", ")}</span>
                 </div>
               )}
-              {selectedFilters.markNo && (
-                <div className="erect-filter-item">
-                  <span className="erect-filter-label">Mark No:</span>
-                  <span className="erect-filter-value">{selectedFilters.markNo}</span>
+              {selectedFilters.vendorName && (
+                <div className="filter-item">
+                  <span className="filter-label">Vendor Name:</span>
+                  <span className="filter-value">{selectedFilters.vendorName}</span>
                 </div>
               )}
             </div>
@@ -781,277 +662,55 @@ const ErectionDatabasesearch = () => {
       )}
 
       {/* Table Section */}
-      <div className="erect-table-container-lynx">
+      <div className="table-section">
         {loading && (
-          <div className="erect-loading-overlay-panther">
-            <div className="erect-loading-spinner-jaguar">
-              <AiOutlineLoading3Quarters />
+          <div className="loading-overlay">
+            <div className="loading-content">
+              <AiOutlineLoading3Quarters className="loading-spinner" />
+              <span>Loading...</span>
             </div>
-            <div className="erect-loading-text-cougar">Loading...</div>
           </div>
         )}
 
-        <div className="erect-table-wrapper-bear">
-          <table className="erect-table-wolf">
+        <div className="table-wrapper">
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Order #</th>
-                <th>RA NO</th>
-                <th>Total Mark Weight</th>
-                <th>Mark Wgt</th>
+                <th>Drawing No</th>
+                <th>Mark No</th>
+                <th>Mark Weight</th>
                 <th>Mark Qty</th>
-                <th>Item No</th>
-                <th>Section Code</th>
-                <th>Section Name</th>
-                <th>Section Weight</th>
-                <th>Width</th>
-                <th>Length</th>
-                <th>Item Qty</th>
-                <th>Item Weight</th>
                 <th>Total Item Weight</th>
-                <th>Status</th>
-
-                {/* Erection Process Columns */}
-                <th className="erect-process-header">Cutting</th>
-                <th className="erect-process-header">Fit Up</th>
-                <th className="erect-process-header">Welding</th>
-                <th className="erect-process-header">Finishing</th>
-                <th>Actions</th>
+                <th>Remarks</th>
               </tr>
             </thead>
             <tbody>
               {filteredData.map((row, index) => (
-                <tr key={`row_${index}`} className="erect-table-row-fox">
+                <tr key={`row_${index}`}>
                   <td>
-                    <div className="erect-order-icon-rabbit">
-                      <IoMdOpen />
-                    </div>
+                    <IoMdOpen className="order-icon" />
                   </td>
+                  <td>{row.drawingNo || "-"}</td>
+                  <td>{row.markNo || "-"}</td>
+                  <td>{formatNumber(row.markWeight)}</td>
+                  <td>{row.markedQty || "-"}</td>
+                  <td>{formatNumber(row.totalMarkedWgt)}</td>
                   <td>
-                    <div className="erect-ra-no-container">
-                      <input
-                        type="text"
-                        value={raNoValues[row.lineId] || ""}
-                        onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
-                        className="erect-ra-no-input"
-                        placeholder="Enter RA NO"
-                      />
-                      <button
-                        onClick={() => handleSaveRaNo(row.lineId)}
-                        className="erect-ra-no-save-icon"
-                        disabled={savingRaNo[row.lineId]}
-                        title="Save RA NO"
-                      >
-                        {savingRaNo[row.lineId] ? (
-                          <AiOutlineLoading3Quarters className="erect-saving-spinner" />
-                        ) : (
-                          <MdSave />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.totalMarkedWgt}
-                        onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.totalMarkedWgt)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.markWeight}
-                        onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.markWeight)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.markedQty}
-                        onChange={(e) => handleEditInputChange("markedQty", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      row.markedQty || "-"
-                    )}
-                  </td>
-                  <td>{row.attribute1N || "-"}</td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.sessionCode}
-                        className="erect-edit-input-deer erect-readonly-input"
-                        readOnly
-                      />
-                    ) : (
-                      row.sessionCode || "-"
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.sessionName}
-                        className="erect-edit-input-deer erect-readonly-input"
-                        readOnly
-                      />
-                    ) : (
-                      row.sessionName || "-"
-                    )}
-                  </td>
-                  <td>{formatNumber(row.sessionWeight)}</td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.width}
-                        onChange={(e) => handleEditInputChange("width", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.width)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.length}
-                        onChange={(e) => handleEditInputChange("length", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.length)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.itemQty}
-                        onChange={(e) => handleEditInputChange("itemQty", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.itemQty)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.itemWeight}
-                        onChange={(e) => handleEditInputChange("itemWeight", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.itemWeight)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.totalItemWeight}
-                        onChange={(e) => handleEditInputChange("totalItemWeight", e.target.value)}
-                        className="erect-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.totalItemWeight)
-                    )}
-                  </td>
-                  <td>
-                    <span className="erect-status-badge-moose">Erection</span>
-                  </td>
-
-                  {/* Erection Process Columns - Display fabrication stage status */}
-                  {ERECTION_STAGES.map((stage) => (
-                    <td key={`${row.lineId}_${stage}`} className="erect-process-cell">
-                      <div className="erect-checkbox-container">
-                        <input
-                          type="checkbox"
-                          id={`${row.lineId}_${stage}`}
-                          checked={erectionStages[row.lineId]?.[stage] || false}
-                          onChange={(e) => handleStageChange(row.lineId, stage, e.target.checked)}
-                          className="erect-process-checkbox"
-                          aria-label={`${STAGE_LABELS[stage]} for ${row.markNo || "item"}`}
-                        />
-                        <label
-                          htmlFor={`${row.lineId}_${stage}`}
-                          className="erect-checkbox-label"
-                          title={`Mark ${STAGE_LABELS[stage]} as ${erectionStages[row.lineId]?.[stage] ? "incomplete" : "complete"}`}
-                        />
-                      </div>
-                    </td>
-                  ))}
-
-                  <td>
-                    <div className="erect-actions-container-yak">
-                      {editingRow === row.lineId ? (
-                        <>
-                          <button
-                            onClick={handleSaveEdit}
-                            className="erect-action-button-elk erect-save-button-impala"
-                            title="Save"
-                          >
-                            <MdSave />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="erect-action-button-elk erect-cancel-button-bison"
-                            title="Cancel"
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEdit(row)}
-                            className="erect-action-button-elk erect-edit-button-impala"
-                            title="Modify"
-                          >
-                            <MdEdit />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row.lineId)}
-                            className="erect-action-button-elk erect-delete-button-bison"
-                            title="Delete"
-                          >
-                            <MdDelete />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <input
+                      type="text"
+                      value={remarks[`row_${index}`] || ""}
+                      onChange={(e) => handleRemarksChange(`row_${index}`, e.target.value)}
+                      className="remarks-input"
+                      placeholder="Enter remarks..."
+                    />
                   </td>
                 </tr>
               ))}
               {filteredData.length === 0 && !loading && (
-                <tr className="erect-empty-row-camel">
-                  <td colSpan="20">
-                    <div className="erect-empty-state-llama">
-                      <div className="erect-empty-text-alpaca">
-                        {selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedPlantLocation
-                          ? "No records found for the selected criteria."
-                          : "Please select filter criteria and click Search to view records."}
-                      </div>
-                    </div>
+                <tr>
+                  <td colSpan="7" className="empty-message">
+                    Please select Drawing No and/or Mark No and click Search to view records.
                   </td>
                 </tr>
               )}
@@ -1060,55 +719,79 @@ const ErectionDatabasesearch = () => {
         </div>
       </div>
 
+      {/* Progress Bar */}
+      <div className="progress-section">
+        <div className="progress-bar"></div>
+      </div>
+
+      {/* Total Calculations */}
+      {filteredData.length > 0 && (
+        <div className="totals-section">
+          <div className="total-item">
+            <span>Total Mark Weight: {formatNumber(calculateTotalMarkWeight())} kg</span>
+          </div>
+          <div className="total-item">
+            <span>Total Mark Weight (MT): {formatNumber(calculateTotalMarkWeight() / 1000)} MT</span>
+          </div>
+        </div>
+      )}
+
+      {/* Signature Section */}
+      <div className="signature-section">
+        <div className="signature-container">
+          <div className="company-info">
+            <h4>For Bellary Infotech Solutions</h4>
+          </div>
+          <div className="signature-space">
+            
+            <p>Authorized Signature</p>
+          </div>
+        </div>
+      </div>
+
       {/* Move to Alignment Popup */}
       {showMoveToAlignmentPopup && (
-        <div className="erect-popup-overlay-shark">
-          <div className="erect-popup-container-whale">
-            <div className="erect-popup-header-dolphin">
+        <div className="popup-overlay">
+          <div className="popup-container">
+            <div className="popup-header">
               <h3>Mark No.</h3>
-              <button onClick={() => setShowMoveToAlignmentPopup(false)} className="erect-popup-close-octopus">
+              <button onClick={() => setShowMoveToAlignmentPopup(false)} className="popup-close">
                 ✕
               </button>
             </div>
-            <div className="erect-popup-content-squid">
-              <div className="erect-multiselect-container-jellyfish">
-                <div className="erect-multiselect-label-starfish">Select Mark No(s):</div>
-                <div className="erect-multiselect-options-seahorse">
-                  {availableMarkNosForAlignment.map((markNo, index) => (
-                    <label key={`popup_mark_${index}`} className="erect-checkbox-label-crab">
-                      <input
-                        type="checkbox"
-                        checked={selectedMarkNosForAlignment.includes(markNo)}
-                        onChange={() => handleMarkNoSelection(markNo)}
-                        className="erect-checkbox-input-lobster"
-                      />
-                      <span className="erect-checkbox-text-shrimp">{markNo}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="popup-content">
+              <div className="popup-label">Select Mark No(s):</div>
+              <div className="popup-options">
+                {availableMarkNosForAlignment.map((markNo, index) => (
+                  <label key={`popup_mark_${index}`} className="popup-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedMarkNosForAlignment.includes(markNo)}
+                      onChange={() => handleMarkNoSelection(markNo)}
+                    />
+                    <span>{markNo}</span>
+                  </label>
+                ))}
               </div>
             </div>
-            <div className="erect-popup-actions-turtle">
-              <button
-                onClick={() => setShowMoveToAlignmentPopup(false)}
-                className="erect-popup-button-seal erect-cancel-button-walrus"
-              >
+            <div className="popup-actions">
+              <button onClick={() => setShowMoveToAlignmentPopup(false)} className="cancel-btn">
                 Cancel
               </button>
               <button
                 onClick={handleSaveToAlignment}
-                className="erect-popup-button-seal erect-save-button-penguin"
+                className="save-popup-btn"
                 disabled={loading || selectedMarkNosForAlignment.length === 0}
               >
                 {loading ? (
                   <>
-                    <AiOutlineLoading3Quarters className="erect-spin-icon-polar" />
-                    <span>Saving...</span>
+                    <AiOutlineLoading3Quarters className="spinner" />
+                    Saving...
                   </>
                 ) : (
                   <>
                     <MdSave />
-                    <span>Save</span>
+                    Save
                   </>
                 )}
               </button>
@@ -1117,97 +800,17 @@ const ErectionDatabasesearch = () => {
         </div>
       )}
 
-      <ToastContainer />
-
-      <style jsx>{`
-        /* RA NO Container Styles */
-        .erect-ra-no-container {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          width: 100%;
-        }
-
-        .erect-ra-no-input {
-          flex: 1;
-          padding: 6px 10px;
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          font-size: 14px;
-          background-color: #ffffff;
-          transition: border-color 0.2s ease;
-          min-width: 120px;
-        }
-
-        .erect-ra-no-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-
-        .erect-ra-no-input::placeholder {
-          color: #9ca3af;
-          font-style: italic;
-        }
-
-        .erect-ra-no-save-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 32px;
-          height: 32px;
-          background-color: #10b981;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 14px;
-        }
-
-        .erect-ra-no-save-icon:hover:not(:disabled) {
-          background-color: #059669;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .erect-ra-no-save-icon:disabled {
-          background-color: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .erect-saving-spinner {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .erect-ra-no-container {
-            flex-direction: column;
-            gap: 4px;
-          }
-
-          .erect-ra-no-input {
-            min-width: 100px;
-          }
-
-          .erect-ra-no-save-icon {
-            width: 28px;
-            height: 28px;
-            font-size: 12px;
-          }
-        }
-      `}</style>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   )
 }

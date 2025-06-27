@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react"
-import { IoMdOpen } from "react-icons/io"
-import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { MdSave, MdEdit, MdDelete } from "react-icons/md"
-import { toast } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import { ToastContainer } from "react-toastify"
-import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
-import "../DeleteComponent/DeleteDesign.css"
-import "../FabricationNewComponent/FabricationDatabasesearch.css"
+import { useState, useEffect } from "react";
+import { IoMdOpen } from "react-icons/io";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { MdSave, MdEdit, MdDelete } from "react-icons/md";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+import DeleteConfirm from "../DeleteComponent/DeleteConfirm";
+import "../DeleteComponent/DeleteDesign.css";
+import "../FabricationNewComponent/FabricationDatabasesearch.css";
 
 const FabricationDatabasesearch = () => {
   // API Base URL
