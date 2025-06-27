@@ -5,6 +5,7 @@ import { MdSave, MdKeyboardArrowDown } from "react-icons/md";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { IoMdOpen } from "react-icons/io";
+import { MdFileDownload } from "react-icons/md";
 import "../AlignmentNewComponent/alignment-database-search.css";
 
 const AlignmentDatabasesearch = () => {
@@ -527,8 +528,8 @@ const AlignmentDatabasesearch = () => {
         </div>
         <div className="header-buttons">
           <button className="save-btn">
-            <MdSave />
-            Save
+            <MdFileDownload />  
+            Download report
           </button>
           <button className="completed-btn" onClick={handleMoveToBilling} disabled={filteredData.length === 0}>
             Completed
