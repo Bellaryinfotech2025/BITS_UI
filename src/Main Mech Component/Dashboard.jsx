@@ -118,12 +118,13 @@ const MainDashboard = () => {
     drawingentry: [], // No submenus for Drawing Entry
     // orders: ["Orders", "Lines", "Fabrication", "Erection", "Alignment", "Billing"],
     rawmaterialentry:[], //for raw material entry
-    fabrication: [], // No submenus for Fabrication
-    erection: [], // No submenus for Fabrication
-    alignment: [], // No submenus for Fabrication
-    billing: [], // No submenus for Fabrication
-    reports: [], // No submenus for Fabrication
-    invoices: [], // No submenus for Fabrication
+    fabrication: [], //   for Fabrication
+    erection: [], //   for Fabrication
+    alignment: [], //   for Fabrication
+    painting :[],//for the painting page 
+    billing: [], //   for Fabrication
+    reports: [], //   for Fabrication
+    invoices: [], //   for Fabrication
     
     LedgerCreation: [], // No submenus for Fabrication
   }
@@ -400,6 +401,8 @@ const MainDashboard = () => {
         return <Sliders size={20} />
       case "billing":
         return <CreditCard size={20} />
+        case "painting":
+          return <CreditCard size={20}/>
       case "reports":
         return <FileText size={20} />
       case "invoices":
@@ -450,6 +453,10 @@ const MainDashboard = () => {
     // Handle Alignment
     if (activeMenu === "alignment") {
       return <AlignmentDatabasesearch />
+    }
+
+    if(activeMenu ==="painting"){
+      return <AlignmentDatabasesearch/>
     }
 
     // Handle Billing
@@ -622,6 +629,17 @@ const MainDashboard = () => {
             <li>
               <a
                 href="#"
+                className={`nav-link ${activeMenu === "painting" ? "active" : ""}`}
+                onClick={(e) => handleLinkClick(e, "painting")}
+              >
+                {getMenuIcon("alignment")}
+                {!sidebarCollapsed && <span>Painting</span>}
+              </a>
+            </li>
+
+            <li>
+              <a
+                href="#"
                 className={`nav-link ${activeMenu === "billing" ? "active" : ""}`}
                 onClick={(e) => handleLinkClick(e, "billing")}
               >
@@ -726,6 +744,7 @@ const MainDashboard = () => {
               {activeMenu === "fabrication" && "Fabrication"}
               {activeMenu === "erection" && "Erection"}
               {activeMenu === "alignment" && "Alignment"}
+              {activeMenu === "painting" && "Painting"}
               {activeMenu === "billing" && "Billing"}
               {activeMenu === "reports" && "Reports"}
               {activeMenu === "invoices" && "Invoices"}
