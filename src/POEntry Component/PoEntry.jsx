@@ -7,7 +7,7 @@ import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import "../POEntry Component/PoEntry.css"
 
-const API_BASE_URL = "http://195.35.45.56:8888/api/V2.0"
+const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
 const POEntry = ({ onClose }) => {
   // Bits Header Table State
