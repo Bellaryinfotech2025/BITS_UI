@@ -4,7 +4,6 @@ import { FaFileInvoice, FaTimes, FaSearch } from "react-icons/fa"
 import { MdOutlineFileDownload } from "react-icons/md"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import RatingPopup from "../InvoiceComponent/RatingPopup"
 import "../InvoiceComponent/Invoice.css"
 
 const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
@@ -171,7 +170,7 @@ const Invoice = () => {
       console.log("Fetching details for workOrder:", workOrder, "customerId:", customerId)
 
       const response = await axios.get(`${API_BASE_URL}/getWorkOrderWithCustomer/details`, {
-        params: { workOrder, customerId },
+        params: { workOrder: encodeURIComponent(workOrder), customerId },
       })
 
       console.log("API Response:", response.data)
@@ -206,7 +205,9 @@ const Invoice = () => {
 
     setLoading(true)
     try {
-      const workOrderResponse = await axios.get(`${API_BASE_URL}/getworkorder/number/${selectedWorkOrder}`)
+      const workOrderResponse = await axios.get(
+        `${API_BASE_URL}/getworkorder/number/${encodeURIComponent(selectedWorkOrder)}`,
+      )
       const orderId = workOrderResponse.data.orderId
 
       const invoiceResponse = await axios.get(`${API_BASE_URL}/getInvoiceData/details?orderId=${orderId}`)
@@ -833,7 +834,6 @@ const Invoice = () => {
                     <tr>
                         <th>SL NO.</th>
                         <th>DESCRIPTION OF SUPPLY</th>
-                        <th>SAC CODE</th>
                         <th>UOM</th>
                         <th>Qty</th>
                         <th>Rate/ Rs.</th>
@@ -848,8 +848,7 @@ const Invoice = () => {
                               (item, index) => `
                             <tr>
                                 <td>${item.serNo || index + 1}</td>
-                                <td>${item.serviceDesc || item.serviceCode || ""}</td>
-                                <td>${item.serviceCode || ""}</td>
+                                <td>${item.serviceCode ? `(${item.serviceCode}) ` : ""}${item.serviceDesc || ""}</td>
                                 <td>${item.uom || ""}</td>
                                 <td>${item.qty || ""}</td>
                                 <td>${formatCurrency(item.unitPrice)}</td>
@@ -862,7 +861,6 @@ const Invoice = () => {
                             { length: 4 },
                             (_, index) => `
                             <tr>
-                                <td>&nbsp;</td>
                                 <td>&nbsp;</td>
                                 <td>&nbsp;</td>
                                 <td>&nbsp;</td>
@@ -1220,7 +1218,6 @@ const Invoice = () => {
           <h3>Search Criteria</h3>
           <p>Select your search parameters</p>
         </div>
-
         <div className="search-form">
           {/* Work Order Dropdown */}
           <div className="form-field">
@@ -1373,7 +1370,6 @@ const Invoice = () => {
           <h3>Invoice Data</h3>
           {invoiceData.length > 0 && <span className="record-count">{invoiceData.length} records found</span>}
         </div>
-
         <div className="table-wrapper">
           <table className="modern-table">
             <thead>
@@ -1403,7 +1399,6 @@ const Invoice = () => {
                   </tr>
                 ))
               ) : (
-                 
                 <tr>
                   <td colSpan="7" className="empty-state">
                     <div className="empty-content">
@@ -1416,9 +1411,7 @@ const Invoice = () => {
                       </p>
                     </div>
                   </td>
-                 
                 </tr>
-                
               )}
             </tbody>
             {invoiceData.length > 0 && (
@@ -1471,21 +1464,9 @@ const Invoice = () => {
         </div>
       </div>
 
-      {/* Amount in Words Card */}
-      {/* {invoiceData.length > 0 && (
-        <div className="amount-words-card">
-          <div className="card-header">
-            <h3>Amount in Words</h3>
-          </div>
-          <div className="words-content">{numberToWords(calculateTotalAfterTax())}</div>
-        </div>
-      )} */}
-
       {/* Invoice Summary Card */}
       {invoiceData.length > 0 && (
         <div className="summary-card">
-          
-
           <div className="summary-form">
             <div className="form-row full-width">
               <div className="form-group">
@@ -1499,7 +1480,6 @@ const Invoice = () => {
                 />
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Prepared By</label>
@@ -1511,7 +1491,6 @@ const Invoice = () => {
                   className="form-input"
                 />
               </div>
-
               <div className="form-group">
                 <label className="form-label">Checked By</label>
                 <input
@@ -1523,7 +1502,6 @@ const Invoice = () => {
                 />
               </div>
             </div>
-
             <div className="signature-area">
               <div className="signature-box">
                 <div className="signature-label">Signature of Authorized Agent</div>
@@ -1611,7 +1589,7 @@ const Invoice = () => {
         </div>
       )}
 
-      <RatingPopup isOpen={showRatingPopup} onClose={() => setShowRatingPopup(false)} onSubmit={handleRatingSubmit} />
+      
 
       <ToastContainer
         position="top-right"

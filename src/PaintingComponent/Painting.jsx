@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react"
-import { IoMdOpen } from "react-icons/io"
-import { AiOutlineLoading3Quarters } from "react-icons/ai"
-import { MdSave, MdEdit, MdDelete } from "react-icons/md"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import "../AlignmentNewComponent/AlignmentDatabasesearch.css"
+ 
+import { useState, useEffect, useRef } from "react";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { MdSave, MdKeyboardArrowDown } from "react-icons/md";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { IoMdOpen } from "react-icons/io";
+import { MdFileDownload } from "react-icons/md";
+import "../AlignmentNewComponent/alignment-database-search.css";
 
 const PaintingDatabasesearch = () => {
   // API Base URL
@@ -17,21 +19,38 @@ const PaintingDatabasesearch = () => {
   const [filteredData, setFilteredData] = useState([])
   const [drawingNumbers, setDrawingNumbers] = useState([])
   const [markNumbers, setMarkNumbers] = useState([])
-  const [workOrders, setWorkOrders] = useState([]) // NEW: Work Orders from erection
-  const [buildingNames, setBuildingNames] = useState([]) // NEW: Building Names from erection
+  const [workOrders, setWorkOrders] = useState([])
+  const [plantLocations, setPlantLocations] = useState([])
+  const [vendorNames, setVendorNames] = useState([])
 
-  // Filter states
-  const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
-  const [selectedMarkNo, setSelectedMarkNo] = useState("")
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState("") // NEW: Work Order filter
-  const [selectedBuildingName, setSelectedBuildingName] = useState("") // NEW: Building Name filter
+  // Filter states - Modified for multiple selections
+  const [selectedDrawingNos, setSelectedDrawingNos] = useState([])
+  const [selectedMarkNos, setSelectedMarkNos] = useState([])
+  const [selectedWorkOrders, setSelectedWorkOrders] = useState([])
+  const [selectedPlantLocations, setSelectedPlantLocations] = useState([])
+  const [selectedVendorName, setSelectedVendorName] = useState("")
+
+  // Dropdown open states
+  const [dropdownStates, setDropdownStates] = useState({
+    workOrder: false,
+    buildingName: false,
+    drawingNo: false,
+    markNo: false,
+    vendor: false,
+  })
+
+  // RA NO state for filter section
+  const [filterRaNo, setFilterRaNo] = useState("")
+  const [savingFilterRaNo, setSavingFilterRaNo] = useState(false)
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
-    workOrder: "",
-    buildingName: "",
-    drawingNo: "",
-    markNo: "",
+    workOrders: [],
+    buildingNames: [],
+    drawingNos: [],
+    markNos: [],
+    raNo: "",
+    vendorName: "",
   })
 
   // Move to Billing popup states
@@ -39,257 +58,84 @@ const PaintingDatabasesearch = () => {
   const [selectedMarkNosForBilling, setSelectedMarkNosForBilling] = useState([])
   const [availableMarkNosForBilling, setAvailableMarkNosForBilling] = useState([])
 
-  // Edit states
-  const [editingRow, setEditingRow] = useState(null)
-  const [editFormData, setEditFormData] = useState({})
+  // Show search results flag
+  const [showSearchResults, setShowSearchResults] = useState(false)
 
-  // RA NO edit states - NEW
-  const [editingRaNo, setEditingRaNo] = useState({}) // Track which RA NO fields are being edited
-  const [raNoValues, setRaNoValues] = useState({}) // Track RA NO input values
-  const [savingRaNo, setSavingRaNo] = useState({}) // Track which RA NO fields are being saved
+  // Remarks state for each row
+  const [remarks, setRemarks] = useState({})
 
-  // Alignment process states - tracks checkbox states for each row
-  const [alignmentStages, setAlignmentStages] = useState({})
-
-  // Alignment stages in order
-  const ALIGNMENT_STAGES = ["cutting", "fitUp", "welding", "finishing"]
-  const STAGE_LABELS = {
-    cutting: "Cutting",
-    fitUp: "Fit Up",
-    welding: "Welding",
-    finishing: "Finishing",
+  // Refs for dropdown click outside detection
+  const dropdownRefs = {
+    workOrder: useRef(null),
+    buildingName: useRef(null),
+    drawingNo: useRef(null),
+    markNo: useRef(null),
+    vendor: useRef(null),
   }
 
-  // Backend field mapping
-  const STAGE_FIELD_MAPPING = {
-    cutting: "cuttingStage",
-    fitUp: "fitUpStage",
-    welding: "weldingStage",
-    finishing: "finishingStage",
-  }
-
-  // Initialize alignment stages for a row from backend data
-  const initializeAlignmentStagesFromData = (lineId, rowData) => {
-    setAlignmentStages((prev) => ({
-      ...prev,
-      [lineId]: {
-        cutting: rowData.cuttingStage === "Y",
-        fitUp: rowData.fitUpStage === "Y",
-        welding: rowData.weldingStage === "Y",
-        finishing: rowData.finishingStage === "Y",
-      },
-    }))
-  }
-
-  // Initialize RA NO values from data - NEW
-  const initializeRaNoFromData = (lineId, raNo) => {
-    setRaNoValues((prev) => ({
-      ...prev,
-      [lineId]: raNo || "",
-    }))
-  }
-
-  // Handle RA NO input change - NEW
-  const handleRaNoInputChange = (lineId, value) => {
-    setRaNoValues((prev) => ({
-      ...prev,
-      [lineId]: value,
-    }))
-  }
-
-  // Handle RA NO save - NEW
-  const handleSaveRaNo = async (lineId) => {
-    try {
-      setSavingRaNo((prev) => ({ ...prev, [lineId]: true }))
-
-      const raNoValue = raNoValues[lineId] || ""
-
-      // Prepare update data with only RA NO field
-      const updateData = {
-        raNo: raNoValue.trim() || null,
-        lastUpdatedBy: "system",
-      }
-
-      console.log(`Updating RA NO for lineId ${lineId}:`, updateData)
-
-      const response = await fetch(`${API_BASE_URL}/updateAlignmentDrawingEntry/details?lineId=${lineId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      Object.keys(dropdownRefs).forEach((key) => {
+        if (dropdownRefs[key].current && !dropdownRefs[key].current.contains(event.target)) {
+          setDropdownStates((prev) => ({ ...prev, [key]: false }))
+        }
       })
-
-      if (response.ok) {
-        toast.success("RA NO updated successfully!")
-        
-        // Update the table data with new RA NO value
-        setTableData((prev) =>
-          prev.map((row) =>
-            row.lineId === lineId ? { ...row, raNo: raNoValue.trim() || null } : row
-          )
-        )
-        setFilteredData((prev) =>
-          prev.map((row) =>
-            row.lineId === lineId ? { ...row, raNo: raNoValue.trim() || null } : row
-          )
-        )
-
-        // Exit edit mode for this RA NO field
-        setEditingRaNo((prev) => ({ ...prev, [lineId]: false }))
-      } else {
-        const errorText = await response.text()
-        console.error("RA NO update failed:", errorText)
-        toast.error(`Failed to update RA NO: ${errorText}`)
-      }
-    } catch (error) {
-      console.error("Error updating RA NO:", error)
-      toast.error("Error updating RA NO: " + error.message)
-    } finally {
-      setSavingRaNo((prev) => ({ ...prev, [lineId]: false }))
     }
-  }
 
-  // Handle RA NO edit mode toggle - NEW
-  const handleEditRaNo = (lineId, currentValue) => {
-    setEditingRaNo((prev) => ({ ...prev, [lineId]: true }))
-    setRaNoValues((prev) => ({ ...prev, [lineId]: currentValue || "" }))
-  }
-
-  // Handle RA NO cancel edit - NEW
-  const handleCancelRaNoEdit = (lineId, originalValue) => {
-    setEditingRaNo((prev) => ({ ...prev, [lineId]: false }))
-    setRaNoValues((prev) => ({ ...prev, [lineId]: originalValue || "" }))
-  }
-
-  // Handle alignment stage checkbox change with sequential logic
-  const handleStageChange = (lineId, stage, checked) => {
-    setAlignmentStages((prev) => {
-      const currentStages = prev[lineId] || {
-        cutting: false,
-        fitUp: false,
-        welding: false,
-        finishing: false,
-      }
-
-      const newStages = { ...currentStages }
-      const stageIndex = ALIGNMENT_STAGES.indexOf(stage)
-
-      if (checked) {
-        // If checking a stage, automatically check all previous stages
-        for (let i = 0; i <= stageIndex; i++) {
-          newStages[ALIGNMENT_STAGES[i]] = true
-        }
-      } else {
-        // If unchecking a stage, automatically uncheck all subsequent stages
-        for (let i = stageIndex; i < ALIGNMENT_STAGES.length; i++) {
-          newStages[ALIGNMENT_STAGES[i]] = false
-        }
-      }
-
-      return {
-        ...prev,
-        [lineId]: newStages,
-      }
-    })
-  }
-
-  // Save alignment stages to backend
-  const handleSaveAlignmentStages = async () => {
-    try {
-      setSaving(true)
-
-      // Prepare alignment stage updates
-      const alignmentUpdates = Object.keys(alignmentStages).map((lineId) => {
-        const stages = alignmentStages[lineId]
-        return {
-          lineId: Number.parseInt(lineId), // CONVERT TO LONG INTEGER
-          cuttingStage: stages.cutting ? "Y" : "N",
-          fitUpStage: stages.fitUp ? "Y" : "N",
-          weldingStage: stages.welding ? "Y" : "N",
-          finishingStage: stages.finishing ? "Y" : "N",
-        }
-      })
-
-      if (alignmentUpdates.length === 0) {
-        toast.warning("No alignment stages to save")
-        return
-      }
-
-      console.log("Saving alignment stages:", alignmentUpdates)
-
-      const response = await fetch(`${API_BASE_URL}/updateAlignmentStages/details`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          alignmentStages: alignmentUpdates,
-        }),
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(`Successfully updated alignment stages for ${result.updatedCount} entries!`)
-
-        // Refresh data to get updated values
-        if (selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedBuildingName) {
-          handleSearch()
-        }
-      } else {
-        const errorText = await response.text()
-        console.error("Save alignment stages failed:", errorText)
-        toast.error(`Failed to save alignment stages: ${errorText}`)
-      }
-    } catch (error) {
-      console.error("Error saving alignment stages:", error)
-      toast.error("Error saving alignment stages: " + error.message)
-    } finally {
-      setSaving(false)
-    }
-  }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData()
+    fetchVendorNames()
   }, [])
 
-  // Fetch dropdown data for all filters
+  // Fetch dropdown data for Drawing No, Mark No, Work Order, and Plant Location
   const fetchDropdownData = async () => {
     try {
       setLoading(true)
 
-      // NEW: Fetch Work Orders that were moved from erection (have order_id)
-      const workOrderResponse = await fetch(`${API_BASE_URL}/getDistinctErectionWorkOrders/details`)
-      if (workOrderResponse.ok) {
-        const workOrderData = await workOrderResponse.json()
-        setWorkOrders(workOrderData || [])
-        console.log("Work Orders from erection:", workOrderData)
-      }
-
-      // NEW: Fetch Building Names that were moved from erection (have ra_no)
-      const buildingResponse = await fetch(`${API_BASE_URL}/getDistinctErectionPlantLocations/details`)
-      if (buildingResponse.ok) {
-        const buildingData = await buildingResponse.json()
-        setBuildingNames(buildingData || [])
-        console.log("Building Names from erection:", buildingData)
-      }
-
-      // Fetch distinct drawing numbers
+      // Fetch distinct drawing numbers from alignment entries
       const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryDrawingNumbers/details`)
       if (drawingResponse.ok) {
         const drawingData = await drawingResponse.json()
         setDrawingNumbers(drawingData || [])
-        console.log("Drawing Numbers:", drawingData)
       }
 
-      // Fetch distinct mark numbers
+      // Fetch distinct mark numbers from alignment entries
       const markResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryMarkNumbers/details`)
       if (markResponse.ok) {
         const markData = await markResponse.json()
         setMarkNumbers(markData || [])
         setAvailableMarkNosForBilling(markData || [])
-        console.log("Mark Numbers:", markData)
+      }
+
+      // Get work orders and plant locations from alignment entries
+      const allAlignmentResponse = await fetch(`${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`)
+      if (allAlignmentResponse.ok) {
+        const allAlignmentData = await allAlignmentResponse.json()
+
+        // Extract unique work orders from attribute1V
+        const uniqueWorkOrders = [
+          ...new Set(
+            allAlignmentData
+              .map((entry) => entry.attribute1V)
+              .filter((workOrder) => workOrder && workOrder.trim() !== ""),
+          ),
+        ].sort()
+
+        // Extract unique plant locations from attribute2V
+        const uniquePlantLocations = [
+          ...new Set(
+            allAlignmentData.map((entry) => entry.attribute2V).filter((location) => location && location.trim() !== ""),
+          ),
+        ].sort()
+
+        setWorkOrders(uniqueWorkOrders)
+        setPlantLocations(uniquePlantLocations)
       }
     } catch (error) {
       console.error("Error fetching dropdown data:", error)
@@ -299,222 +145,218 @@ const PaintingDatabasesearch = () => {
     }
   }
 
+  // Fetch vendor names
+  const fetchVendorNames = async () => {
+    try {
+      const response = await fetch("http://195.35.45.56:5522/api/vendor-profile")
+      if (response.ok) {
+        const vendorData = await response.json()
+        const companyNames = vendorData
+          .filter((vendor) => vendor.status === "ACTIVE")
+          .map((vendor) => vendor.companyName)
+          .sort()
+        setVendorNames(companyNames)
+      }
+    } catch (error) {
+      console.error("Error fetching vendor names:", error)
+    }
+  }
+
+  // Toggle dropdown
+  const toggleDropdown = (dropdownName) => {
+    setDropdownStates((prev) => {
+      const newState = { ...prev }
+      // Close all other dropdowns
+      Object.keys(newState).forEach((key) => {
+        newState[key] = key === dropdownName ? !prev[dropdownName] : false
+      })
+      return newState
+    })
+  }
+
+  // Handle checkbox selection
+  const handleCheckboxChange = (value, currentSelections, setSelections) => {
+    if (currentSelections.includes(value)) {
+      setSelections(currentSelections.filter((item) => item !== value))
+    } else {
+      setSelections([...currentSelections, value])
+    }
+  }
+
+  // Handle select all
+  const handleSelectAll = (options, currentSelections, setSelections) => {
+    if (currentSelections.length === options.length) {
+      setSelections([])
+    } else {
+      setSelections([...options])
+    }
+  }
+
+  // Add this function to handle vendor selection
+  const handleVendorChange = (vendorName) => {
+    setSelectedVendorName(vendorName)
+    if (showSearchResults) {
+      setSelectedFilters((prev) => ({
+        ...prev,
+        vendorName: vendorName,
+      }))
+    }
+  }
+
   // Handle search button click
   const handleSearch = async () => {
-    if (!selectedDrawingNo && !selectedMarkNo && !selectedWorkOrder && !selectedBuildingName) {
-      toast.warning("Please select at least one filter to search")
+    if (
+      selectedDrawingNos.length === 0 &&
+      selectedMarkNos.length === 0 &&
+      selectedWorkOrders.length === 0 &&
+      selectedPlantLocations.length === 0
+    ) {
+      toast.warning("Please select at least one filter criteria to search")
       return
     }
 
     try {
       setLoading(true)
 
-      // Build search URL with parameters
-      let searchUrl = `${API_BASE_URL}/searchAlignmentDrawingEntries/details?`
-      const params = new URLSearchParams()
-
-      if (selectedDrawingNo) {
-        params.append("drawingNo", selectedDrawingNo)
-      }
-      if (selectedMarkNo) {
-        params.append("markNo", selectedMarkNo)
-      }
-      // NEW: Add Work Order and Building Name filters
-      if (selectedWorkOrder) {
-        params.append("orderId", selectedWorkOrder)
-      }
-      if (selectedBuildingName) {
-        params.append("raNo", selectedBuildingName)
-      }
-
-      // Add pagination parameters
-      params.append("page", "0")
-      params.append("size", "1000")
-      params.append("sortBy", "creationDate")
-      params.append("sortDir", "desc")
-
-      searchUrl += params.toString()
-
-      console.log("Search URL:", searchUrl)
-
+      const searchUrl = `${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`
       const response = await fetch(searchUrl)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const contentType = response.headers.get("content-type")
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Response is not JSON")
+      const allData = await response.json()
+
+      // Filter the data based on selected criteria using AND logic
+      let filteredResults = allData
+
+      // Apply Work Order filter (attribute1V)
+      if (selectedWorkOrders.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedWorkOrders.includes(item.attribute1V))
       }
 
-      const result = await response.json()
-      console.log("Search result:", result)
+      // Apply Building Name filter (attribute2V)
+      if (selectedPlantLocations.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedPlantLocations.includes(item.attribute2V))
+      }
 
-      // Handle paginated response
-      const data = result.content || result || []
+      // Apply Drawing No filter
+      if (selectedDrawingNos.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedDrawingNos.includes(item.drawingNo))
+      }
 
-      setTableData(data)
-      setFilteredData(data)
+      // Apply Mark No filter
+      if (selectedMarkNos.length > 0) {
+        filteredResults = filteredResults.filter((item) => selectedMarkNos.includes(item.markNo))
+      }
+
+      setTableData(filteredResults)
+      setFilteredData(filteredResults)
+      setShowSearchResults(true)
+
+      // Initialize remarks for new results
+      const newRemarks = {}
+      filteredResults.forEach((row, index) => {
+        newRemarks[`row_${index}`] = ""
+      })
+      setRemarks(newRemarks)
 
       // Set selected filter values for display
       setSelectedFilters({
-        workOrder: selectedWorkOrder,
-        buildingName: selectedBuildingName,
-        drawingNo: selectedDrawingNo,
-        markNo: selectedMarkNo,
+        workOrders: selectedWorkOrders,
+        buildingNames: selectedPlantLocations,
+        drawingNos: selectedDrawingNos,
+        markNos: selectedMarkNos,
+        raNo: filterRaNo,
+        vendorName: selectedVendorName,
       })
 
-      // Initialize alignment stages and RA NO values for all rows
-      data.forEach((row) => {
-        initializeAlignmentStagesFromData(row.lineId, row)
-        initializeRaNoFromData(row.lineId, row.raNo) // NEW: Initialize RA NO values
-      })
-
-      toast.info(`Found ${data.length} records`)
+      toast.info(`Found ${filteredResults.length} records`)
     } catch (error) {
       console.error("Error searching data:", error)
       toast.error(`Error searching data: ${error.message}`)
       setTableData([])
       setFilteredData([])
-      setSelectedFilters({
-        workOrder: "",
-        buildingName: "",
-        drawingNo: "",
-        markNo: "",
-      })
+      setShowSearchResults(false)
     } finally {
       setLoading(false)
     }
   }
 
-  // Clear all filters
-  const handleClearFilters = () => {
-    setSelectedWorkOrder("")
-    setSelectedBuildingName("")
-    setSelectedDrawingNo("")
-    setSelectedMarkNo("")
-    setTableData([])
-    setFilteredData([])
-    setSelectedFilters({
-      workOrder: "",
-      buildingName: "",
-      drawingNo: "",
-      markNo: "",
-    })
-    setAlignmentStages({})
-    setRaNoValues({}) // NEW: Clear RA NO values
-    setEditingRaNo({}) // NEW: Clear RA NO edit states
-    toast.info("All filters cleared")
+  // Handle remarks change
+  const handleRemarksChange = (rowKey, value) => {
+    setRemarks((prev) => ({
+      ...prev,
+      [rowKey]: value,
+    }))
   }
 
-  // Handle edit button click
-  const handleEdit = (row) => {
-    setEditingRow(row.lineId)
-    setEditFormData({
-      drawingNo: row.drawingNo || "",
-      markNo: row.markNo || "",
-      markedQty: row.markedQty || "",
-      sessionCode: row.sessionCode || "",
-      sessionName: row.sessionName || "",
-      width: row.width || "",
-      length: row.length || "",
-      itemQty: row.itemQty || "",
-      itemWeight: row.itemWeight || "",
-      totalItemWeight: row.totalItemWeight || "",
-      drawingWeight: row.drawingWeight || "",
-      markWeight: row.markWeight || "",
-      totalMarkedWgt: row.totalMarkedWgt || "",
-      orderId: row.orderId || "", // NEW: Order ID
-      raNo: row.raNo || "", // NEW: RA NO
-    })
-  }
+  // Save RA NO for all selected entries
+  const handleSaveFilterRaNo = async () => {
+    if (!filterRaNo.trim()) {
+      toast.warning("Please enter RA NO before saving")
+      return
+    }
 
-  // Handle save edit
-  const handleSaveEdit = async () => {
+    if (filteredData.length === 0) {
+      toast.warning("No search results to update")
+      return
+    }
+
     try {
-      setLoading(true)
+      setSavingFilterRaNo(true)
 
-      // Prepare the update data with only the fields that can be updated
-      const updateData = {
-        drawingNo: editFormData.drawingNo,
-        markNo: editFormData.markNo,
-        markedQty: Number.parseFloat(editFormData.markedQty) || 0,
-        sessionCode: editFormData.sessionCode,
-        sessionName: editFormData.sessionName,
-        width: Number.parseFloat(editFormData.width) || 0,
-        length: Number.parseFloat(editFormData.length) || 0,
-        itemQty: Number.parseFloat(editFormData.itemQty) || 0,
-        itemWeight: Number.parseFloat(editFormData.itemWeight) || 0,
-        totalItemWeight: Number.parseFloat(editFormData.totalItemWeight) || 0,
-        drawingWeight: Number.parseFloat(editFormData.drawingWeight) || null,
-        markWeight: Number.parseFloat(editFormData.markWeight) || null,
-        totalMarkedWgt: Number.parseFloat(editFormData.totalMarkedWgt) || null,
-        orderId: editFormData.orderId ? Number.parseInt(editFormData.orderId) : null, // NEW: Order ID as Long
-        raNo: editFormData.raNo || null, // NEW: RA NO
-        lastUpdatedBy: "system",
+      let successCount = 0
+      for (const row of filteredData) {
+        try {
+          const updateData = {
+            raNo: filterRaNo.trim(),
+            lastUpdatedBy: "system",
+          }
+
+          const response = await fetch(`${API_BASE_URL}/updateAlignmentDrawingEntry/details?lineId=${row.lineId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateData),
+          })
+
+          if (response.ok) {
+            successCount++
+          }
+        } catch (error) {
+          console.error(`Error updating RA NO for line ID ${row.lineId}:`, error)
+        }
       }
 
-      console.log("Sending update data:", updateData)
+      if (successCount > 0) {
+        toast.success(`RA NO saved successfully for ${successCount} entries!`)
+        // Update the filtered data to show the new RA NO
+        const updatedData = filteredData.map((row) => ({
+          ...row,
+          raNo: filterRaNo,
+        }))
+        setFilteredData(updatedData)
+        setTableData(updatedData)
 
-      const response = await fetch(`${API_BASE_URL}/updateAlignmentDrawingEntry/details?lineId=${editingRow}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      })
-
-      if (response.ok) {
-        toast.success("Record updated successfully!")
-        setEditingRow(null)
-        setEditFormData({})
-        handleSearch() // Refresh data
+        // Update selected filters
+        setSelectedFilters((prev) => ({
+          ...prev,
+          raNo: filterRaNo,
+        }))
       } else {
-        const errorText = await response.text()
-        console.error("Update failed:", errorText)
-        toast.error(`Failed to update record: ${errorText}`)
+        toast.error("Failed to save RA NO for any entries")
       }
     } catch (error) {
-      console.error("Error updating record:", error)
-      toast.error("Error updating record: " + error.message)
+      console.error("Error saving RA NO:", error)
+      toast.error("Error saving RA NO: " + error.message)
     } finally {
-      setLoading(false)
+      setSavingFilterRaNo(false)
     }
   }
 
-  // Handle cancel edit
-  const handleCancelEdit = () => {
-    setEditingRow(null)
-    setEditFormData({})
-  }
-
-  // Handle delete
-  const handleDelete = async (lineId) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
-      try {
-        setLoading(true)
-
-        const response = await fetch(`${API_BASE_URL}/deleteAlignmentDrawingEntry/details?lineId=${lineId}`, {
-          method: "DELETE",
-        })
-
-        if (response.ok) {
-          toast.success("Record deleted successfully!")
-          handleSearch() // Refresh data
-        } else {
-          toast.error("Failed to delete record")
-        }
-      } catch (error) {
-        console.error("Error deleting record:", error)
-        toast.error("Error deleting record")
-      } finally {
-        setLoading(false)
-      }
-    }
-  }
-
-  // Handle Move to Billing button click
+  // Handle Move to Billing button click (Completed button)
   const handleMoveToBilling = () => {
     setShowMoveToBillingPopup(true)
   }
@@ -540,10 +382,7 @@ const PaintingDatabasesearch = () => {
     try {
       setLoading(true)
 
-      // Get ALL entries for selected mark numbers
       const entriesToMove = []
-
-      // For each selected mark number, find ALL entries with that mark number
       for (const markNo of selectedMarkNosForBilling) {
         const entries = tableData.filter((item) => item.markNo === markNo)
         entriesToMove.push(...entries)
@@ -554,7 +393,6 @@ const PaintingDatabasesearch = () => {
         return
       }
 
-      // Create billing entries with proper data format
       const billingEntries = entriesToMove.map((item) => ({
         drawingNo: item.drawingNo || "",
         markNo: item.markNo || "",
@@ -568,11 +406,12 @@ const PaintingDatabasesearch = () => {
         itemQty: item.itemQty || 0,
         itemWeight: item.itemWeight || 0,
         totalItemWeight: item.totalItemWeight || 0,
+        orderId: item.orderId || null,
+        raNo: item.raNo || "",
         tenantId: item.tenantId || "DEFAULT_TENANT",
         createdBy: "system",
         lastUpdatedBy: "system",
         status: "billing",
-        // Copy attributes
         attribute1V: item.attribute1V || null,
         attribute2V: item.attribute2V || null,
         attribute3V: item.attribute3V || null,
@@ -583,21 +422,14 @@ const PaintingDatabasesearch = () => {
         attribute3N: item.attribute3N || null,
         attribute4N: item.attribute4N || null,
         attribute5N: item.attribute5N || null,
-        // Copy new fields
         drawingWeight: item.drawingWeight || null,
         markWeight: item.markWeight || null,
-        orderId: item.orderId || null, // NEW: Order ID
-        raNo: item.raNo || null, // NEW: RA NO
-        // Copy fabrication stages
         cuttingStage: item.cuttingStage || "N",
         fitUpStage: item.fitUpStage || "N",
         weldingStage: item.weldingStage || "N",
         finishingStage: item.finishingStage || "N",
       }))
 
-      console.log("Moving to billing:", billingEntries)
-
-      // Call the billing API
       const response = await fetch(`${API_BASE_URL}/createBulkBillingDrawingEntries/details`, {
         method: "POST",
         headers: {
@@ -607,7 +439,6 @@ const PaintingDatabasesearch = () => {
       })
 
       if (response.ok) {
-        const result = await response.json()
         toast.success(`${entriesToMove.length} entries moved to Billing successfully!`)
         setShowMoveToBillingPopup(false)
         setSelectedMarkNosForBilling([])
@@ -624,40 +455,13 @@ const PaintingDatabasesearch = () => {
     }
   }
 
-  // Handle input change in edit form
-  const handleEditInputChange = (field, value) => {
-    setEditFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  // Format date for display (DD-MMMM-YYYY)
-  const formatDate = (dateString) => {
-    if (!dateString) return "-"
-    try {
-      const date = new Date(dateString)
-      const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ]
-      const day = date.getDate().toString().padStart(2, "0")
-      const month = months[date.getMonth()]
-      const year = date.getFullYear()
-      return `${day}-${month}-${year}`
-    } catch (error) {
-      return dateString
-    }
+  // Calculate total mark weight
+  const calculateTotalMarkWeight = () => {
+    const total = filteredData.reduce((sum, row) => {
+      const weight = Number.parseFloat(row.totalMarkedWgt) || 0
+      return sum + weight
+    }, 0)
+    return total
   }
 
   // Format number for display
@@ -666,128 +470,193 @@ const PaintingDatabasesearch = () => {
     return Number.parseFloat(value).toFixed(3)
   }
 
-  return (
-    <div className="align-container-mammoth">
-      {/* Header */}
-      <div className="align-header-elephant">
-        <div className="align-title-tiger">
-          <h3>Search for Painting Details</h3>
+  // Render custom dropdown with checkboxes
+  const renderCustomDropdown = (dropdownName, options, selectedValues, setSelectedValues, placeholder) => {
+    const isOpen = dropdownStates[dropdownName]
+    const allSelected = selectedValues.length === options.length && options.length > 0
+
+    return (
+      <div className="dropdown-container" ref={dropdownRefs[dropdownName]}>
+        <div className={`dropdown-select ${isOpen ? "open" : ""}`} onClick={() => toggleDropdown(dropdownName)}>
+          <span className="dropdown-text">
+            {selectedValues.length > 0 ? `${selectedValues.length} selected` : placeholder}
+          </span>
+          <MdKeyboardArrowDown className={`dropdown-arrow ${isOpen ? "rotated" : ""}`} />
         </div>
-        <div className="align-header-buttons">
-          <button
-            className="align-button-giraffe align-move-to-billing-btn"
-            onClick={handleMoveToBilling}
-            disabled={filteredData.length === 0}
-          >
-            <span>Completed</span>
+
+        {isOpen && (
+          <div className="dropdown-menu">
+            <div className="dropdown-option select-all">
+              <label className="option-label">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={() => handleSelectAll(options, selectedValues, setSelectedValues)}
+                  className="option-checkbox"
+                />
+                <span className="option-text">{allSelected ? "Deselect All" : "Select All"}</span>
+              </label>
+            </div>
+            <div className="dropdown-separator"></div>
+            <div className="options-list">
+              {options.map((option, index) => (
+                <div key={`${dropdownName}_${index}`} className="dropdown-option">
+                  <label className="option-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedValues.includes(option)}
+                      onChange={() => handleCheckboxChange(option, selectedValues, setSelectedValues)}
+                      className="option-checkbox"
+                    />
+                    <span className="option-text">{option}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="main-container">
+      {/* Header */}
+      <div className="header-section">
+        <div className="header-title">
+          <h1>Search for Painting Details</h1>
+        </div>
+        <div className="header-buttons">
+          <button className="save-btn">
+            <MdFileDownload />  
+            Download report
+          </button>
+          <button className="completed-btn" onClick={handleMoveToBilling} disabled={filteredData.length === 0}>
+            Completed
           </button>
         </div>
       </div>
 
       {/* Filter Section */}
-      <div className="align-filter-section-zebra">
-        <div className="align-filter-container-hippo">
-          <div className="align-filter-row-rhino">
-            {/* NEW: Work Order Dropdown */}
-            <select
-              value={selectedWorkOrder}
-              onChange={(e) => setSelectedWorkOrder(e.target.value)}
-              className="align-dropdown-cheetah"
-            >
-              <option value="">Select Work Order</option>
-              {workOrders.map((workOrder, index) => (
-                <option key={`work_order_${index}`} value={workOrder}>
-                  {workOrder}
-                </option>
-              ))}
-            </select>
+      <div className="filter-section">
+        <div className="filter-grid">
+          {/* Work Order Dropdown */}
+          {renderCustomDropdown(
+            "workOrder",
+            workOrders,
+            selectedWorkOrders,
+            setSelectedWorkOrders,
+            "Select Work Order",
+          )}
 
-            {/* NEW: Building Name Dropdown */}
-            <select
-              value={selectedBuildingName}
-              onChange={(e) => setSelectedBuildingName(e.target.value)}
-              className="align-dropdown-cheetah"
-            >
-              <option value="">Select Building Name</option>
-              {buildingNames.map((buildingName, index) => (
-                <option key={`building_${index}`} value={buildingName}>
-                  {buildingName}
-                </option>
-              ))}
-            </select>
+          {/* Building Name Dropdown */}
+          {renderCustomDropdown(
+            "buildingName",
+            plantLocations,
+            selectedPlantLocations,
+            setSelectedPlantLocations,
+            "Select Building Name",
+          )}
 
-            {/* Drawing No Dropdown */}
-            <select
-              value={selectedDrawingNo}
-              onChange={(e) => setSelectedDrawingNo(e.target.value)}
-              className="align-dropdown-cheetah"
-            >
-              <option value="">Select Drawing No</option>
-              {drawingNumbers.map((drawingNo, index) => (
-                <option key={`drawing_${index}`} value={drawingNo}>
-                  {drawingNo}
-                </option>
-              ))}
-            </select>
+          {/* Serial No Dropdown - Using Drawing Numbers */}
+          {renderCustomDropdown(
+            "drawingNo",
+            drawingNumbers,
+            selectedDrawingNos,
+            setSelectedDrawingNos,
+            "Select Drawing No",
+          )}
 
-            {/* Mark No Dropdown */}
-            <select
-              value={selectedMarkNo}
-              onChange={(e) => setSelectedMarkNo(e.target.value)}
-              className="align-dropdown-cheetah"
-            >
-              <option value="">Select Mark No</option>
-              {markNumbers?.map((markNo, index) => (
-                <option key={`mark_${index}`} value={markNo}>
-                  {markNo}
-                </option>
-              ))}
-            </select>
+          {/* Drawing No Dropdown - Using Mark Numbers */}
+          {renderCustomDropdown("markNo", markNumbers, selectedMarkNos, setSelectedMarkNos, "Select Mark No")}
 
-            {/* Search Button */}
-            <button className="align-search-button-leopard" onClick={handleSearch} disabled={loading}>
-              <span>Search</span>
-            </button>
+          {/* Mark No Dropdown - Empty for now */}
+           
+        </div>
 
-            {/* Clear Filters Button */}
-            <button className="align-clear-button-tiger" onClick={handleClearFilters}>
-              <span>Clear</span>
-            </button>
+        <div className="filter-row-2">
+          {/* RA NO Field */}
+          <div className="ra-no-group">
+            <label className="ra-no-label">RA NO:</label>
+            <div className="ra-no-container">
+              <input
+                type="text"
+                value={filterRaNo}
+                onChange={(e) => setFilterRaNo(e.target.value)}
+                className="ra-no-input"
+                placeholder="Enter the RA NO"
+              />
+              <button
+                onClick={handleSaveFilterRaNo}
+                className="ra-no-save"
+                disabled={savingFilterRaNo}
+                title="Save RA NO"
+              >
+                {savingFilterRaNo ? <AiOutlineLoading3Quarters className="spinner" /> : <MdSave />}
+              </button>
+            </div>
           </div>
+
+          {/* Search Button */}
+          <button className="search-btn" onClick={handleSearch} disabled={loading}>
+            {loading ? (
+              <>
+                <AiOutlineLoading3Quarters className="spinner" />
+                Searching...
+              </>
+            ) : (
+              "Search"
+            )}
+          </button>
         </div>
       </div>
 
+      {/* Vendor Name Dropdown - Show only after search results */}
+      {showSearchResults && filteredData.length > 0 && (
+        <div className="vendor-section">
+          <select
+            value={selectedVendorName}
+            onChange={(e) => handleVendorChange(e.target.value)}
+            className="vendor-select"
+          >
+            <option value="">Select Vendor Name</option>
+            {vendorNames.map((vendor, index) => (
+              <option key={`vendor_${index}`} value={vendor}>
+                {vendor}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Selected Filters Display */}
-      {(selectedFilters.workOrder ||
-        selectedFilters.buildingName ||
-        selectedFilters.drawingNo ||
-        selectedFilters.markNo) && (
-        <div className="align-selected-filters-section">
-          <div className="align-selected-filters-container">
-            <h4>Selected Filters:</h4>
-            <div className="align-selected-filters-grid">
-              {selectedFilters.workOrder && (
-                <div className="align-filter-item">
-                  <span className="align-filter-label">Work Order:</span>
-                  <span className="align-filter-value">{selectedFilters.workOrder}</span>
+      {showSearchResults && (
+        <div className="selected-filters-section">
+          <div className="selected-filters-container">
+            <h4>Applied Filters:</h4>
+            <div className="selected-filters-grid">
+              {selectedFilters.raNo && (
+                <div className="filter-item">
+                  <span className="filter-label">RA NO:</span>
+                  <span className="filter-value">{selectedFilters.raNo}</span>
                 </div>
               )}
-              {selectedFilters.buildingName && (
-                <div className="align-filter-item">
-                  <span className="align-filter-label">Building Name:</span>
-                  <span className="align-filter-value">{selectedFilters.buildingName}</span>
+              {selectedFilters.workOrders.length > 0 && (
+                <div className="filter-item">
+                  <span className="filter-label">Work Orders:</span>
+                  <span className="filter-value">{selectedFilters.workOrders.join(", ")}</span>
                 </div>
               )}
-              {selectedFilters.drawingNo && (
-                <div className="align-filter-item">
-                  <span className="align-filter-label">Drawing No:</span>
-                  <span className="align-filter-value">{selectedFilters.drawingNo}</span>
+              {selectedFilters.buildingNames.length > 0 && (
+                <div className="filter-item">
+                  <span className="filter-label">Building Names:</span>
+                  <span className="filter-value">{selectedFilters.buildingNames.join(", ")}</span>
                 </div>
               )}
-              {selectedFilters.markNo && (
-                <div className="align-filter-item">
-                  <span className="align-filter-label">Mark No:</span>
-                  <span className="align-filter-value">{selectedFilters.markNo}</span>
+              {selectedFilters.vendorName && (
+                <div className="filter-item">
+                  <span className="filter-label">Vendor Name:</span>
+                  <span className="filter-value">{selectedFilters.vendorName}</span>
                 </div>
               )}
             </div>
@@ -796,310 +665,55 @@ const PaintingDatabasesearch = () => {
       )}
 
       {/* Table Section */}
-      <div className="align-table-container-lynx">
+      <div className="table-section">
         {loading && (
-          <div className="align-loading-overlay-panther">
-            <div className="align-loading-spinner-jaguar">
-              <AiOutlineLoading3Quarters />
+          <div className="loading-overlay">
+            <div className="loading-content">
+              <AiOutlineLoading3Quarters className="loading-spinner" />
+              <span>Loading...</span>
             </div>
-            <div className="align-loading-text-cougar">Loading...</div>
           </div>
         )}
 
-        <div className="align-table-wrapper-bear">
-          <table className="align-table-wolf">
+        <div className="table-wrapper">
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Order #</th>
-                <th>RA NO</th> {/* NEW: RA NO Column */}
-                <th>Total Mark Weight</th>
-                <th>Mark Wgt</th>
+                <th>Drawing No</th>
+                <th>Mark No</th>
+                <th>Mark Weight</th>
                 <th>Mark Qty</th>
-                <th>Item No</th>
-                <th>Section Code</th>
-                <th>Section Name</th>
-                <th>Section Weight</th>
-                <th>Width</th>
-                <th>Length</th>
-                <th>Item Qty</th>
-                <th>Item Weight</th>
                 <th>Total Item Weight</th>
-                <th>Status</th>
-                {/* Alignment Process Columns */}
-                <th className="align-process-header">Cutting</th>
-                <th className="align-process-header">Fit Up</th>
-                <th className="align-process-header">Welding</th>
-                <th className="align-process-header">Finishing</th>
-                <th>Actions</th>
+                <th>Remarks</th>
               </tr>
             </thead>
             <tbody>
               {filteredData.map((row, index) => (
-                <tr key={`row_${index}`} className="align-table-row-fox">
+                <tr key={`row_${index}`}>
                   <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.orderId}
-                        onChange={(e) => handleEditInputChange("orderId", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      <div className="align-order-icon-rabbit">{row.orderId || <IoMdOpen />}</div>
-                    )}
+                    <IoMdOpen className="order-icon" />
                   </td>
-                  {/* NEW: Enhanced RA NO Column with inline editing */}
+                  <td>{row.drawingNo || "-"}</td>
+                  <td>{row.markNo || "-"}</td>
+                  <td>{formatNumber(row.markWeight)}</td>
+                  <td>{row.markedQty || "-"}</td>
+                  <td>{formatNumber(row.totalMarkedWgt)}</td>
                   <td>
-                    <div className="align-ra-no-container">
-                      {editingRaNo[row.lineId] ? (
-                        <div className="align-ra-no-edit-wrapper">
-                          <input
-                            type="text"
-                            value={raNoValues[row.lineId] || ""}
-                            onChange={(e) => handleRaNoInputChange(row.lineId, e.target.value)}
-                            placeholder="Enter RA NO"
-                            className="align-ra-no-input"
-                            disabled={savingRaNo[row.lineId]}
-                          />
-                          <div className="align-ra-no-actions">
-                            <button
-                              onClick={() => handleSaveRaNo(row.lineId)}
-                              className="align-ra-no-save-btn"
-                              disabled={savingRaNo[row.lineId]}
-                              title="Save RA NO"
-                            >
-                              {savingRaNo[row.lineId] ? (
-                                <AiOutlineLoading3Quarters className="align-ra-no-spinner" />
-                              ) : (
-                                <MdSave />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleCancelRaNoEdit(row.lineId, row.raNo)}
-                              className="align-ra-no-cancel-btn"
-                              disabled={savingRaNo[row.lineId]}
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="align-ra-no-display-wrapper">
-                          <span className="align-ra-no-value">
-                            {row.raNo || "-"}
-                          </span>
-                          <button
-                            onClick={() => handleEditRaNo(row.lineId, row.raNo)}
-                            className="align-ra-no-edit-btn"
-                            title="Edit RA NO"
-                          >
-                            <MdEdit />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.totalMarkedWgt}
-                        onChange={(e) => handleEditInputChange("totalMarkedWgt", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.totalMarkedWgt)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.markWeight}
-                        onChange={(e) => handleEditInputChange("markWeight", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.markWeight)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.markedQty}
-                        onChange={(e) => handleEditInputChange("markedQty", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      row.markedQty || "-"
-                    )}
-                  </td>
-                  <td>{row.attribute1N || "-"}</td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.sessionCode}
-                        className="align-edit-input-deer align-readonly-input"
-                        readOnly
-                      />
-                    ) : (
-                      row.sessionCode || "-"
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="text"
-                        value={editFormData.sessionName}
-                        className="align-edit-input-deer align-readonly-input"
-                        readOnly
-                      />
-                    ) : (
-                      row.sessionName || "-"
-                    )}
-                  </td>
-                  <td>{formatNumber(row.sessionWeight)}</td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.width}
-                        onChange={(e) => handleEditInputChange("width", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.width)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.length}
-                        onChange={(e) => handleEditInputChange("length", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.length)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        value={editFormData.itemQty}
-                        onChange={(e) => handleEditInputChange("itemQty", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.itemQty)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.itemWeight}
-                        onChange={(e) => handleEditInputChange("itemWeight", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.itemWeight)
-                    )}
-                  </td>
-                  <td>
-                    {editingRow === row.lineId ? (
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={editFormData.totalItemWeight}
-                        onChange={(e) => handleEditInputChange("totalItemWeight", e.target.value)}
-                        className="align-edit-input-deer"
-                      />
-                    ) : (
-                      formatNumber(row.totalItemWeight)
-                    )}
-                  </td>
-                  <td>
-                    <span className="align-status-badge-moose">Alignment</span>
-                  </td>
-                  {/* Alignment Process Columns */}
-                  {ALIGNMENT_STAGES.map((stage) => (
-                    <td key={`${row.lineId}_${stage}`} className="align-process-cell">
-                      <div className="align-checkbox-container">
-                        <input
-                          type="checkbox"
-                          id={`${row.lineId}_${stage}`}
-                          checked={alignmentStages[row.lineId]?.[stage] || false}
-                          onChange={(e) => handleStageChange(row.lineId, stage, e.target.checked)}
-                          className="align-process-checkbox"
-                          aria-label={`${STAGE_LABELS[stage]} for ${row.markNo || "item"}`}
-                        />
-                        <label
-                          htmlFor={`${row.lineId}_${stage}`}
-                          className="align-checkbox-label"
-                          title={`Mark ${STAGE_LABELS[stage]} as ${alignmentStages[row.lineId]?.[stage] ? "incomplete" : "complete"}`}
-                        />
-                      </div>
-                    </td>
-                  ))}
-                  <td>
-                    <div className="align-actions-container-yak">
-                      {editingRow === row.lineId ? (
-                        <>
-                          <button
-                            onClick={handleSaveEdit}
-                            className="align-action-button-elk align-save-button-impala"
-                            title="Save"
-                          >
-                            <MdSave />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="align-action-button-elk align-cancel-button-bison"
-                            title="Cancel"
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEdit(row)}
-                            className="align-action-button-elk align-edit-button-impala"
-                            title="Modify"
-                          >
-                            <MdEdit />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row.lineId)}
-                            className="align-action-button-elk align-delete-button-bison"
-                            title="Delete"
-                          >
-                            <MdDelete />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <input
+                      type="text"
+                      value={remarks[`row_${index}`] || ""}
+                      onChange={(e) => handleRemarksChange(`row_${index}`, e.target.value)}
+                      className="remarks-input"
+                      placeholder="Enter remarks..."
+                    />
                   </td>
                 </tr>
               ))}
               {filteredData.length === 0 && !loading && (
-                <tr className="align-empty-row-camel">
-                  <td colSpan="20">
-                    <div className="align-empty-state-llama">
-                      <div className="align-empty-text-alpaca">
-                        {selectedDrawingNo || selectedMarkNo || selectedWorkOrder || selectedBuildingName
-                          ? "No records found for the selected criteria."
-                          : "Please select at least one filter and click Search to view records."}
-                      </div>
-                    </div>
+                <tr>
+                  <td colSpan="7" className="empty-message">
+                    Please select Drawing No and/or Mark No and click Search to view records.
                   </td>
                 </tr>
               )}
@@ -1108,55 +722,79 @@ const PaintingDatabasesearch = () => {
         </div>
       </div>
 
+      {/* Progress Bar */}
+      <div className="progress-section">
+        <div className="progress-bar"></div>
+      </div>
+
+      {/* Total Calculations */}
+      {filteredData.length > 0 && (
+        <div className="totals-section">
+          <div className="total-item">
+            <span>Total Mark Weight: {formatNumber(calculateTotalMarkWeight())} kg</span>
+          </div>
+          <div className="total-item">
+            <span>Total Mark Weight (MT): {formatNumber(calculateTotalMarkWeight() / 1000)} MT</span>
+          </div>
+        </div>
+      )}
+
+      {/* Signature Section */}
+      <div className="signature-section">
+        <div className="signature-container">
+          <div className="company-info">
+            <h4>For Bellary Infotech Solutions</h4>
+          </div>
+          <div className="signature-space">
+            
+            <p>Authorized Signature</p>
+          </div>
+        </div>
+      </div>
+
       {/* Move to Billing Popup */}
       {showMoveToBillingPopup && (
-        <div className="align-popup-overlay-shark">
-          <div className="align-popup-container-whale">
-            <div className="align-popup-header-dolphin">
+        <div className="popup-overlay">
+          <div className="popup-container">
+            <div className="popup-header">
               <h3>Mark No.</h3>
-              <button onClick={() => setShowMoveToBillingPopup(false)} className="align-popup-close-octopus">
+              <button onClick={() => setShowMoveToBillingPopup(false)} className="popup-close">
                 ✕
               </button>
             </div>
-            <div className="align-popup-content-squid">
-              <div className="align-multiselect-container-jellyfish">
-                <div className="align-multiselect-label-starfish">Select Mark No(s):</div>
-                <div className="align-multiselect-options-seahorse">
-                  {availableMarkNosForBilling.map((markNo, index) => (
-                    <label key={`popup_mark_${index}`} className="align-checkbox-label-crab">
-                      <input
-                        type="checkbox"
-                        checked={selectedMarkNosForBilling.includes(markNo)}
-                        onChange={() => handleMarkNoSelection(markNo)}
-                        className="align-checkbox-input-lobster"
-                      />
-                      <span className="align-checkbox-text-shrimp">{markNo}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="popup-content">
+              <div className="popup-label">Select Mark No(s):</div>
+              <div className="popup-options">
+                {availableMarkNosForBilling.map((markNo, index) => (
+                  <label key={`popup_mark_${index}`} className="popup-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedMarkNosForBilling.includes(markNo)}
+                      onChange={() => handleMarkNoSelection(markNo)}
+                    />
+                    <span>{markNo}</span>
+                  </label>
+                ))}
               </div>
             </div>
-            <div className="align-popup-actions-turtle">
-              <button
-                onClick={() => setShowMoveToBillingPopup(false)}
-                className="align-popup-button-seal align-cancel-button-walrus"
-              >
+            <div className="popup-actions">
+              <button onClick={() => setShowMoveToBillingPopup(false)} className="cancel-btn">
                 Cancel
               </button>
               <button
                 onClick={handleSaveToBilling}
-                className="align-popup-button-seal align-save-button-penguin"
+                className="save-popup-btn"
                 disabled={loading || selectedMarkNosForBilling.length === 0}
               >
                 {loading ? (
                   <>
-                    <AiOutlineLoading3Quarters className="align-spin-icon-polar" />
-                    <span>Saving...</span>
+                    <AiOutlineLoading3Quarters className="spinner" />
+                    Saving...
                   </>
                 ) : (
                   <>
                     <MdSave />
-                    <span>Save</span>
+                    Save
                   </>
                 )}
               </button>
@@ -1165,146 +803,17 @@ const PaintingDatabasesearch = () => {
         </div>
       )}
 
-      <ToastContainer />
-
-      {/* NEW: CSS Styles for RA NO editing */}
-      <style jsx>{`
-        .align-ra-no-container {
-          min-width: 150px;
-          position: relative;
-        }
-
-        .align-ra-no-edit-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          width: 100%;
-        }
-
-        .align-ra-no-input {
-          flex: 1;
-          padding: 4px 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 12px;
-          min-width: 100px;
-          background-color: #fff;
-        }
-
-        .align-ra-no-input:focus {
-          outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-        }
-
-        .align-ra-no-input:disabled {
-          background-color: #f8f9fa;
-          cursor: not-allowed;
-        }
-
-        .align-ra-no-actions {
-          display: flex;
-          gap: 2px;
-        }
-
-        .align-ra-no-save-btn,
-        .align-ra-no-cancel-btn,
-        .align-ra-no-edit-btn {
-          padding: 4px 6px;
-          border: none;
-          border-radius: 3px;
-          cursor: pointer;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 24px;
-          height: 24px;
-          transition: all 0.2s ease;
-        }
-
-        .align-ra-no-save-btn {
-          background-color: #28a745;
-          color: white;
-        }
-
-        .align-ra-no-save-btn:hover:not(:disabled) {
-          background-color: #218838;
-        }
-
-        .align-ra-no-save-btn:disabled {
-          background-color: #6c757d;
-          cursor: not-allowed;
-        }
-
-        .align-ra-no-cancel-btn {
-          background-color: #dc3545;
-          color: white;
-        }
-
-        .align-ra-no-cancel-btn:hover:not(:disabled) {
-          background-color: #c82333;
-        }
-
-        .align-ra-no-edit-btn {
-          background-color: #007bff;
-          color: white;
-          opacity: 0.7;
-          transition: opacity 0.2s ease;
-        }
-
-        .align-ra-no-edit-btn:hover {
-          background-color: #0056b3;
-          opacity: 1;
-        }
-
-        .align-ra-no-display-wrapper {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          width: 100%;
-        }
-
-        .align-ra-no-value {
-          flex: 1;
-          font-size: 13px;
-          color: #333;
-        }
-
-        .align-ra-no-spinner {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .align-ra-no-container {
-            min-width: 120px;
-          }
-
-          .align-ra-no-input {
-            min-width: 80px;
-            font-size: 11px;
-          }
-
-          .align-ra-no-save-btn,
-          .align-ra-no-cancel-btn,
-          .align-ra-no-edit-btn {
-            min-width: 20px;
-            height: 20px;
-            font-size: 10px;
-          }
-        }
-      `}</style>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   )
 }

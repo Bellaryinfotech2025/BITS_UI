@@ -95,7 +95,7 @@ const RatingPopup = ({ isOpen, onClose, onSubmit }) => {
             Skip
           </button>
           <button className="rating-submit-btn" onClick={handleSubmit}>
-            Submit Rating
+            Submit Your Review 
           </button>
         </div>
       </div>
