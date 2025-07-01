@@ -560,7 +560,7 @@ const ErectionDatabasesearch = () => {
       {/* Header */}
       <div className="header-section">
         <div className="header-title">
-          <h1>Search for Erection Details</h1>
+          <h1>Search for your entries</h1>
         </div>
         <div className="header-buttons">
           <button className="save-btn">
