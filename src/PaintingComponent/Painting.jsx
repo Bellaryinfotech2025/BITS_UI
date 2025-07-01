@@ -679,12 +679,12 @@ const PaintingDatabasesearch = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Order #</th>
+                <th>Items #</th>
                 <th>Drawing No</th>
                 <th>Mark No</th>
                 <th>Mark Weight</th>
                 <th>Mark Qty</th>
-                <th>Total Item Weight</th>
+                <th>Total Mark Weight</th>
                 <th>Remarks</th>
               </tr>
             </thead>

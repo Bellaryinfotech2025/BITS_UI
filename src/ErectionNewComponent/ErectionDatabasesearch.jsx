@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { MdSave, MdKeyboardArrowDown } from "react-icons/md";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { IoMdOpen } from "react-icons/io";
-import { MdFileDownload } from "react-icons/md";
-import "../ErectionNewComponent/erection-database-search.css";
+import { useState, useEffect, useRef } from "react"
+import { AiOutlineLoading3Quarters } from "react-icons/ai"
+import { MdSave, MdKeyboardArrowDown } from "react-icons/md"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import { IoMdOpen } from "react-icons/io"
+import { MdFileDownload } from "react-icons/md"
+import "../ErectionNewComponent/erection-database-search.css"
 
 const ErectionDatabasesearch = () => {
   // API Base URL
@@ -16,38 +16,37 @@ const ErectionDatabasesearch = () => {
   const [saving, setSaving] = useState(false)
   const [tableData, setTableData] = useState([])
   const [filteredData, setFilteredData] = useState([])
-  const [drawingNumbers, setDrawingNumbers] = useState([])
-  const [markNumbers, setMarkNumbers] = useState([])
+
+  // NEW: Dropdown data for cascading filters
   const [workOrders, setWorkOrders] = useState([])
-  const [plantLocations, setPlantLocations] = useState([])
+  const [buildingNames, setBuildingNames] = useState([])
+  const [departments, setDepartments] = useState([])
   const [vendorNames, setVendorNames] = useState([])
 
-  // Filter states - Modified for multiple selections
-  const [selectedDrawingNos, setSelectedDrawingNos] = useState([])
-  const [selectedMarkNos, setSelectedMarkNos] = useState([])
+  // NEW: Multiple selection states for cascading dropdowns
   const [selectedWorkOrders, setSelectedWorkOrders] = useState([])
-  const [selectedPlantLocations, setSelectedPlantLocations] = useState([])
+  const [selectedBuildingNames, setSelectedBuildingNames] = useState([])
+  const [selectedDepartments, setSelectedDepartments] = useState([])
   const [selectedVendorName, setSelectedVendorName] = useState("")
 
   // Dropdown open states
   const [dropdownStates, setDropdownStates] = useState({
     workOrder: false,
     buildingName: false,
-    drawingNo: false,
-    markNo: false,
+    department: false,
     vendor: false,
   })
 
   // RA NO state for filter section
   const [filterRaNo, setFilterRaNo] = useState("")
   const [savingFilterRaNo, setSavingFilterRaNo] = useState(false)
+  const [raNoFieldEnabled, setRaNoFieldEnabled] = useState(false) // NEW: Control RA NO field
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
     workOrders: [],
     buildingNames: [],
-    drawingNos: [],
-    markNos: [],
+    departments: [],
     raNo: "",
     vendorName: "",
   })
@@ -67,8 +66,7 @@ const ErectionDatabasesearch = () => {
   const dropdownRefs = {
     workOrder: useRef(null),
     buildingName: useRef(null),
-    drawingNo: useRef(null),
-    markNo: useRef(null),
+    department: useRef(null),
     vendor: useRef(null),
   }
 
@@ -88,56 +86,26 @@ const ErectionDatabasesearch = () => {
 
   // Fetch dropdown data on component mount
   useEffect(() => {
-    fetchDropdownData()
+    fetchInitialDropdownData()
     fetchVendorNames()
   }, [])
 
-  // Fetch dropdown data for Drawing No, Mark No, Work Order, and Plant Location
-  const fetchDropdownData = async () => {
+  // NEW: Fetch initial dropdown data (Work Orders only)
+  const fetchInitialDropdownData = async () => {
     try {
       setLoading(true)
 
-      // Fetch distinct drawing numbers from erection entries
-      const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctErectionDrawingEntryDrawingNumbers/details`)
-      if (drawingResponse.ok) {
-        const drawingData = await drawingResponse.json()
-        setDrawingNumbers(drawingData || [])
-      }
-
-      // Fetch distinct mark numbers from erection entries
-      const markResponse = await fetch(`${API_BASE_URL}/getDistinctErectionDrawingEntryMarkNumbers/details`)
-      if (markResponse.ok) {
-        const markData = await markResponse.json()
-        setMarkNumbers(markData || [])
-        setAvailableMarkNosForAlignment(markData || [])
-      }
-
-      // Get work orders and plant locations from erection entries
-      const allErectionResponse = await fetch(`${API_BASE_URL}/getAllErectionDrawingEntriesComplete/details`)
-      if (allErectionResponse.ok) {
-        const allErectionData = await allErectionResponse.json()
-
-        // Extract unique work orders from attribute1V
-        const uniqueWorkOrders = [
-          ...new Set(
-            allErectionData
-              .map((entry) => entry.attribute1V)
-              .filter((workOrder) => workOrder && workOrder.trim() !== ""),
-          ),
-        ].sort()
-
-        // Extract unique plant locations from attribute2V
-        const uniquePlantLocations = [
-          ...new Set(
-            allErectionData.map((entry) => entry.attribute2V).filter((location) => location && location.trim() !== ""),
-          ),
-        ].sort()
-
-        setWorkOrders(uniqueWorkOrders)
-        setPlantLocations(uniquePlantLocations)
+      // Fetch work orders from erection entries (attribute1V)
+      const workOrderResponse = await fetch(`${API_BASE_URL}/getDistinctErectionWorkOrders/details`)
+      if (workOrderResponse.ok) {
+        const workOrderData = await workOrderResponse.json()
+        setWorkOrders(workOrderData || [])
+      } else {
+        console.error("Error fetching work orders:", workOrderResponse.statusText)
+        toast.error(`Error fetching work orders: ${workOrderResponse.statusText}`)
       }
     } catch (error) {
-      console.error("Error fetching dropdown data:", error)
+      console.error("Error fetching initial dropdown data:", error)
       toast.error(`Error fetching dropdown data: ${error.message}`)
     } finally {
       setLoading(false)
@@ -191,7 +159,92 @@ const ErectionDatabasesearch = () => {
     }
   }
 
-  // Add this function to handle vendor selection
+  // NEW: Handle Work Order selection changes (cascading effect)
+  useEffect(() => {
+    if (selectedWorkOrders.length > 0) {
+      fetchBuildingNamesByWorkOrders()
+    } else {
+      // Reset dependent dropdowns when no work orders selected
+      setSelectedBuildingNames([])
+      setSelectedDepartments([])
+      setBuildingNames([])
+      setDepartments([])
+    }
+  }, [selectedWorkOrders])
+
+  // NEW: Handle Building Name selection changes (cascading effect)
+  useEffect(() => {
+    if (selectedWorkOrders.length > 0 && selectedBuildingNames.length > 0) {
+      fetchDepartmentsByWorkOrdersAndBuildingNames()
+    } else {
+      // Reset departments when no building names selected
+      setSelectedDepartments([])
+      setDepartments([])
+    }
+  }, [selectedWorkOrders, selectedBuildingNames])
+
+  // NEW: Fetch building names based on selected work orders
+  const fetchBuildingNamesByWorkOrders = async () => {
+    try {
+      // Get all erection entries
+      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllErectionDrawingEntriesComplete/details`)
+      if (allEntriesResponse.ok) {
+        const allEntries = await allEntriesResponse.json()
+
+        // Filter building names by selected work orders
+        const filteredBuildingNames = [
+          ...new Set(
+            allEntries
+              .filter((entry) => selectedWorkOrders.includes(entry.attribute1V))
+              .map((entry) => entry.attribute2V)
+              .filter((name) => name && name.trim() !== ""),
+          ),
+        ].sort()
+
+        setBuildingNames(filteredBuildingNames || [])
+
+        // Reset building name selections if they're no longer valid
+        setSelectedBuildingNames((prev) => prev.filter((name) => filteredBuildingNames.includes(name)))
+      }
+    } catch (error) {
+      console.error("Error fetching building names:", error)
+      setBuildingNames([])
+    }
+  }
+
+  // NEW: Fetch departments based on selected work orders and building names
+  const fetchDepartmentsByWorkOrdersAndBuildingNames = async () => {
+    try {
+      // Get all erection entries
+      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllErectionDrawingEntriesComplete/details`)
+      if (allEntriesResponse.ok) {
+        const allEntries = await allEntriesResponse.json()
+
+        // Filter departments by selected work orders and building names
+        const filteredDepartments = [
+          ...new Set(
+            allEntries
+              .filter(
+                (entry) =>
+                  selectedWorkOrders.includes(entry.attribute1V) && selectedBuildingNames.includes(entry.attribute2V),
+              )
+              .map((entry) => entry.attribute3V)
+              .filter((dept) => dept && dept.trim() !== ""),
+          ),
+        ].sort()
+
+        setDepartments(filteredDepartments || [])
+
+        // Reset department selections if they're no longer valid
+        setSelectedDepartments((prev) => prev.filter((dept) => filteredDepartments.includes(dept)))
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error)
+      setDepartments([])
+    }
+  }
+
+  // Handle vendor selection
   const handleVendorChange = (vendorName) => {
     setSelectedVendorName(vendorName)
     if (showSearchResults) {
@@ -202,52 +255,31 @@ const ErectionDatabasesearch = () => {
     }
   }
 
-  // Handle search button click
+  // NEW: Handle search button click with multiple selections
   const handleSearch = async () => {
-    if (
-      selectedDrawingNos.length === 0 &&
-      selectedMarkNos.length === 0 &&
-      selectedWorkOrders.length === 0 &&
-      selectedPlantLocations.length === 0
-    ) {
-      toast.warning("Please select at least one filter criteria to search")
+    if (selectedWorkOrders.length === 0 || selectedBuildingNames.length === 0 || selectedDepartments.length === 0) {
+      toast.warning("Please select at least one Work Order, Building Name, and Department to search")
       return
     }
 
     try {
       setLoading(true)
 
-      const searchUrl = `${API_BASE_URL}/getEnhancedErectionDrawingEntries/details`
-      const response = await fetch(searchUrl)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // Get all erection entries and filter by selected criteria
+      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllErectionDrawingEntriesComplete/details`)
+      if (!allEntriesResponse.ok) {
+        throw new Error(`HTTP error! status: ${allEntriesResponse.status}`)
       }
 
-      const allData = await response.json()
+      const allEntries = await allEntriesResponse.json()
 
-      // Filter the data based on selected criteria using AND logic
-      let filteredResults = allData
-
-      // Apply Work Order filter (attribute1V)
-      if (selectedWorkOrders.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedWorkOrders.includes(item.attribute1V))
-      }
-
-      // Apply Building Name filter (attribute2V)
-      if (selectedPlantLocations.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedPlantLocations.includes(item.attribute2V))
-      }
-
-      // Apply Drawing No filter
-      if (selectedDrawingNos.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedDrawingNos.includes(item.drawingNo))
-      }
-
-      // Apply Mark No filter
-      if (selectedMarkNos.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedMarkNos.includes(item.markNo))
-      }
+      // Filter entries based on multiple selections using AND logic
+      const filteredResults = allEntries.filter(
+        (entry) =>
+          selectedWorkOrders.includes(entry.attribute1V) &&
+          selectedBuildingNames.includes(entry.attribute2V) &&
+          selectedDepartments.includes(entry.attribute3V),
+      )
 
       setTableData(filteredResults)
       setFilteredData(filteredResults)
@@ -263,12 +295,18 @@ const ErectionDatabasesearch = () => {
       // Set selected filter values for display
       setSelectedFilters({
         workOrders: selectedWorkOrders,
-        buildingNames: selectedPlantLocations,
-        drawingNos: selectedDrawingNos,
-        markNos: selectedMarkNos,
+        buildingNames: selectedBuildingNames,
+        departments: selectedDepartments,
         raNo: filterRaNo,
         vendorName: selectedVendorName,
       })
+
+      // NEW: Enable RA NO field after successful search
+      setRaNoFieldEnabled(true)
+
+      // Extract unique mark numbers for alignment popup
+      const uniqueMarkNos = [...new Set(filteredResults.map((item) => item.markNo).filter((markNo) => markNo))]
+      setAvailableMarkNosForAlignment(uniqueMarkNos)
 
       toast.info(`Found ${filteredResults.length} records`)
     } catch (error) {
@@ -277,6 +315,7 @@ const ErectionDatabasesearch = () => {
       setTableData([])
       setFilteredData([])
       setShowSearchResults(false)
+      setRaNoFieldEnabled(false) // Disable RA NO field on error
     } finally {
       setLoading(false)
     }
@@ -534,45 +573,39 @@ const ErectionDatabasesearch = () => {
         </div>
       </div>
 
-      {/* Filter Section */}
+      {/* Filter Section - NEW: Multiple Selection Cascading Dropdowns */}
       <div className="filter-section">
         <div className="filter-grid">
-          {/* Work Order Dropdown */}
+          {/* Work Order Dropdown - Multiple Selection */}
           {renderCustomDropdown(
             "workOrder",
             workOrders,
             selectedWorkOrders,
             setSelectedWorkOrders,
-            "Select Work Order",
+            "Select Work Order(s)",
           )}
 
-          {/* Building Name Dropdown */}
+          {/* Building Name Dropdown - Multiple Selection */}
           {renderCustomDropdown(
             "buildingName",
-            plantLocations,
-            selectedPlantLocations,
-            setSelectedPlantLocations,
-            "Select Building Name",
+            buildingNames,
+            selectedBuildingNames,
+            setSelectedBuildingNames,
+            "Select Building Name(s)",
           )}
 
-          {/* Serial No Dropdown - Using Drawing Numbers */}
+          {/* Department Dropdown - Multiple Selection */}
           {renderCustomDropdown(
-            "drawingNo",
-            drawingNumbers,
-            selectedDrawingNos,
-            setSelectedDrawingNos,
-            "Select Drawing No",
+            "department",
+            departments,
+            selectedDepartments,
+            setSelectedDepartments,
+            "Select Project(s)",
           )}
-
-          {/* Drawing No Dropdown - Using Mark Numbers */}
-          {renderCustomDropdown("markNo", markNumbers, selectedMarkNos, setSelectedMarkNos, "Select Mark No")}
-
-          {/* Mark No Dropdown - Empty for now */}
-           
         </div>
 
         <div className="filter-row-2">
-          {/* RA NO Field */}
+          {/* RA NO Field - NEW: Disabled until search */}
           <div className="ra-no-group">
             <label className="ra-no-label">RA NO:</label>
             <div className="ra-no-container">
@@ -582,11 +615,12 @@ const ErectionDatabasesearch = () => {
                 onChange={(e) => setFilterRaNo(e.target.value)}
                 className="ra-no-input"
                 placeholder="Enter the RA NO"
+                disabled={!raNoFieldEnabled}
               />
               <button
                 onClick={handleSaveFilterRaNo}
                 className="ra-no-save"
-                disabled={savingFilterRaNo}
+                disabled={savingFilterRaNo || !raNoFieldEnabled}
                 title="Save RA NO"
               >
                 {savingFilterRaNo ? <AiOutlineLoading3Quarters className="spinner" /> : <MdSave />}
@@ -632,12 +666,6 @@ const ErectionDatabasesearch = () => {
           <div className="selected-filters-container">
             <h4>Applied Filters:</h4>
             <div className="selected-filters-grid">
-              {selectedFilters.raNo && (
-                <div className="filter-item">
-                  <span className="filter-label">RA NO:</span>
-                  <span className="filter-value">{selectedFilters.raNo}</span>
-                </div>
-              )}
               {selectedFilters.workOrders.length > 0 && (
                 <div className="filter-item">
                   <span className="filter-label">Work Orders:</span>
@@ -648,6 +676,18 @@ const ErectionDatabasesearch = () => {
                 <div className="filter-item">
                   <span className="filter-label">Building Names:</span>
                   <span className="filter-value">{selectedFilters.buildingNames.join(", ")}</span>
+                </div>
+              )}
+              {selectedFilters.departments.length > 0 && (
+                <div className="filter-item">
+                  <span className="filter-label">Departments:</span>
+                  <span className="filter-value">{selectedFilters.departments.join(", ")}</span>
+                </div>
+              )}
+              {selectedFilters.raNo && (
+                <div className="filter-item">
+                  <span className="filter-label">RA NO:</span>
+                  <span className="filter-value">{selectedFilters.raNo}</span>
                 </div>
               )}
               {selectedFilters.vendorName && (
@@ -671,17 +711,16 @@ const ErectionDatabasesearch = () => {
             </div>
           </div>
         )}
-
         <div className="table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Order #</th>
+                <th>Items #</th>
                 <th>Drawing No</th>
                 <th>Mark No</th>
                 <th>Mark Weight</th>
                 <th>Mark Qty</th>
-                <th>Total Item Weight</th>
+                <th>Total Mark Weight</th>
                 <th>Remarks</th>
               </tr>
             </thead>
@@ -710,7 +749,7 @@ const ErectionDatabasesearch = () => {
               {filteredData.length === 0 && !loading && (
                 <tr>
                   <td colSpan="7" className="empty-message">
-                    Please select Drawing No and/or Mark No and click Search to view records.
+                    Please select Work Order(s), Building Name(s), and Department(s) and click Search to view records.
                   </td>
                 </tr>
               )}
@@ -743,7 +782,6 @@ const ErectionDatabasesearch = () => {
             <h4>For Bellary Infotech Solutions</h4>
           </div>
           <div className="signature-space">
-            
             <p>Authorized Signature</p>
           </div>
         </div>

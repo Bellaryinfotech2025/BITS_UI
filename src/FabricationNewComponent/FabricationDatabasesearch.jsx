@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { IoMdOpen } from "react-icons/io";
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { MdSave, MdEdit, MdDelete } from "react-icons/md";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer } from "react-toastify";
-import DeleteConfirm from "../DeleteComponent/DeleteConfirm";
-import "../DeleteComponent/DeleteDesign.css";
-import "../FabricationNewComponent/FabricationDatabasesearch.css";
+import { useState, useEffect } from "react"
+import { IoMdOpen } from "react-icons/io"
+import { AiOutlineLoading3Quarters } from "react-icons/ai"
+import { MdSave, MdEdit, MdDelete } from "react-icons/md"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import { ToastContainer } from "react-toastify"
+import DeleteConfirm from "../DeleteComponent/DeleteConfirm"
+import "../DeleteComponent/DeleteDesign.css"
+import "../FabricationNewComponent/FabricationDatabasesearch.css"
 
 const FabricationDatabasesearch = () => {
   // API Base URL
@@ -69,6 +69,9 @@ const FabricationDatabasesearch = () => {
 
   // Fabrication process states - tracks checkbox states for each row
   const [fabricationStages, setFabricationStages] = useState({})
+
+  // NEW: State to track if search has been performed (for RA NO field control)
+  const [searchPerformed, setSearchPerformed] = useState(false)
 
   // Fabrication stages in order
   const FABRICATION_STAGES = ["cutting", "fitUp", "welding", "finishing"]
@@ -169,7 +172,6 @@ const FabricationDatabasesearch = () => {
       if (response.ok) {
         const result = await response.json()
         toast.success(`Successfully updated fabrication stages for ${result.updatedCount} entries!`)
-
         // Refresh data to get updated values
         if (selectedDrawingNo || selectedMarkNo) {
           handleSearch()
@@ -198,6 +200,7 @@ const FabricationDatabasesearch = () => {
   // Save RA.NO to backend for table rows
   const handleSaveRaNo = async (lineId) => {
     const raNoValue = raNoValues[lineId]
+
     if (!raNoValue || raNoValue.trim() === "") {
       toast.warning("Please enter RA.NO value")
       return
@@ -228,7 +231,6 @@ const FabricationDatabasesearch = () => {
 
       if (response.ok) {
         toast.success("RA.NO saved successfully!")
-
         // Update the table data to reflect the saved value
         setTableData((prev) => prev.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue.trim() } : row)))
         setFilteredData((prev) => prev.map((row) => (row.lineId === lineId ? { ...row, raNo: raNoValue.trim() } : row)))
@@ -291,7 +293,6 @@ const FabricationDatabasesearch = () => {
 
       if (successCount === matchingEntries.length) {
         toast.success(`RA.NO saved successfully for ${successCount} entries!`)
-
         // Update the table data to reflect the saved values
         setTableData((prev) =>
           prev.map((row) =>
@@ -333,66 +334,105 @@ const FabricationDatabasesearch = () => {
     fetchDropdownData()
   }, [])
 
+  // NEW: Handle Work Order selection (cascading effect)
+  const handleWorkOrderChange = async (workOrder) => {
+    setSelectedWorkOrder(workOrder)
+
+    // Reset dependent dropdowns
+    setSelectedPlantLocation("")
+    setSelectedDrawingNo("")
+    setSelectedMarkNo("")
+    setPlantLocations([])
+    setDrawingNumbers([])
+    setMarkNumbers([])
+
+    if (workOrder) {
+      try {
+        // Fetch building names for selected work order
+        const response = await fetch(
+          `${API_BASE_URL}/getDistinctBuildingNamesByWorkOrder/details?workOrder=${encodeURIComponent(workOrder)}`,
+        )
+        if (response.ok) {
+          const buildingNames = await response.json()
+          setPlantLocations(buildingNames || [])
+        } else {
+          console.error("Error fetching building names:", response.statusText)
+          setPlantLocations([])
+        }
+      } catch (error) {
+        console.error("Error fetching building names:", error)
+        setPlantLocations([])
+      }
+    }
+  }
+
+  // NEW: Handle Building Name selection (cascading effect)
+  const handleBuildingNameChange = async (buildingName) => {
+    setSelectedPlantLocation(buildingName)
+
+    // Reset dependent dropdowns
+    setSelectedDrawingNo("")
+    setSelectedMarkNo("")
+    setDrawingNumbers([])
+    setMarkNumbers([])
+
+    if (selectedWorkOrder && buildingName) {
+      try {
+        // Fetch drawing numbers for selected work order and building name
+        const drawingResponse = await fetch(
+          `${API_BASE_URL}/getDistinctDrawingNumbersByAttributes/details?workOrder=${encodeURIComponent(selectedWorkOrder)}&buildingName=${encodeURIComponent(buildingName)}`,
+        )
+        if (drawingResponse.ok) {
+          const drawingNos = await drawingResponse.json()
+          setDrawingNumbers(drawingNos || [])
+        } else {
+          console.error("Error fetching drawing numbers:", drawingResponse.statusText)
+          setDrawingNumbers([])
+        }
+
+        // Fetch mark numbers for selected work order and building name
+        const markResponse = await fetch(
+          `${API_BASE_URL}/getDistinctMarkNumbersByAttributes/details?workOrder=${encodeURIComponent(selectedWorkOrder)}&buildingName=${encodeURIComponent(buildingName)}`,
+        )
+        if (markResponse.ok) {
+          const markNos = await markResponse.json()
+          setMarkNumbers(markNos || [])
+          setAvailableMarkNosForErection(markNos || [])
+        } else {
+          console.error("Error fetching mark numbers:", markResponse.statusText)
+          setMarkNumbers([])
+          setAvailableMarkNosForErection([])
+        }
+      } catch (error) {
+        console.error("Error fetching drawing/mark numbers:", error)
+        setDrawingNumbers([])
+        setMarkNumbers([])
+        setAvailableMarkNosForErection([])
+      }
+    }
+  }
+
   // Fetch dropdown data for all dropdowns
   const fetchDropdownData = async () => {
     try {
       setLoading(true)
 
-      // Fetch distinct drawing numbers
-      console.log("Fetching drawing numbers from:", `${API_BASE_URL}/getDistinctBitsDrawingEntryDrawingNumbers/details`)
-      const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctBitsDrawingEntryDrawingNumbers/details`)
-      console.log("Drawing response status:", drawingResponse.status)
-      if (drawingResponse.ok) {
-        const drawingData = await drawingResponse.json()
-        console.log("Drawing Numbers received:", drawingData)
-        setDrawingNumbers(drawingData || [])
-      } else {
-        console.error("Error fetching drawing numbers:", drawingResponse.status, drawingResponse.statusText)
-        const errorText = await drawingResponse.text()
-        console.error("Error details:", errorText)
-        toast.error(`Error fetching drawing numbers: ${drawingResponse.statusText}`)
-      }
-
-      // Fetch distinct mark numbers
-      console.log("Fetching mark numbers from:", `${API_BASE_URL}/getDistinctBitsDrawingEntryMarkNumbers/details`)
-      const markResponse = await fetch(`${API_BASE_URL}/getDistinctBitsDrawingEntryMarkNumbers/details`)
-      console.log("Mark response status:", markResponse.status)
-      if (markResponse.ok) {
-        const markData = await markResponse.json()
-        console.log("Mark Numbers received:", markData)
-        setMarkNumbers(markData || [])
-        setAvailableMarkNosForErection(markData || [])
-      } else {
-        console.error("Error fetching mark numbers:", markResponse.status, markResponse.statusText)
-        const errorText = await markResponse.text()
-        console.error("Error details:", errorText)
-        toast.error(`Error fetching mark numbers: ${markResponse.statusText}`)
-      }
-
-      // Rest of the fetch operations remain the same...
-      // Fetch work orders
-      const workOrderResponse = await fetch(`${API_BASE_URL}/getworkorder/number`)
+      // NEW: Fetch work orders from bits_drawing_entry
+      console.log("Fetching work orders from:", `${API_BASE_URL}/getDistinctWorkOrdersFromDrawingEntry/details`)
+      const workOrderResponse = await fetch(`${API_BASE_URL}/getDistinctWorkOrdersFromDrawingEntry/details`)
+      console.log("Work Order response status:", workOrderResponse.status)
       if (workOrderResponse.ok) {
         const workOrderData = await workOrderResponse.json()
+        console.log("Work Orders received:", workOrderData)
         setWorkOrders(workOrderData || [])
-        console.log("Work Orders:", workOrderData)
       } else {
-        console.error("Error fetching work orders:", workOrderResponse.statusText)
+        console.error("Error fetching work orders:", workOrderResponse.status, workOrderResponse.statusText)
+        const errorText = await workOrderResponse.text()
+        console.error("Error details:", errorText)
         toast.error(`Error fetching work orders: ${workOrderResponse.statusText}`)
       }
 
-      // Fetch plant locations
-      const plantLocationResponse = await fetch(`${API_BASE_URL}/getAllPlantLocations/details`)
-      if (plantLocationResponse.ok) {
-        const plantLocationData = await plantLocationResponse.json()
-        setPlantLocations(plantLocationData || [])
-        console.log("Plant Locations:", plantLocationData)
-      } else {
-        console.error("Error fetching plant locations:", plantLocationResponse.statusText)
-        toast.error(`Error fetching plant locations: ${plantLocationResponse.statusText}`)
-      }
-
-      // NEW: Fetch serial numbers from bits_po_entry_lines
+      // Keep existing serial number fetch (unchanged)
       const serialNumberResponse = await fetch(`${API_BASE_URL}/getDistinctSerialNumbers/details`)
       if (serialNumberResponse.ok) {
         const serialNumberData = await serialNumberResponse.json()
@@ -400,11 +440,10 @@ const FabricationDatabasesearch = () => {
         console.log("Serial Numbers:", serialNumberData)
       } else {
         console.error("Error fetching serial numbers:", serialNumberResponse.statusText)
-        // Don't show error toast for this as it's a new endpoint
         setSerialNumbers([])
       }
 
-      // NEW: Fetch RA NO values from bits_drawing_entry
+      // Fetch RA NO values from bits_drawing_entry
       const raNoResponse = await fetch(`${API_BASE_URL}/getDistinctRaNumbers/details`)
       if (raNoResponse.ok) {
         const raNoData = await raNoResponse.json()
@@ -526,6 +565,9 @@ const FabricationDatabasesearch = () => {
         raNoInitialValues[row.lineId] = row.raNo || ""
       })
       setRaNoValues(raNoInitialValues)
+
+      // NEW: Set search performed to true (enables RA NO field)
+      setSearchPerformed(true)
 
       toast.info(`Found ${data.length} records`)
     } catch (error) {
@@ -695,7 +737,6 @@ const FabricationDatabasesearch = () => {
 
       // Get ALL entries for selected mark numbers - FIXED: Get ALL rows, not just first one
       const entriesToMove = []
-
       // For each selected mark number, find ALL entries with that mark number
       for (const markNo of selectedMarkNosForErection) {
         const entries = tableData.filter((item) => item.markNo === markNo)
@@ -765,7 +806,6 @@ const FabricationDatabasesearch = () => {
 
       if (response.ok) {
         const result = await response.json()
-
         // Show detailed feedback
         if (result.skippedCount > 0) {
           toast.warning(
@@ -803,6 +843,7 @@ const FabricationDatabasesearch = () => {
   // Format date for display (DD-MMMM-YYYY)
   const formatDate = (dateString) => {
     if (!dateString) return "-"
+
     try {
       const date = new Date(dateString)
       const months = [
@@ -819,9 +860,11 @@ const FabricationDatabasesearch = () => {
         "November",
         "December",
       ]
+
       const day = date.getDate().toString().padStart(2, "0")
       const month = months[date.getMonth()]
       const year = date.getFullYear()
+
       return `${day}-${month}-${year}`
     } catch (error) {
       return dateString
@@ -873,10 +916,10 @@ const FabricationDatabasesearch = () => {
       <div className="fab-filter-section-zebra">
         <div className="fab-filter-container-hippo">
           <div className="fab-filter-row-rhino">
-            {/* Work Order Dropdown */}
+            {/* Work Order Dropdown - NEW: Cascading logic */}
             <select
               value={selectedWorkOrder}
-              onChange={(e) => setSelectedWorkOrder(e.target.value)}
+              onChange={(e) => handleWorkOrderChange(e.target.value)}
               className="fab-dropdown-cheetah"
             >
               <option value="">Select Work Order</option>
@@ -887,11 +930,12 @@ const FabricationDatabasesearch = () => {
               ))}
             </select>
 
-            {/* Building Name (Plant Location) Dropdown */}
+            {/* Building Name (Plant Location) Dropdown - NEW: Cascading logic */}
             <select
               value={selectedPlantLocation}
-              onChange={(e) => setSelectedPlantLocation(e.target.value)}
+              onChange={(e) => handleBuildingNameChange(e.target.value)}
               className="fab-dropdown-cheetah"
+              disabled={!selectedWorkOrder} // Disabled until Work Order is selected
             >
               <option value="">Select Building Name</option>
               {plantLocations.map((location, index) => (
@@ -901,7 +945,7 @@ const FabricationDatabasesearch = () => {
               ))}
             </select>
 
-            {/* Serial No Dropdown */}
+            {/* Serial No Dropdown - UNCHANGED */}
             <select
               value={selectedSerialNo}
               onChange={(e) => setSelectedSerialNo(e.target.value)}
@@ -915,11 +959,12 @@ const FabricationDatabasesearch = () => {
               ))}
             </select>
 
-            {/* Drawing No Dropdown */}
+            {/* Drawing No Dropdown - NEW: Cascading logic */}
             <select
               value={selectedDrawingNo}
               onChange={(e) => setSelectedDrawingNo(e.target.value)}
               className="fab-dropdown-cheetah"
+              disabled={!selectedWorkOrder || !selectedPlantLocation} // Disabled until both Work Order and Building Name are selected
             >
               <option value="">Select Drawing No</option>
               {drawingNumbers.map((drawingNo, index) => (
@@ -929,12 +974,13 @@ const FabricationDatabasesearch = () => {
               ))}
             </select>
 
-            {/* Mark No Dropdown with RA NO field */}
+            {/* Mark No Dropdown with RA NO field - NEW: Cascading logic */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <select
                 value={selectedMarkNo}
                 onChange={(e) => setSelectedMarkNo(e.target.value)}
                 className="fab-dropdown-cheetah"
+                disabled={!selectedWorkOrder || !selectedPlantLocation} // Disabled until both Work Order and Building Name are selected
               >
                 <option value="">Select Mark No</option>
                 {markNumbers?.map((markNo, index) => (
@@ -944,7 +990,7 @@ const FabricationDatabasesearch = () => {
                 ))}
               </select>
 
-              {/* RA NO Free Text Field with proper functionality */}
+              {/* RA NO Free Text Field - NEW: Disabled until search is performed */}
               <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                 <label style={{ fontSize: "14px", fontWeight: "500", color: "#2d3748", whiteSpace: "nowrap" }}>
                   RA NO:
@@ -956,13 +1002,13 @@ const FabricationDatabasesearch = () => {
                   onChange={(e) => setFilterRaNo(e.target.value)}
                   className="fab-edit-input-deer"
                   style={{ minWidth: "150px" }}
-                  disabled={!selectedMarkNo || !selectedDrawingNo}
+                  disabled={!searchPerformed || !selectedMarkNo || !selectedDrawingNo} // NEW: Disabled until search is performed
                 />
                 <button
                   className="fab-action-button-elk fab-save-button-impala"
                   title="Save RA NO"
                   onClick={handleSaveFilterRaNo}
-                  disabled={!selectedMarkNo || !selectedDrawingNo || savingFilterRaNo}
+                  disabled={!searchPerformed || !selectedMarkNo || !selectedDrawingNo || savingFilterRaNo} // NEW: Disabled until search is performed
                   style={{ minWidth: "32px", height: "32px" }}
                 >
                   {savingFilterRaNo ? <AiOutlineLoading3Quarters className="fab-spin-icon-polar" /> : <MdSave />}
@@ -1017,7 +1063,6 @@ const FabricationDatabasesearch = () => {
                   <span className="fab-filter-value">{selectedSerialNo}</span>
                 </div>
               )}
-
               {/* Display aggregated values */}
               {filteredData.length > 0 && (
                 <>
@@ -1050,17 +1095,11 @@ const FabricationDatabasesearch = () => {
             <div className="fab-loading-text-cougar">Loading...</div>
           </div>
         )}
-
         <div className="fab-table-wrapper-bear">
           <table className="fab-table-wolf">
             <thead>
               <tr>
-                <th>Order #</th>
-                {/* COMMENTED OUT COLUMNS - KEEP CODE BUT HIDDEN */}
-                {/* <th>Total Mark Weight</th> */}
-                {/* <th>Mark Wgt</th> */}
-                {/* <th>Mark Qty</th> */}
-                {/* <th>Item No</th> */}
+                <th>Items #</th>
                 <th>Section Code</th>
                 <th>Section Name</th>
                 <th>Section Weight</th>
@@ -1076,7 +1115,7 @@ const FabricationDatabasesearch = () => {
                 <th className="fab-process-header">Welding</th>
                 <th className="fab-process-header">Finishing</th>
                 <th>Actions</th>
-                <th>RA.NO</th>
+                {/* <th>RA.NO</th> */}
               </tr>
             </thead>
             <tbody>
@@ -1087,11 +1126,6 @@ const FabricationDatabasesearch = () => {
                       <IoMdOpen />
                     </div>
                   </td>
-                  {/* COMMENTED OUT COLUMNS DATA - KEEP CODE BUT HIDDEN */}
-                  {/* <td>{formatNumber(row.totalMarkedWgt)}</td> */}
-                  {/* <td>{formatNumber(row.markWeight)}</td> */}
-                  {/* <td>{formatNumber(row.markedQty)}</td> */}
-                  {/* <td>{row.itemNo || "-"}</td> */}
                   <td>
                     {editingRow === row.lineId ? (
                       <input
@@ -1244,8 +1278,8 @@ const FabricationDatabasesearch = () => {
                     </div>
                   </td>
 
-                  {/* RA.NO COLUMN - RESTORED */}
-                  <td>
+                  {/* RA.NO COLUMN - NEW: Enabled only after search */}
+                  {/* <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                       <input
                         type="text"
@@ -1254,12 +1288,13 @@ const FabricationDatabasesearch = () => {
                         onChange={(e) => handleRaNoChange(row.lineId, e.target.value)}
                         className="fab-edit-input-deer"
                         style={{ minWidth: "120px" }}
+                        disabled={!searchPerformed} // NEW: Disabled until search is performed
                       />
                       <button
                         className="fab-action-button-elk fab-save-button-impala"
                         title="Save RA.NO"
                         onClick={() => handleSaveRaNo(row.lineId)}
-                        disabled={savingRaNo[row.lineId]}
+                        disabled={savingRaNo[row.lineId] || !searchPerformed} // NEW: Disabled until search is performed
                         style={{ minWidth: "32px", height: "32px" }}
                       >
                         {savingRaNo[row.lineId] ? (
@@ -1269,12 +1304,12 @@ const FabricationDatabasesearch = () => {
                         )}
                       </button>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
               {filteredData.length === 0 && !loading && (
                 <tr className="fab-empty-row-camel">
-                  <td colSpan="17">
+                  <td colSpan="16">
                     <div className="fab-empty-state-llama">
                       <div className="fab-empty-text-alpaca">
                         {selectedDrawingNo || selectedMarkNo
