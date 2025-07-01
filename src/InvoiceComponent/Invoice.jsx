@@ -1051,8 +1051,8 @@ const Invoice = () => {
       <div className="modern-header">
         <div className="header-content">
           <div className="title-section">
-            <h1 className="main-title">Invoice Management System</h1>
-            <p className="subtitle">Search and generate billing details</p>
+            <h1 className="main-title">Invoice generation by Bellary Infotech Soltutions</h1>
+            <p className="subtitle">Search and generate your invoice below</p>
           </div>
           <div className="action-buttons">
             <button className="btn-primary" onClick={handleInvoiceClick}>
