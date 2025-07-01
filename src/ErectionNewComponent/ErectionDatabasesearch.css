@@ -125,7 +125,7 @@
 }
 
 .erect-search-button-leopard {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
   color: white;
   border: none;
   border-radius: 4px;
