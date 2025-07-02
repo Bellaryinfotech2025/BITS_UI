@@ -100,7 +100,7 @@ const InspectionReport = () => {
               </tr>
               <tr>
                 <td className="label-cell">WEIGHT'S ARE AS PER ( Kg's)</td>
-                <td className="label-cell">Drg Mark Wgt</td>
+                <td className="label-cell" style={{color:'#ffffff'}}>Drg Mark Wgt</td>
                 <td className="value-cell"></td>
                 <td className="label-cell">Additional / Less in Weight</td>
                 <td className="value-cell"></td>
