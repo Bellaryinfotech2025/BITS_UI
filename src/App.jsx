@@ -14,6 +14,7 @@ import LedgerCreation from './VendorComponent/LedgerCreation';
 import Kaaa from './VendorComponent/KKK';
 
 import Invoice from './InvoiceComponent/Invoice';
+import InspectionReport from './InspectionReportComponent/InspectionReport';
 
  
  
@@ -46,6 +47,8 @@ function App() {
             <Route path="/Kaaa" element={<Kaaa/>}/>
 
             <Route path="/invoice/management/bellaryinfotech/billing/software" element={<Invoice/>}/>
+
+            <Route path="/inspection/report/bellaryinfotech/billing/software" element={<InspectionReport/>}/>
 
 
 

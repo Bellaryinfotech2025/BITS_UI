@@ -1,0 +1,319 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.inspection-report-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.control-panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 15px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qty-btn {
+  width: 35px;
+  height: 35px;
+  border: 1px solid #6c757d;
+  background-color: #ffffff;
+  color: #495057;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.qty-btn:hover {
+  background-color: #e9ecef;
+  border-color: #495057;
+}
+
+.quantity-display {
+  min-width: 40px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  color: #495057;
+}
+
+.download-btn {
+  background-color: #495057;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.download-btn:hover {
+  background-color: #343a40;
+}
+
+.report-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.report-content {
+  max-width: 100%;
+  margin: 0;
+  padding: 20px;
+  background-color: white;
+  min-height: 100%;
+}
+
+.header-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-decoration: underline;
+  color: #000;
+}
+
+.contractor-name {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 15px;
+  font-size: 12px;
+  color: #000;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 9px;
+}
+
+th,
+td {
+  border: 1px solid #000;
+  padding: 3px 4px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.2;
+}
+
+th {
+  background-color: transparent;
+  font-weight: bold;
+  text-align: center;
+  font-size: 9px;
+}
+
+.label-cell {
+  font-weight: bold;
+  background-color: transparent;
+  font-size: 9px;
+}
+
+.value-cell {
+  background-color: transparent;
+  min-height: 18px;
+}
+
+.stage-header {
+  text-align: center;
+  font-weight: bold;
+  text-decoration: underline;
+  margin: 10px 0 6px 0;
+  font-size: 10px;
+  color: #000;
+}
+
+.project-info-table td {
+  padding: 4px;
+  height: 20px;
+}
+
+.stage-table th,
+.stage-table td {
+  padding: 3px;
+  text-align: center;
+  height: 18px;
+}
+
+.stage-table .label-cell {
+  text-align: left;
+}
+
+.remarks-cell {
+  height: 40px;
+  vertical-align: top;
+}
+
+.conclusion-cell {
+  height: 40px;
+  vertical-align: top;
+}
+
+.signature-table th {
+  background-color: transparent;
+  font-weight: bold;
+  text-align: center;
+  padding: 6px 4px;
+  font-size: 9px;
+}
+
+.signature-table td {
+  height: 25px;
+  vertical-align: top;
+}
+
+.bottom-sections td {
+  height: 30px;
+  vertical-align: top;
+}
+
+/* Custom Scrollbar */
+.report-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.report-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.report-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.report-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .control-panel {
+    padding: 10px;
+    gap: 15px;
+  }
+
+  .qty-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .download-btn {
+    padding: 8px 20px;
+    font-size: 12px;
+  }
+
+  .report-content {
+    padding: 15px;
+  }
+
+  table {
+    font-size: 8px;
+  }
+
+  th,
+  td {
+    padding: 2px 3px;
+  }
+
+  .header-title {
+    font-size: 12px;
+  }
+
+  .contractor-name {
+    font-size: 10px;
+  }
+
+  .stage-header {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .control-panel {
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .report-content {
+    padding: 10px;
+  }
+
+  table {
+    font-size: 7px;
+  }
+
+  th,
+  td {
+    padding: 1px 2px;
+  }
+
+  .qty-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .download-btn {
+    padding: 6px 15px;
+    font-size: 11px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .inspection-report-container {
+    height: auto;
+  }
+
+  .control-panel {
+    display: none;
+  }
+
+  .report-wrapper {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .report-content {
+    padding: 0;
+    box-shadow: none;
+    border: none;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+
+  .stage-header {
+    page-break-after: avoid;
+  }
+}
