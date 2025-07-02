@@ -946,7 +946,7 @@ const FabricationDatabasesearch = () => {
             </select>
 
             {/* Serial No Dropdown - UNCHANGED */}
-            <select
+            {/* <select
               value={selectedSerialNo}
               onChange={(e) => setSelectedSerialNo(e.target.value)}
               className="fab-dropdown-cheetah"
@@ -957,7 +957,7 @@ const FabricationDatabasesearch = () => {
                   {serialNo}
                 </option>
               ))}
-            </select>
+            </select> */}
 
             {/* Drawing No Dropdown - NEW: Cascading logic */}
             <select
