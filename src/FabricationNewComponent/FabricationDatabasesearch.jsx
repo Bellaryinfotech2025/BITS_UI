@@ -1108,13 +1108,14 @@ const FabricationDatabasesearch = () => {
                 <th>Item Qty</th>
                 <th>Item Weight</th>
                 <th>Total Item Weight</th>
-                <th>Status</th>
+               
                 {/* Fabrication Process Columns */}
                 <th className="fab-process-header">Cutting</th>
                 <th className="fab-process-header">Fit Up</th>
                 <th className="fab-process-header">Welding</th>
                 <th className="fab-process-header">Finishing</th>
                 <th>Actions</th>
+                <th>Status</th>
                 {/* <th>RA.NO</th> */}
               </tr>
             </thead>
@@ -1213,9 +1214,7 @@ const FabricationDatabasesearch = () => {
                       formatNumber(row.totalItemWeight)
                     )}
                   </td>
-                  <td>
-                    <span className="fab-status-badge-moose">Fabrication</span>
-                  </td>
+                  
 
                   {/* Fabrication Process Columns */}
                   {FABRICATION_STAGES.map((stage) => (
@@ -1276,6 +1275,9 @@ const FabricationDatabasesearch = () => {
                         </>
                       )}
                     </div>
+                  </td>
+                   <td>
+                    <span className="fab-status-badge-moose">Fabrication</span>
                   </td>
 
                   {/* RA.NO COLUMN - NEW: Enabled only after search */}

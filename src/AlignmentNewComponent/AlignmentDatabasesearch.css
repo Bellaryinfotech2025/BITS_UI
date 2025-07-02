@@ -598,13 +598,13 @@
 }
 
 .align-table-wrapper-bear::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+   background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
   border-radius: 4px;
   border: 1px solid #e1e7ef;
 }
 
 .align-table-wrapper-bear::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+   background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
 }
 
 @media (max-width: 768px) {
