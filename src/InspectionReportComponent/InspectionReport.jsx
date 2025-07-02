@@ -76,7 +76,7 @@ const InspectionReport = () => {
               <tr>
                 <td className="label-cell">PROJECT:</td>
                 <td className="value-cell"></td>
-                <td className="label-cell">Project Location :</td>
+                <td className="label-cell">Manually entry no label :</td>
                 <td className="value-cell"></td>
                 <td className="label-cell">DATE :</td>
                 <td className="value-cell"></td>
