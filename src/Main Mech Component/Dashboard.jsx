@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  LayoutDashboard,
+ 
   CreditCard,
   TrendingUp,
   Sliders,
   FileText,
-  FileQuestion,
   Bell,
   Settings,
   LogOut,
@@ -16,14 +15,18 @@ import {
   UserCircle,
   Edit,
   Package,
-  Upload,
   Clipboard,
   PenTool,
   BarChart,
-} from "lucide-react"
-import { Link } from "react-router-dom"
+} from "lucide-react";
+import { FcDataSheet } from "react-icons/fc";
+import { MdRawOff } from "react-icons/md";
+import { AiFillHome } from "react-icons/ai";
+import { LiaBorderStyleSolid } from "react-icons/lia";
+import { BsFillFileSpreadsheetFill } from "react-icons/bs";
+import { Link } from "react-router-dom";
 import { MdAccountCircle } from "react-icons/md";
-import { GiCardDraw } from "react-icons/gi";
+ 
 
 import "../Design Component/Dashboard.css"
 import DrawingEntry from "../Drawing Entry Component/DrawingEntry"
@@ -41,7 +44,7 @@ import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabases
 import PaintingDatabasesearch from "../PaintingComponent/Painting";
 
  
-// import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
+import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
 import ReportTemplate from "../ReportsNewComponent/Reports";
 import Invoice from "../InvoiceComponent/Invoice";
@@ -123,7 +126,7 @@ const MainDashboard = () => {
     erection: [], //   for Fabrication
     alignment: [], //   for Fabrication
     painting :[],//for the painting page 
-    // billing: [], //   for Fabrication
+    worksheets: [], //   for Fabrication
     reports: [], //   for Fabrication
     invoices: [], //   for Fabrication
     
@@ -385,13 +388,13 @@ const MainDashboard = () => {
   const getMenuIcon = (menu) => {
     switch (menu) {
       case "home":
-        return <LayoutDashboard size={20} />
+        return <AiFillHome size={20} />  
       case "poentry":
-        return <Clipboard size={20} />
+        return <LiaBorderStyleSolid size={20} />
       case "drawingentry":
         return <PenTool size={20} />
         case "rawmaterialentry":
-          return <GiCardDraw size={20}/>
+          return <MdRawOff size={20}/>   
       case "orders":
         return <BarChart size={20} />
       case "fabrication":
@@ -400,14 +403,14 @@ const MainDashboard = () => {
         return <TrendingUp size={20} />
       case "alignment":
         return <Sliders size={20} />
-      // case "billing":
-      //   return <CreditCard size={20} />
+      case "worksheets":
+        return <FcDataSheet size={20} />
         case "painting":
           return <CreditCard size={20}/>
       case "reports":
         return <FileText size={20} />
       case "invoices":
-        return <FileQuestion size={20} />
+        return <BsFillFileSpreadsheetFill size={20} />   
       case "notifications":
         return <Bell size={20} />
       case "settings":
@@ -461,9 +464,9 @@ const MainDashboard = () => {
     }
 
     // Handle Billing
-    // if (activeMenu === "billing") {
-    //   return <BillingDatabasesearch />
-    // }
+    if (activeMenu === "worksheets") {
+      return <BillingDatabasesearch />
+    }
 
     // Handle Reports
      
@@ -638,16 +641,16 @@ const MainDashboard = () => {
               </a>
             </li>
 
-            {/* <li>
+            <li>
               <a
                 href="#"
-                className={`nav-link ${activeMenu === "billing" ? "active" : ""}`}
-                onClick={(e) => handleLinkClick(e, "billing")}
+                className={`nav-link ${activeMenu === "worksheets" ? "active" : ""}`}
+                onClick={(e) => handleLinkClick(e, "worksheets")}
               >
-                {getMenuIcon("billing")}
-                {!sidebarCollapsed && <span>Billing</span>}
+                {getMenuIcon("worksheets")}
+                {!sidebarCollapsed && <span>Worksheets</span>}
               </a>
-            </li> */}
+            </li>
             <li>
               <a
                 href="#"
@@ -746,7 +749,7 @@ const MainDashboard = () => {
               {activeMenu === "erection" && "Erection"}
               {activeMenu === "alignment" && "Alignment"}
               {activeMenu === "painting" && "Painting"}
-              {/* {activeMenu === "billing" && "Billing"} */}
+              {activeMenu === "worksheets" && "Worksheets"}
               {activeMenu === "reports" && "Reports"}
               {activeMenu === "invoices" && "Invoices"}
               {activeMenu === "ledgerCreation" && "LedgerCreation"}

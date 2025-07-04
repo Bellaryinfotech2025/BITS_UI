@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState } from "react";
 import {
   ClipboardList,
   PenTool,
@@ -10,8 +10,10 @@ import {
   X,
   Calendar,
   Filter,
-} from "lucide-react"
+} from "lucide-react";
 import "../ReportsNewComponent/ReportsDesign.css";
+import { FaRupeeSign } from "react-icons/fa";
+import { VscListUnordered } from "react-icons/vsc";
 
 const ReportTemplate = () => {
   const [selectedReport, setSelectedReport] = useState(null)
@@ -39,7 +41,7 @@ const ReportTemplate = () => {
     {
       id: "order-status",
       title: "Order Status",
-      icon: <ClipboardList />,
+      icon: <VscListUnordered />,
       color: "blue",
     },
     {
@@ -63,7 +65,7 @@ const ReportTemplate = () => {
     {
       id: "billing-reports",
       title: "Billing Reports",
-      icon: <DollarSign />,
+      icon: <FaRupeeSign />,
       color: "red",
     },
   ]
