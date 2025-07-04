@@ -1,21 +1,12 @@
-import { useState } from "react";
-import {
-  ClipboardList,
-  PenTool,
-  Package2,
-  TrendingUp,
-  DollarSign,
-  ChevronDown,
-  Search,
-  X,
-  Calendar,
-  Filter,
-} from "lucide-react";
-import "../ReportsNewComponent/ReportsDesign.css";
-import { FaRupeeSign } from "react-icons/fa";
-import { VscListUnordered } from "react-icons/vsc";
+import { useState } from "react"
+import { PenTool, Package2, TrendingUp, ChevronDown, Search, X, Calendar, Filter, ArrowLeft } from "lucide-react"
+import "../ReportsNewComponent/ReportsDesign.css"
+import { FaRupeeSign } from "react-icons/fa"
+import { VscListUnordered } from "react-icons/vsc"
+import { FcInspection } from "react-icons/fc"
 
 const ReportTemplate = () => {
+  const [currentView, setCurrentView] = useState("home") // "home" or specific report ID
   const [selectedReport, setSelectedReport] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -35,7 +26,9 @@ const ReportTemplate = () => {
   // Material Requirement states
   const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
 
-  // Material Reconciliation states (uses existing selectedRANo)
+  // Inspection Reports states
+  const [selectedMarkNo, setSelectedMarkNo] = useState("")
+  const [selectedContractor, setSelectedContractor] = useState("")
 
   const reportBoxes = [
     {
@@ -68,6 +61,12 @@ const ReportTemplate = () => {
       icon: <FaRupeeSign />,
       color: "red",
     },
+    {
+      id: "inspection-reports",
+      title: "Inspection Reports",
+      icon: <FcInspection />,
+      color: "red",
+    },
   ]
 
   const serviceDescriptionOptions = [
@@ -78,20 +77,22 @@ const ReportTemplate = () => {
   ]
 
   const handleReportClick = (reportId) => {
-    if (selectedReport === reportId) {
-      setSelectedReport(null)
-      setShowTable(false)
-      resetAllStates()
-      return
-    }
-
     setLoading(true)
     setTimeout(() => {
+      setCurrentView(reportId)
       setSelectedReport(reportId)
       setLoading(false)
       setShowTable(false)
       resetAllStates()
-    }, 1000)
+    }, 500)
+  }
+
+  const handleBackToHome = () => {
+    setCurrentView("home")
+    setSelectedReport(null)
+    setShowTable(false)
+    resetAllStates()
+    setTableLoading(false)
   }
 
   const resetAllStates = () => {
@@ -101,6 +102,8 @@ const ReportTemplate = () => {
     setSelectedServiceDescription("")
     setSelectedRANo("")
     setSelectedDrawingNo("")
+    setSelectedMarkNo("")
+    setSelectedContractor("")
   }
 
   const handleWorkOrderChange = (e) => {
@@ -127,6 +130,14 @@ const ReportTemplate = () => {
     setSelectedDrawingNo(e.target.value)
   }
 
+  const handleMarkNoChange = (e) => {
+    setSelectedMarkNo(e.target.value)
+  }
+
+  const handleContractorChange = (e) => {
+    setSelectedContractor(e.target.value)
+  }
+
   const handleShowTable = () => {
     if (selectedReport === "order-status" && !selectedWorkOrder) return
 
@@ -147,6 +158,12 @@ const ReportTemplate = () => {
     if (selectedReport === "material-reconciliation" && (!selectedWorkOrder || !selectedProjectName || !selectedRANo))
       return
 
+    if (
+      selectedReport === "inspection-reports" &&
+      (!selectedWorkOrder || !selectedProjectName || !selectedDrawingNo || !selectedMarkNo || !selectedContractor)
+    )
+      return
+
     setTableLoading(true)
     setShowTable(true)
     setTimeout(() => {
@@ -155,7 +172,6 @@ const ReportTemplate = () => {
   }
 
   const handleClearSearch = () => {
-    setSelectedReport(null)
     setShowTable(false)
     resetAllStates()
     setTableLoading(false)
@@ -183,7 +199,7 @@ const ReportTemplate = () => {
       },
       painting: {
         completedQty: "Painting Completed (Mark Qty)",
-        completedWeight: "Painting Balance (Mark Qty)",
+        completedWeight: "Painting Balance (Mark Weight)",
         balanceQty: "Painting Balance (Mark Qty)",
         balanceWeight: "Painting Balance (Mark Weight)",
       },
@@ -207,6 +223,9 @@ const ReportTemplate = () => {
     if (selectedReport === "material-reconciliation") {
       return selectedWorkOrder && selectedProjectName && selectedRANo
     }
+    if (selectedReport === "inspection-reports") {
+      return selectedWorkOrder && selectedProjectName && selectedDrawingNo && selectedMarkNo && selectedContractor
+    }
     return false
   }
 
@@ -221,37 +240,103 @@ const ReportTemplate = () => {
     }
     if (selectedRANo) filters.push({ label: "RA No", value: selectedRANo })
     if (selectedDrawingNo) filters.push({ label: "Drawing No", value: selectedDrawingNo })
+    if (selectedMarkNo) filters.push({ label: "Mark No", value: selectedMarkNo })
+    if (selectedContractor) filters.push({ label: "Contractor", value: selectedContractor })
     return filters
   }
 
   const currentReport = selectedReport ? reportBoxes.find((box) => box.id === selectedReport) : null
 
+  // Mock data for inspection reports horizontal layout
+  const inspectionData = [
+    {
+      date: "DD-MM-YYYY",
+      rev: "Rev-XX",
+      drawingMarkWeight: "XXX.X kg",
+      asPerDrawingQty: "XX units",
+      additionalOrLessWeight: "±X.X kg",
+      offeredQty: "XX units",
+      cumulativeQtyCleared: "XX units",
+      total: "XXX.X kg",
+    },
+  ]
+
+  // Home Page View
+  if (currentView === "home") {
+    return (
+      <div className="tiger-reports-container">
+        {/* Simple Header Text */}
+        <div className="simple-header-text">
+          <p>
+            Search your priority orders below by selecting the Order Status, Drawing Status, Material Requirement,
+            Material Reconciliation, Billing Reports, Inspection Reports
+          </p>
+        </div>
+
+        {/* Reports Grid - Compressed Layout */}
+        <div className="bear-reports-grid-compressed">
+          {/* First Row - 4 boxes */}
+          <div className="reports-grid-row">
+            {reportBoxes.slice(0, 4).map((box) => (
+              <div
+                key={box.id}
+                className={`fox-report-box-compressed ${box.color}`}
+                onClick={() => handleReportClick(box.id)}
+              >
+                <div className={`deer-report-icon-compressed ${box.color}`}>{box.icon}</div>
+                <div className="rabbit-report-content-compressed">
+                  <span className="rabbit-report-title-compressed">{box.title}</span>
+                </div>
+                <ChevronDown className="eagle-report-arrow-compressed" />
+              </div>
+            ))}
+          </div>
+
+          {/* Second Row - 2 boxes */}
+          <div className="reports-grid-row">
+            {reportBoxes.slice(4, 6).map((box) => (
+              <div
+                key={box.id}
+                className={`fox-report-box-compressed ${box.color}`}
+                onClick={() => handleReportClick(box.id)}
+              >
+                <div className={`deer-report-icon-compressed ${box.color}`}>{box.icon}</div>
+                <div className="rabbit-report-content-compressed">
+                  <span className="rabbit-report-title-compressed">{box.title}</span>
+                </div>
+                <ChevronDown className="eagle-report-arrow-compressed" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {loading && (
+          <div className="shark-loading-section">
+            <div className="whale-loading-spinner"></div>
+            <span>Loading {currentReport?.title}...</span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Report Detail View
   return (
     <div className="tiger-reports-container">
-      <div className="bear-reports-grid">
-        {reportBoxes.map((box) => (
-          <div
-            key={box.id}
-            className={`fox-report-box ${box.color} ${selectedReport === box.id ? "active" : ""}`}
-            onClick={() => handleReportClick(box.id)}
-          >
-            <div className={`deer-report-icon ${box.color}`}>{box.icon}</div>
-            <div className="rabbit-report-content">
-              <span className="rabbit-report-title">{box.title}</span>
-            </div>
-            <ChevronDown className={`eagle-report-arrow ${selectedReport === box.id ? "rotated" : ""}`} />
+      <div className="report-detail-view">
+        {/* Back Button and Header */}
+        <div className="report-detail-header">
+          <button className="back-button" onClick={handleBackToHome}>
+            <ArrowLeft size={20} />
+            <span>Back to Reports</span>
+          </button>
+          <div className="report-detail-title">
+            <div className={`deer-report-icon ${currentReport?.color}`}>{currentReport?.icon}</div>
+            <h2>{currentReport?.title}</h2>
           </div>
-        ))}
-      </div>
-
-      {loading && (
-        <div className="shark-loading-section">
-          <div className="whale-loading-spinner"></div>
-          <span>Loading {currentReport?.title}...</span>
         </div>
-      )}
 
-      {selectedReport && !loading && (
+        {/* Filter Section */}
         <div className="panther-detail-section">
           <div className="zebra-filter-section">
             {/* Work Order Dropdown - Common for all */}
@@ -296,11 +381,12 @@ const ReportTemplate = () => {
               </div>
             )}
 
-            {/* Project Name Dropdown - For Drawings Status, Billing Reports, Material Requirement, and Material Reconciliation */}
+            {/* Project Name Dropdown - For multiple reports */}
             {(selectedReport === "drawings-status" ||
               selectedReport === "billing-reports" ||
               selectedReport === "material-requirement" ||
-              selectedReport === "material-reconciliation") && (
+              selectedReport === "material-reconciliation" ||
+              selectedReport === "inspection-reports") && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="projectName">Select Project Name</label>
                 <div className="hippo-select-wrapper">
@@ -345,8 +431,8 @@ const ReportTemplate = () => {
               </div>
             )}
 
-            {/* Drawing No Dropdown - Only for Material Requirement */}
-            {selectedReport === "material-requirement" && (
+            {/* Drawing No Dropdown - For Material Requirement and Inspection Reports */}
+            {(selectedReport === "material-requirement" || selectedReport === "inspection-reports") && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="drawingNo">Select Drawing No</label>
                 <div className="hippo-select-wrapper">
@@ -361,6 +447,45 @@ const ReportTemplate = () => {
                     <option value="DWG-002">DWG-002</option>
                     <option value="DWG-003">DWG-003</option>
                     <option value="DWG-004">DWG-004</option>
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* Mark No Dropdown - Only for Inspection Reports */}
+            {selectedReport === "inspection-reports" && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="markNo">Select Mark No</label>
+                <div className="hippo-select-wrapper">
+                  <select id="markNo" value={selectedMarkNo} onChange={handleMarkNoChange} className="rhino-select">
+                    <option value="">Choose mark...</option>
+                    <option value="MRK-001">MRK-001</option>
+                    <option value="MRK-002">MRK-002</option>
+                    <option value="MRK-003">MRK-003</option>
+                    <option value="MRK-004">MRK-004</option>
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* Contractor Dropdown - Only for Inspection Reports */}
+            {selectedReport === "inspection-reports" && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="contractor">Select Contractor</label>
+                <div className="hippo-select-wrapper">
+                  <select
+                    id="contractor"
+                    value={selectedContractor}
+                    onChange={handleContractorChange}
+                    className="rhino-select"
+                  >
+                    <option value="">Choose contractor...</option>
+                    <option value="ABC-Construction">ABC Construction</option>
+                    <option value="XYZ-Builders">XYZ Builders</option>
+                    <option value="DEF-Engineering">DEF Engineering</option>
+                    <option value="GHI-Contractors">GHI Contractors</option>
                   </select>
                   <ChevronDown className="monkey-select-icon" />
                 </div>
@@ -391,7 +516,7 @@ const ReportTemplate = () => {
                   Search
                 </button>
               )}
-              {(selectedReport || showTable) && (
+              {showTable && (
                 <button className="snake-clear-btn" onClick={handleClearSearch}>
                   <X size={14} />
                   Clear
@@ -418,12 +543,56 @@ const ReportTemplate = () => {
             </div>
           )}
 
+          {/* Table/Data Display Section */}
           {showTable && (
             <div className="crocodile-table-section">
               {tableLoading ? (
                 <div className="octopus-loading">
                   <div className="jellyfish-loading-spinner"></div>
                   <span>Loading data...</span>
+                </div>
+              ) : selectedReport === "inspection-reports" ? (
+                <div className="inspection-horizontal-layout">
+                  {inspectionData.map((item, index) => (
+                    <div key={index} className="inspection-card">
+                      <div className="inspection-row">
+                        <div className="inspection-field">
+                          <span className="inspection-label">DATE</span>
+                          <span className="inspection-value">{item.date}</span>
+                        </div>
+                        <div className="inspection-field">
+                          <span className="inspection-label">REV</span>
+                          <span className="inspection-value">{item.rev}</span>
+                        </div>
+                        <div className="inspection-field">
+                          <span className="inspection-label">DRAWING MARK WEIGHT</span>
+                          <span className="inspection-value">{item.drawingMarkWeight}</span>
+                        </div>
+                        <div className="inspection-field">
+                          <span className="inspection-label">AS PER DRAWING QTY</span>
+                          <span className="inspection-value">{item.asPerDrawingQty}</span>
+                        </div>
+                      </div>
+                      <div className="inspection-row">
+                        <div className="inspection-field">
+                          <span className="inspection-label">ADDITIONAL OR LESS IN WEIGHT</span>
+                          <span className="inspection-value">{item.additionalOrLessWeight}</span>
+                        </div>
+                        <div className="inspection-field">
+                          <span className="inspection-label">OFFERED QTY</span>
+                          <span className="inspection-value">{item.offeredQty}</span>
+                        </div>
+                        <div className="inspection-field">
+                          <span className="inspection-label">CUMULATIVE QTY CLEARED</span>
+                          <span className="inspection-value">{item.cumulativeQtyCleared}</span>
+                        </div>
+                        <div className="inspection-field">
+                          <span className="inspection-label">TOTAL</span>
+                          <span className="inspection-value">{item.total}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="kangaroo-table-wrapper">
@@ -637,7 +806,7 @@ const ReportTemplate = () => {
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
