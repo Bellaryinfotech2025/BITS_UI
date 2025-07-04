@@ -41,7 +41,7 @@ import AlignmentDatabasesearch from "../AlignmentNewComponent/AlignmentDatabases
 import PaintingDatabasesearch from "../PaintingComponent/Painting";
 
  
-import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
+// import BillingDatabasesearch from "../BillingNewComponent/BillingDatabasesearch"
 
 import ReportTemplate from "../ReportsNewComponent/Reports";
 import Invoice from "../InvoiceComponent/Invoice";
@@ -123,7 +123,7 @@ const MainDashboard = () => {
     erection: [], //   for Fabrication
     alignment: [], //   for Fabrication
     painting :[],//for the painting page 
-    billing: [], //   for Fabrication
+    // billing: [], //   for Fabrication
     reports: [], //   for Fabrication
     invoices: [], //   for Fabrication
     
@@ -400,8 +400,8 @@ const MainDashboard = () => {
         return <TrendingUp size={20} />
       case "alignment":
         return <Sliders size={20} />
-      case "billing":
-        return <CreditCard size={20} />
+      // case "billing":
+      //   return <CreditCard size={20} />
         case "painting":
           return <CreditCard size={20}/>
       case "reports":
@@ -461,9 +461,9 @@ const MainDashboard = () => {
     }
 
     // Handle Billing
-    if (activeMenu === "billing") {
-      return <BillingDatabasesearch />
-    }
+    // if (activeMenu === "billing") {
+    //   return <BillingDatabasesearch />
+    // }
 
     // Handle Reports
      
@@ -638,7 +638,7 @@ const MainDashboard = () => {
               </a>
             </li>
 
-            <li>
+            {/* <li>
               <a
                 href="#"
                 className={`nav-link ${activeMenu === "billing" ? "active" : ""}`}
@@ -647,7 +647,7 @@ const MainDashboard = () => {
                 {getMenuIcon("billing")}
                 {!sidebarCollapsed && <span>Billing</span>}
               </a>
-            </li>
+            </li> */}
             <li>
               <a
                 href="#"
@@ -746,7 +746,7 @@ const MainDashboard = () => {
               {activeMenu === "erection" && "Erection"}
               {activeMenu === "alignment" && "Alignment"}
               {activeMenu === "painting" && "Painting"}
-              {activeMenu === "billing" && "Billing"}
+              {/* {activeMenu === "billing" && "Billing"} */}
               {activeMenu === "reports" && "Reports"}
               {activeMenu === "invoices" && "Invoices"}
               {activeMenu === "ledgerCreation" && "LedgerCreation"}

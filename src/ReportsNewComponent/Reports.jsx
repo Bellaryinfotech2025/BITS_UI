@@ -1,717 +1,641 @@
-import { useState, useEffect, useRef } from "react"
-import "../ReportsNewComponent/ReportsDesign.css"
-import { MdSearch } from "react-icons/md"
-import { TfiTag } from "react-icons/tfi";
-import { FiClipboard } from "react-icons/fi";
-import { RxDrawingPin } from "react-icons/rx";
-import { VscDiffRenamed } from "react-icons/vsc";
- 
-import { FiTag } from "react-icons/fi"
+import { useState } from "react"
+import {
+  ClipboardList,
+  PenTool,
+  Package2,
+  TrendingUp,
+  DollarSign,
+  ChevronDown,
+  Search,
+  X,
+  Calendar,
+  Filter,
+} from "lucide-react"
+import "../ReportsNewComponent/ReportsDesign.css";
 
 const ReportTemplate = () => {
-  // State for dropdown options
-  const [workOrderOptions, setWorkOrderOptions] = useState([])
-  const [buildingNameOptions, setBuildingNameOptions] = useState([])
-  const [drawingNoOptions, setDrawingNoOptions] = useState([])
-  const [markNoOptions, setMarkNoOptions] = useState([])
-
-  // State for filtered options (for search)
-  const [filteredWorkOrderOptions, setFilteredWorkOrderOptions] = useState([])
-  const [filteredBuildingNameOptions, setFilteredBuildingNameOptions] = useState([])
-  const [filteredDrawingNoOptions, setFilteredDrawingNoOptions] = useState([])
-  const [filteredMarkNoOptions, setFilteredMarkNoOptions] = useState([])
-
-  // State for search terms
-  const [searchTerms, setSearchTerms] = useState({
-    workOrder: "",
-    building: "",
-    drawing: "",
-    mark: "",
-  })
-
-  // State for selected values
-  const [selectedWorkOrders, setSelectedWorkOrders] = useState([])
-  const [selectedBuildingNames, setSelectedBuildingNames] = useState([])
-  const [selectedDrawingNos, setSelectedDrawingNos] = useState([])
-  const [selectedMarkNos, setSelectedMarkNos] = useState([])
-
-  // State for dropdown visibility
-  const [openDropdown, setOpenDropdown] = useState(null)
-
-  // State for table data
-  const [tableData, setTableData] = useState([])
-  const [showTable, setShowTable] = useState(false)
+  const [selectedReport, setSelectedReport] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  // Order Status states
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
+  const [showTable, setShowTable] = useState(false)
   const [tableLoading, setTableLoading] = useState(false)
-  const [dropdownLoading, setDropdownLoading] = useState(false)
-  const [error, setError] = useState(null)
 
-  // State for work order details
-  const [workOrderDetails, setWorkOrderDetails] = useState({})
+  // Drawing Status states
+  const [selectedBuildingName, setSelectedBuildingName] = useState("")
+  const [selectedProjectName, setSelectedProjectName] = useState("")
+  const [selectedServiceDescription, setSelectedServiceDescription] = useState("")
 
-  // Refs for dropdown containers
-  const dropdownRefs = {
-    workOrder: useRef(null),
-    building: useRef(null),
-    drawing: useRef(null),
-    mark: useRef(null),
-  }
+  // Billing Reports states
+  const [selectedRANo, setSelectedRANo] = useState("")
 
-  // API base URL
-  const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
+  // Material Requirement states
+  const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
 
-  // Fetch dropdown options on component mount
-  useEffect(() => {
-    fetchDropdownOptions()
-  }, [])
+  // Material Reconciliation states (uses existing selectedRANo)
 
-  // Update filtered options when search terms change
-  useEffect(() => {
-    setFilteredWorkOrderOptions(
-      workOrderOptions.filter((option) => option.toLowerCase().includes(searchTerms.workOrder.toLowerCase())),
-    )
-  }, [workOrderOptions, searchTerms.workOrder])
+  const reportBoxes = [
+    {
+      id: "order-status",
+      title: "Order Status",
+      icon: <ClipboardList />,
+      color: "blue",
+    },
+    {
+      id: "drawings-status",
+      title: "Drawings Status",
+      icon: <PenTool />,
+      color: "green",
+    },
+    {
+      id: "material-requirement",
+      title: "Material Requirement",
+      icon: <Package2 />,
+      color: "orange",
+    },
+    {
+      id: "material-reconciliation",
+      title: "Material Reconciliation",
+      icon: <TrendingUp />,
+      color: "purple",
+    },
+    {
+      id: "billing-reports",
+      title: "Billing Reports",
+      icon: <DollarSign />,
+      color: "red",
+    },
+  ]
 
-  useEffect(() => {
-    setFilteredBuildingNameOptions(
-      buildingNameOptions.filter((option) => option.toLowerCase().includes(searchTerms.building.toLowerCase())),
-    )
-  }, [buildingNameOptions, searchTerms.building])
+  const serviceDescriptionOptions = [
+    { value: "fabrication", label: "Fabrication Status" },
+    { value: "erection", label: "Erection Status" },
+    { value: "alignment", label: "Alignment Status" },
+    { value: "painting", label: "Painting Status" },
+  ]
 
-  useEffect(() => {
-    setFilteredDrawingNoOptions(
-      drawingNoOptions.filter((option) => option.toLowerCase().includes(searchTerms.drawing.toLowerCase())),
-    )
-  }, [drawingNoOptions, searchTerms.drawing])
-
-  useEffect(() => {
-    setFilteredMarkNoOptions(
-      markNoOptions.filter((option) => option.toLowerCase().includes(searchTerms.mark.toLowerCase())),
-    )
-  }, [markNoOptions, searchTerms.mark])
-
-  // Show table when filters change
-  useEffect(() => {
-    if (
-      selectedWorkOrders.length > 0 ||
-      selectedBuildingNames.length > 0 ||
-      selectedDrawingNos.length > 0 ||
-      selectedMarkNos.length > 0
-    ) {
-      handleShowTable()
-    }
-  }, [selectedWorkOrders, selectedBuildingNames, selectedDrawingNos, selectedMarkNos])
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const isClickInsideAnyDropdown = Object.values(dropdownRefs).some(
-        (ref) => ref.current && ref.current.contains(event.target),
-      )
-
-      if (!isClickInsideAnyDropdown) {
-        setOpenDropdown(null)
-      }
+  const handleReportClick = (reportId) => {
+    if (selectedReport === reportId) {
+      setSelectedReport(null)
+      setShowTable(false)
+      resetAllStates()
+      return
     }
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  // Fetch work order details when selected work orders change
-  useEffect(() => {
-    if (selectedWorkOrders.length > 0) {
-      fetchWorkOrderDetails(selectedWorkOrders[0])
-    }
-  }, [selectedWorkOrders])
-
-  const fetchWorkOrderDetails = async (workOrderNumber) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/getworkorder/number/${workOrderNumber}`)
-      if (response.ok) {
-        const data = await response.json()
-        setWorkOrderDetails(data)
-      } else {
-        console.error("Failed to fetch work order details")
-      }
-    } catch (err) {
-      console.error("Error fetching work order details:", err)
-    }
-  }
-
-  const fetchDropdownOptions = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Get all drawing entries
-      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllBitsDrawingEntries/details?size=1000`)
-      if (!allEntriesResponse.ok) throw new Error("Failed to fetch drawing entries")
-
-      const allEntriesData = await allEntriesResponse.json()
-      const entries = allEntriesData.content || allEntriesData
-
-      // Extract unique values from the entries
-      const workOrders = [...new Set(entries.map((entry) => entry.attribute1V).filter(Boolean))].sort()
-      const buildings = [...new Set(entries.map((entry) => entry.attribute2V).filter(Boolean))].sort()
-      const drawings = [...new Set(entries.map((entry) => entry.drawingNo).filter(Boolean))].sort()
-      const marks = [...new Set(entries.map((entry) => entry.markNo).filter(Boolean))].sort()
-
-      setWorkOrderOptions(workOrders)
-      setBuildingNameOptions(buildings)
-      setDrawingNoOptions(drawings)
-      setMarkNoOptions(marks)
-
-      // Initialize filtered options
-      setFilteredWorkOrderOptions(workOrders)
-      setFilteredBuildingNameOptions(buildings)
-      setFilteredDrawingNoOptions(drawings)
-      setFilteredMarkNoOptions(marks)
-
-      console.log("Fetched options:", { workOrders, buildings, drawings, marks })
-    } catch (err) {
-      console.error("Error fetching dropdown options:", err)
-      setError("Failed to load dropdown options: " + err.message)
-    } finally {
+    setLoading(true)
+    setTimeout(() => {
+      setSelectedReport(reportId)
       setLoading(false)
-    }
-  }
-
-  const fetchTableData = async () => {
-    try {
-      setTableLoading(true)
-      setError(null)
-
-      // Get all drawing entries
-      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllBitsDrawingEntries/details?size=1000`)
-      if (!allEntriesResponse.ok) throw new Error("Failed to fetch drawing entries")
-
-      const allEntriesData = await allEntriesResponse.json()
-      let entries = allEntriesData.content || allEntriesData
-
-      // Apply filters
-      if (selectedWorkOrders.length > 0) {
-        entries = entries.filter((entry) => selectedWorkOrders.includes(entry.attribute1V))
-      }
-
-      if (selectedBuildingNames.length > 0) {
-        entries = entries.filter((entry) => selectedBuildingNames.includes(entry.attribute2V))
-      }
-
-      if (selectedDrawingNos.length > 0) {
-        entries = entries.filter((entry) => selectedDrawingNos.includes(entry.drawingNo))
-      }
-
-      if (selectedMarkNos.length > 0) {
-        entries = entries.filter((entry) => selectedMarkNos.includes(entry.markNo))
-      }
-
-      // Group by session name and sum weights
-      const groupedData = {}
-      entries.forEach((entry) => {
-        const sessionName = entry.sessionName || "Unknown"
-        const weight = Number.parseFloat(entry.itemWeight) || 0
-
-        if (groupedData[sessionName]) {
-          groupedData[sessionName] += weight
-        } else {
-          groupedData[sessionName] = weight
-        }
-      })
-
-      // Convert to array format
-      const tableData = Object.entries(groupedData)
-        .map(([sessionName, totalWeight]) => {
-          // Calculate scrap allowance
-          const visiblePercent = Number.parseFloat(workOrderDetails.scrapAllowanceVisiblePercent || 0)
-          const invisiblePercent = Number.parseFloat(workOrderDetails.scrapAllowanceInvisiblePercent || 0)
-          const scrapAllowance = visiblePercent + invisiblePercent
-
-          // Calculate total tild weight
-          const totalTildWeight = totalWeight + (totalWeight * scrapAllowance) / 100
-
-          return {
-            session_name: sessionName,
-            total_weight: totalWeight,
-            scrap_allowance: scrapAllowance,
-            material_issue_type: workOrderDetails.materialIssueType || "N/A",
-            total_tild_weight: totalTildWeight,
-          }
-        })
-        .sort((a, b) => a.session_name.localeCompare(b.session_name))
-
-      setTableData(tableData)
-    } catch (err) {
-      console.error("Error fetching table data:", err)
-      setError("Failed to fetch data: " + err.message)
-    } finally {
-      setTableLoading(false)
-    }
-  }
-
-  const handleShowTable = async () => {
-    setTableLoading(true)
-    setShowTable(true)
-
-    // Simulate loading for 1 second
-    setTimeout(async () => {
-      await fetchTableData()
+      setShowTable(false)
+      resetAllStates()
     }, 1000)
   }
 
-  const handleSearchIconClick = () => {
-    handleShowTable()
+  const resetAllStates = () => {
+    setSelectedWorkOrder("")
+    setSelectedBuildingName("")
+    setSelectedProjectName("")
+    setSelectedServiceDescription("")
+    setSelectedRANo("")
+    setSelectedDrawingNo("")
   }
 
-  const handleDropdownToggle = async (dropdownName) => {
-    setDropdownLoading(true)
+  const handleWorkOrderChange = (e) => {
+    setSelectedWorkOrder(e.target.value)
+  }
 
-    // Simulate loading for less than 1 second
+  const handleBuildingNameChange = (e) => {
+    setSelectedBuildingName(e.target.value)
+  }
+
+  const handleProjectNameChange = (e) => {
+    setSelectedProjectName(e.target.value)
+  }
+
+  const handleServiceDescriptionChange = (e) => {
+    setSelectedServiceDescription(e.target.value)
+  }
+
+  const handleRANoChange = (e) => {
+    setSelectedRANo(e.target.value)
+  }
+
+  const handleDrawingNoChange = (e) => {
+    setSelectedDrawingNo(e.target.value)
+  }
+
+  const handleShowTable = () => {
+    if (selectedReport === "order-status" && !selectedWorkOrder) return
+
+    if (
+      selectedReport === "drawings-status" &&
+      (!selectedWorkOrder || !selectedBuildingName || !selectedProjectName || !selectedServiceDescription)
+    )
+      return
+
+    if (selectedReport === "billing-reports" && (!selectedWorkOrder || !selectedProjectName || !selectedRANo)) return
+
+    if (
+      selectedReport === "material-requirement" &&
+      (!selectedWorkOrder || !selectedProjectName || !selectedBuildingName || !selectedDrawingNo)
+    )
+      return
+
+    if (selectedReport === "material-reconciliation" && (!selectedWorkOrder || !selectedProjectName || !selectedRANo))
+      return
+
+    setTableLoading(true)
+    setShowTable(true)
     setTimeout(() => {
-      setOpenDropdown(openDropdown === dropdownName ? null : dropdownName)
-      setDropdownLoading(false)
-    }, 800)
+      setTableLoading(false)
+    }, 1000)
   }
 
-  const handleOptionSelect = (dropdownName, option) => {
-    switch (dropdownName) {
-      case "workOrder":
-        setSelectedWorkOrders((prev) =>
-          prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option],
-        )
-        break
-      case "building":
-        setSelectedBuildingNames((prev) =>
-          prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option],
-        )
-        break
-      case "drawing":
-        setSelectedDrawingNos((prev) =>
-          prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option],
-        )
-        break
-      case "mark":
-        setSelectedMarkNos((prev) =>
-          prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option],
-        )
-        break
+  const handleClearSearch = () => {
+    setSelectedReport(null)
+    setShowTable(false)
+    resetAllStates()
+    setTableLoading(false)
+  }
+
+  const getStatusColumns = () => {
+    const statusMap = {
+      fabrication: {
+        completedQty: "Fabrication Completed (Mark Qty)",
+        completedWeight: "Fabrication Completed (Mark Weight)",
+        balanceQty: "Fabrication Balance (Mark Qty)",
+        balanceWeight: "Fabrication Balance (Mark Weight)",
+      },
+      erection: {
+        completedQty: "Erection Completed (Mark Qty)",
+        completedWeight: "Erection Completed (Mark Weight)",
+        balanceQty: "Erection Balance (Mark Qty)",
+        balanceWeight: "Erection Balance (Mark Weight)",
+      },
+      alignment: {
+        completedQty: "Alignment Completed (Mark Qty)",
+        completedWeight: "Alignment Balance (Mark Weight)",
+        balanceQty: "Alignment Balance (Mark Qty)",
+        balanceWeight: "Alignment Balance (Mark Weight)",
+      },
+      painting: {
+        completedQty: "Painting Completed (Mark Qty)",
+        completedWeight: "Painting Balance (Mark Qty)",
+        balanceQty: "Painting Balance (Mark Qty)",
+        balanceWeight: "Painting Balance (Mark Weight)",
+      },
     }
+    return statusMap[selectedServiceDescription] || null
   }
 
-  const handleSelectAll = (dropdownName) => {
-    const filteredOptions = getFilteredOptions(dropdownName)
-    const selectedOptions = getSelectedOptions(dropdownName)
-
-    switch (dropdownName) {
-      case "workOrder":
-        setSelectedWorkOrders(selectedOptions.length === filteredOptions.length ? [] : [...filteredOptions])
-        break
-      case "building":
-        setSelectedBuildingNames(selectedOptions.length === filteredOptions.length ? [] : [...filteredOptions])
-        break
-      case "drawing":
-        setSelectedDrawingNos(selectedOptions.length === filteredOptions.length ? [] : [...filteredOptions])
-        break
-      case "mark":
-        setSelectedMarkNos(selectedOptions.length === filteredOptions.length ? [] : [...filteredOptions])
-        break
+  const canShowSearchButton = () => {
+    if (selectedReport === "order-status") {
+      return selectedWorkOrder
     }
-  }
-
-  const handleSearchChange = (dropdownName, value) => {
-    setSearchTerms((prev) => ({
-      ...prev,
-      [dropdownName]: value,
-    }))
-  }
-
-  const getSelectedCount = (dropdownName) => {
-    switch (dropdownName) {
-      case "workOrder":
-        return selectedWorkOrders.length
-      case "building":
-        return selectedBuildingNames.length
-      case "drawing":
-        return selectedDrawingNos.length
-      case "mark":
-        return selectedMarkNos.length
-      default:
-        return 0
+    if (selectedReport === "drawings-status") {
+      return selectedWorkOrder && selectedBuildingName && selectedProjectName && selectedServiceDescription
     }
-  }
-
-  const getOptions = (dropdownName) => {
-    switch (dropdownName) {
-      case "workOrder":
-        return workOrderOptions
-      case "building":
-        return buildingNameOptions
-      case "drawing":
-        return drawingNoOptions
-      case "mark":
-        return markNoOptions
-      default:
-        return []
+    if (selectedReport === "billing-reports") {
+      return selectedWorkOrder && selectedProjectName && selectedRANo
     }
-  }
-
-  const getFilteredOptions = (dropdownName) => {
-    switch (dropdownName) {
-      case "workOrder":
-        return filteredWorkOrderOptions
-      case "building":
-        return filteredBuildingNameOptions
-      case "drawing":
-        return filteredDrawingNoOptions
-      case "mark":
-        return filteredMarkNoOptions
-      default:
-        return []
+    if (selectedReport === "material-requirement") {
+      return selectedWorkOrder && selectedProjectName && selectedBuildingName && selectedDrawingNo
     }
-  }
-
-  const getSelectedOptions = (dropdownName) => {
-    switch (dropdownName) {
-      case "workOrder":
-        return selectedWorkOrders
-      case "building":
-        return selectedBuildingNames
-      case "drawing":
-        return selectedDrawingNos
-      case "mark":
-        return selectedMarkNos
-      default:
-        return []
+    if (selectedReport === "material-reconciliation") {
+      return selectedWorkOrder && selectedProjectName && selectedRANo
     }
+    return false
   }
 
-  const clearSelection = (dropdownName) => {
-    switch (dropdownName) {
-      case "workOrder":
-        setSelectedWorkOrders([])
-        break
-      case "building":
-        setSelectedBuildingNames([])
-        break
-      case "drawing":
-        setSelectedDrawingNos([])
-        break
-      case "mark":
-        setSelectedMarkNos([])
-        break
+  const getActiveFilters = () => {
+    const filters = []
+    if (selectedWorkOrder) filters.push({ label: "Work Order", value: selectedWorkOrder })
+    if (selectedBuildingName) filters.push({ label: "Building Name", value: selectedBuildingName })
+    if (selectedProjectName) filters.push({ label: "Project Name", value: selectedProjectName })
+    if (selectedServiceDescription) {
+      const serviceLabel = serviceDescriptionOptions.find((opt) => opt.value === selectedServiceDescription)?.label
+      filters.push({ label: "Service", value: serviceLabel })
     }
+    if (selectedRANo) filters.push({ label: "RA No", value: selectedRANo })
+    if (selectedDrawingNo) filters.push({ label: "Drawing No", value: selectedDrawingNo })
+    return filters
   }
 
-  // Calculate total weight
-  const totalWeight = showTable
-    ? tableData.reduce((sum, row) => sum + (Number.parseFloat(row.total_weight) || 0), 0)
-    : 0
+  const currentReport = selectedReport ? reportBoxes.find((box) => box.id === selectedReport) : null
 
-  // Calculate total scrap allowance
-  const totalScrapAllowance = showTable ? (tableData.length > 0 ? tableData[0].scrap_allowance : 0) : 0
-
-  // Calculate total tild weight
-  const totalTildWeight = showTable
-    ? tableData.reduce((sum, row) => sum + (Number.parseFloat(row.total_tild_weight) || 0), 0)
-    : 0
-
-  const getDropdownIcon = (name) => {
-    switch (name) {
-      case "workOrder":
-        return <TfiTag />
-      case "building":
-        return <RxDrawingPin />
-      case "drawing":
-        return <FiClipboard />
-      case "mark":
-        return <VscDiffRenamed />
-      default:
-        return <TfiTag />
-    }
-  }
-
-  const DropdownComponent = ({ name, label }) => {
-    const options = getOptions(name)
-    const filteredOptions = getFilteredOptions(name)
-    const selectedOptions = getSelectedOptions(name)
-    const selectedCount = getSelectedCount(name)
-    const isOpen = openDropdown === name
-    const searchTerm = searchTerms[name]
-
-    return (
-      <div className="modern-dropdown-container" ref={dropdownRefs[name]}>
-        <div className="modern-dropdown-trigger" onClick={() => handleDropdownToggle(name)}>
-          <div className="modern-dropdown-content">
-            <span className="modern-dropdown-icon">{getDropdownIcon(name)}</span>
-            <div className="modern-dropdown-text">
-              <span className="modern-dropdown-label">{label}</span>
-              <span className="modern-dropdown-count">
-                {selectedCount > 0 ? `${selectedCount} selected` : "Select options"}
-              </span>
+  return (
+    <div className="tiger-reports-container">
+      <div className="bear-reports-grid">
+        {reportBoxes.map((box) => (
+          <div
+            key={box.id}
+            className={`fox-report-box ${box.color} ${selectedReport === box.id ? "active" : ""}`}
+            onClick={() => handleReportClick(box.id)}
+          >
+            <div className={`deer-report-icon ${box.color}`}>{box.icon}</div>
+            <div className="rabbit-report-content">
+              <span className="rabbit-report-title">{box.title}</span>
             </div>
+            <ChevronDown className={`eagle-report-arrow ${selectedReport === box.id ? "rotated" : ""}`} />
           </div>
-          <span className={`modern-dropdown-arrow ${isOpen ? "open" : ""}`}>
-            {dropdownLoading ? (
-              <div className="modern-loading-spinner-small"></div>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M6 9L12 15L18 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            )}
-          </span>
-        </div>
+        ))}
+      </div>
 
-        {isOpen && (
-          <div className="modern-dropdown-menu">
-            <div className="modern-dropdown-search">
-              <input
-                type="text"
-                placeholder={`Search ${label.toLowerCase()}...`}
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(name, e.target.value)}
-                className="modern-search-input"
-                onClick={(e) => e.stopPropagation()}
-              />
+      {loading && (
+        <div className="shark-loading-section">
+          <div className="whale-loading-spinner"></div>
+          <span>Loading {currentReport?.title}...</span>
+        </div>
+      )}
+
+      {selectedReport && !loading && (
+        <div className="panther-detail-section">
+          <div className="zebra-filter-section">
+            {/* Work Order Dropdown - Common for all */}
+            <div className="giraffe-work-order-group">
+              <label htmlFor="workOrder">Select Work Order</label>
+              <div className="hippo-select-wrapper">
+                <select
+                  id="workOrder"
+                  value={selectedWorkOrder}
+                  onChange={handleWorkOrderChange}
+                  className="rhino-select"
+                >
+                  <option value="">Choose work order...</option>
+                  <option value="WO-001">WO-001 - Project Alpha</option>
+                  <option value="WO-002">WO-002 - Project Beta</option>
+                  <option value="WO-003">WO-003 - Project Gamma</option>
+                  <option value="WO-004">WO-004 - Project Delta</option>
+                </select>
+                <ChevronDown className="monkey-select-icon" />
+              </div>
             </div>
-            <div className="modern-dropdown-header">
-              <label className="modern-checkbox-container">
-                <input
-                  type="checkbox"
-                  checked={selectedOptions.length === filteredOptions.length && filteredOptions.length > 0}
-                  onChange={() => handleSelectAll(name)}
-                />
-                <span className="modern-checkbox-checkmark"></span>
-                <span className="modern-checkbox-label">Select All ({filteredOptions.length})</span>
-              </label>
-              {selectedCount > 0 && (
-                <button className="modern-clear-button" onClick={() => clearSelection(name)}>
+
+            {/* Building Name Dropdown - For Drawings Status and Material Requirement */}
+            {(selectedReport === "drawings-status" || selectedReport === "material-requirement") && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="buildingName">Select Building Name</label>
+                <div className="hippo-select-wrapper">
+                  <select
+                    id="buildingName"
+                    value={selectedBuildingName}
+                    onChange={handleBuildingNameChange}
+                    className="rhino-select"
+                  >
+                    <option value="">Choose building...</option>
+                    <option value="Building-A">Building A</option>
+                    <option value="Building-B">Building B</option>
+                    <option value="Building-C">Building C</option>
+                    <option value="Building-D">Building D</option>
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* Project Name Dropdown - For Drawings Status, Billing Reports, Material Requirement, and Material Reconciliation */}
+            {(selectedReport === "drawings-status" ||
+              selectedReport === "billing-reports" ||
+              selectedReport === "material-requirement" ||
+              selectedReport === "material-reconciliation") && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="projectName">Select Project Name</label>
+                <div className="hippo-select-wrapper">
+                  <select
+                    id="projectName"
+                    value={selectedProjectName}
+                    onChange={handleProjectNameChange}
+                    className="rhino-select"
+                  >
+                    <option value="">Choose project...</option>
+                    <option value="Project-Alpha">Project Alpha</option>
+                    <option value="Project-Beta">Project Beta</option>
+                    <option value="Project-Gamma">Project Gamma</option>
+                    <option value="Project-Delta">Project Delta</option>
+                    <option value="Project-Omega">Project Omega</option>
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* Service Description Dropdown - Only for Drawings Status */}
+            {selectedReport === "drawings-status" && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="serviceDescription">Select Service Description</label>
+                <div className="hippo-select-wrapper">
+                  <select
+                    id="serviceDescription"
+                    value={selectedServiceDescription}
+                    onChange={handleServiceDescriptionChange}
+                    className="rhino-select"
+                  >
+                    <option value="">Choose service...</option>
+                    {serviceDescriptionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* Drawing No Dropdown - Only for Material Requirement */}
+            {selectedReport === "material-requirement" && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="drawingNo">Select Drawing No</label>
+                <div className="hippo-select-wrapper">
+                  <select
+                    id="drawingNo"
+                    value={selectedDrawingNo}
+                    onChange={handleDrawingNoChange}
+                    className="rhino-select"
+                  >
+                    <option value="">Choose drawing...</option>
+                    <option value="DWG-001">DWG-001</option>
+                    <option value="DWG-002">DWG-002</option>
+                    <option value="DWG-003">DWG-003</option>
+                    <option value="DWG-004">DWG-004</option>
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* RA No Dropdown - For Billing Reports and Material Reconciliation */}
+            {(selectedReport === "billing-reports" || selectedReport === "material-reconciliation") && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="raNo">Select RA No</label>
+                <div className="hippo-select-wrapper">
+                  <select id="raNo" value={selectedRANo} onChange={handleRANoChange} className="rhino-select">
+                    <option value="">Choose RA No...</option>
+                    <option value="RA1">RA1</option>
+                    <option value="RA2">RA2</option>
+                    <option value="RA3">RA3</option>
+                    <option value="RA4">RA4</option>
+                  </select>
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+              </div>
+            )}
+
+            <div className="snake-button-group">
+              {canShowSearchButton() && (
+                <button className="snake-search-btn" onClick={handleShowTable}>
+                  <Search size={14} />
+                  Search
+                </button>
+              )}
+              {(selectedReport || showTable) && (
+                <button className="snake-clear-btn" onClick={handleClearSearch}>
+                  <X size={14} />
                   Clear
                 </button>
               )}
             </div>
-            <div className="modern-dropdown-options">
-              {filteredOptions.map((option) => (
-                <label key={option} className="modern-checkbox-container">
-                  <input
-                    type="checkbox"
-                    checked={selectedOptions.includes(option)}
-                    onChange={() => handleOptionSelect(name, option)}
-                  />
-                  <span className="modern-checkbox-checkmark"></span>
-                  <span className="modern-checkbox-label" title={option}>
-                    {option}
-                  </span>
-                </label>
-              ))}
-              {filteredOptions.length === 0 && (
-                <div className="modern-no-results">No results found for "{searchTerm}"</div>
+          </div>
+
+          {/* Active Filters Display */}
+          {showTable && getActiveFilters().length > 0 && (
+            <div className="lion-active-filters">
+              <div className="elephant-filters-header">
+                <Filter size={16} />
+                <span>Active Filters</span>
+              </div>
+              <div className="wolf-filters-list">
+                {getActiveFilters().map((filter, index) => (
+                  <div key={index} className="leopard-filter-tag">
+                    <span className="cheetah-filter-label">{filter.label}:</span>
+                    <span className="jaguar-filter-value">{filter.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showTable && (
+            <div className="crocodile-table-section">
+              {tableLoading ? (
+                <div className="octopus-loading">
+                  <div className="jellyfish-loading-spinner"></div>
+                  <span>Loading data...</span>
+                </div>
+              ) : (
+                <div className="kangaroo-table-wrapper">
+                  {selectedReport === "billing-reports" ? (
+                    <>
+                      <table className="koala-billing-table">
+                        <thead>
+                          <tr>
+                            <th colSpan="3" className="description-header">
+                              Description
+                            </th>
+                            <th colSpan="7" className="main-header fabrication-header">
+                              BUILDING STRUCTURE FABRICATION
+                            </th>
+                            <th colSpan="6" className="main-header erection-header">
+                              BUILDING STRUCTURE ERECTION
+                            </th>
+                            <th colSpan="6" className="main-header alignment-header">
+                              BUILDING STRUCTURE ALIGNMENT
+                            </th>
+                            <th colSpan="6" className="main-header painting-header">
+                              PAINTING
+                            </th>
+                          </tr>
+                          <tr>
+                            <th className="basic-header">Sl. No</th>
+                            <th className="basic-header">Drawing No</th>
+                            <th className="basic-header">Mark No</th>
+                            <th className="basic-header">Indv Wgt (Kgs)</th>
+                            <th colSpan="2" className="sub-header upto-previous-header">
+                              Upto Previous
+                            </th>
+                            <th colSpan="2" className="sub-header present-header">
+                              Present
+                            </th>
+                            <th colSpan="3" className="sub-header cumulative-header">
+                              Cumulative
+                            </th>
+                            <th colSpan="2" className="sub-header upto-previous-header">
+                              Upto Previous
+                            </th>
+                            <th colSpan="2" className="sub-header present-header">
+                              Present
+                            </th>
+                            <th colSpan="2" className="sub-header cumulative-header">
+                              Cumulative
+                            </th>
+                            <th colSpan="2" className="sub-header upto-previous-header">
+                              Upto Previous
+                            </th>
+                            <th colSpan="2" className="sub-header present-header">
+                              Present
+                            </th>
+                            <th colSpan="2" className="sub-header cumulative-header">
+                              Cumulative
+                            </th>
+                            <th colSpan="2" className="sub-header upto-previous-header">
+                              Upto Previous
+                            </th>
+                            <th colSpan="2" className="sub-header present-header">
+                              Present
+                            </th>
+                            <th colSpan="2" className="sub-header cumulative-header">
+                              Cumulative
+                            </th>
+                          </tr>
+                          <tr>
+                            <th className="detail-header"></th>
+                            <th className="detail-header"></th>
+                            <th className="detail-header"></th>
+                            <th className="detail-header"></th>
+                            <th className="detail-header upto-previous-cell">Qty</th>
+                            <th className="detail-header upto-previous-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header present-cell">Qty</th>
+                            <th className="detail-header present-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">Qty</th>
+                            <th className="detail-header cumulative-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">RA NO</th>
+                            <th className="detail-header upto-previous-cell">Qty</th>
+                            <th className="detail-header upto-previous-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header present-cell">Qty</th>
+                            <th className="detail-header present-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">Qty</th>
+                            <th className="detail-header cumulative-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">RA NO</th>
+                            <th className="detail-header upto-previous-cell">Qty</th>
+                            <th className="detail-header upto-previous-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header present-cell">Qty</th>
+                            <th className="detail-header present-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">Qty</th>
+                            <th className="detail-header cumulative-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">RA NO</th>
+                            <th className="detail-header upto-previous-cell">Qty</th>
+                            <th className="detail-header upto-previous-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header present-cell">Qty</th>
+                            <th className="detail-header present-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">Qty</th>
+                            <th className="detail-header cumulative-cell">Total Wgt (Kgs)</th>
+                            <th className="detail-header cumulative-cell">RA NO</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td colSpan="29" className="panda-no-data">
+                              <div className="flamingo-no-data-content">
+                                <Calendar className="peacock-no-data-icon" />
+                                <span>No data available. Connect to backend to load actual data.</span>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      {/* Color Legend */}
+                      <div className="color-legend">
+                        <h4 className="legend-title">Color Legend</h4>
+                        <div className="legend-items">
+                          <div className="legend-item">
+                            <div className="legend-color upto-previous-legend"></div>
+                            <span>Upto Previous</span>
+                          </div>
+                          <div className="legend-item">
+                            <div className="legend-color present-legend"></div>
+                            <span>Present</span>
+                          </div>
+                          <div className="legend-item">
+                            <div className="legend-color cumulative-legend"></div>
+                            <span>Cumulative</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <table className="koala-data-table">
+                      <thead>
+                        <tr>
+                          {selectedReport === "order-status" ? (
+                            <>
+                              <th>SL.NO</th>
+                              <th>Service Code</th>
+                              <th>Service Description</th>
+                              <th>UOM</th>
+                              <th>Work Order Qty</th>
+                              <th>Completion Qty</th>
+                              <th>Balance Quantity</th>
+                            </>
+                          ) : selectedReport === "drawings-status" ? (
+                            <>
+                              <th>Drawing No</th>
+                              <th>Mark No</th>
+                              <th>Mark Qty</th>
+                              <th>Mark Weight</th>
+                              <th>Total Mark Weight</th>
+                              {getStatusColumns() && (
+                                <>
+                                  <th>{getStatusColumns().completedQty}</th>
+                                  <th>{getStatusColumns().completedWeight}</th>
+                                  <th>{getStatusColumns().balanceQty}</th>
+                                  <th>{getStatusColumns().balanceWeight}</th>
+                                </>
+                              )}
+                            </>
+                          ) : selectedReport === "material-requirement" ? (
+                            <>
+                              <th>Section Name</th>
+                              <th>Total Drawing Weight</th>
+                              <th>Scrap Allowance Visible</th>
+                              <th>Scrap Allowance Invisible</th>
+                              <th>Total</th>
+                            </>
+                          ) : selectedReport === "material-reconciliation" ? (
+                            <>
+                              <th>Section Name</th>
+                              <th>Material Code</th>
+                              <th>Total Received</th>
+                              <th>Consumption</th>
+                              <th>Visible Scrap</th>
+                              <th>Invisible Scrap</th>
+                              <th>Total Consumption</th>
+                              <th>Balance Qty</th>
+                            </>
+                          ) : null}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td
+                            colSpan={
+                              selectedReport === "order-status"
+                                ? "7"
+                                : selectedReport === "drawings-status"
+                                  ? "9"
+                                  : selectedReport === "material-requirement"
+                                    ? "5"
+                                    : selectedReport === "material-reconciliation"
+                                      ? "8"
+                                      : "6"
+                            }
+                            className="panda-no-data"
+                          >
+                            <div className="flamingo-no-data-content">
+                              <Calendar className="peacock-no-data-icon" />
+                              <span>No data available. Connect to backend to load actual data.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  )}
+                </div>
               )}
             </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className="modern-report-container">
-      <div className="modern-filter-section">
-        <div className="modern-filter-grid">
-          <DropdownComponent name="workOrder" label="Work Order No" />
-          <DropdownComponent name="building" label="Building Name" />
-          <DropdownComponent name="drawing" label="Drawing No" />
-          <DropdownComponent name="mark" label="Mark No" />
+          )}
         </div>
-
-        {(selectedWorkOrders.length > 0 ||
-          selectedBuildingNames.length > 0 ||
-          selectedDrawingNos.length > 0 ||
-          selectedMarkNos.length > 0) && (
-          <div className="modern-selected-summary">
-            <div className="modern-summary-header">
-              <span className="modern-summary-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </span>
-              <span>Active Filters</span>
-            </div>
-            <div className="modern-summary-tags">
-              {selectedWorkOrders.map((item) => (
-                <span key={`wo-${item}`} className="modern-summary-tag work-order">
-                  <TfiTag /> {item}
-                </span>
-              ))}
-              {selectedBuildingNames.map((item) => (
-                <span key={`bn-${item}`} className="modern-summary-tag building">
-                  <TfiTag /> {item}
-                </span>
-              ))}
-              {selectedDrawingNos.map((item) => (
-                <span key={`dn-${item}`} className="modern-summary-tag drawing">
-                  <FiClipboard /> {item}
-                </span>
-              ))}
-              {selectedMarkNos.map((item) => (
-                <span key={`mn-${item}`} className="modern-summary-tag mark">
-                  <FiTag /> {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="modern-table-section">
-        <div className="modern-table-header">
-          <div className="modern-table-title">
-            <span className="modern-table-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path d="M8 3V21M16 3V21M2 12H22M2 8H22M2 16H22" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            </span>
-            <span>Material Requirements</span>
-            <button
-              className="modern-search-button"
-              onClick={handleSearchIconClick}
-              title="Load all material requirements"
-            >
-              <MdSearch />
-            </button>
-          </div>
-          <div className="modern-table-stats">
-            <span className="modern-stat">
-              <span className="modern-stat-value">{showTable ? tableData.length : 0}</span>
-              <span className="modern-stat-label">Sections</span>
-            </span>
-            <span className="modern-stat">
-              <span className="modern-stat-value">{totalWeight.toFixed(2)}</span>
-              <span className="modern-stat-label">Total Drawing Weight (kg)</span>
-            </span>
-            <span className="modern-stat">
-              <span className="modern-stat-value">{totalTildWeight.toFixed(2)}</span>
-              <span className="modern-stat-label">Total Weight (kg)</span>
-            </span>
-          </div>
-        </div>
-
-        {!showTable ? (
-          <div className="modern-table-placeholder">
-            <div className="modern-placeholder-content">
-              <MdSearch size={48} />
-              <p>Click the search icon to load material requirements</p>
-            </div>
-          </div>
-        ) : tableLoading ? (
-          <div className="modern-loading">
-            <div className="modern-loading-spinner"></div>
-            <span>Loading data...</span>
-          </div>
-        ) : error ? (
-          <div className="modern-error">
-            <span className="modern-error-icon">⚠️</span>
-            <span>{error}</span>
-          </div>
-        ) : (
-          <div className="modern-table-wrapper">
-            <table className="modern-data-table">
-              <thead>
-                <tr>
-                  <th>
-                    <div className="modern-th-content">
-                      <span>Section Name</span>
-                      
-                    </div>
-                  </th>
-                  <th>
-                    <div className="modern-th-content">
-                      <span>Total Drawing Weight (kg)</span>
-                       
-                    </div>
-                  </th>
-                  <th>
-                    <div className="modern-th-content">
-                      <span>Scrap Allowance (%)</span>
-                      
-                    </div>
-                  </th>
-                  <th>
-                    <div className="modern-th-content">
-                      <span>Material Issue Type</span>
-                      
-                    </div>
-                  </th>
-                  <th>
-                    <div className="modern-th-content">
-                      <span>Total Weight (kg)</span>
-                      
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.length > 0 ? (
-                  tableData.map((row, index) => (
-                    <tr key={index}>
-                      <td>
-                        <div className="modern-cell-content">
-                           
-                          <span>{row.session_name || "N/A"}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="modern-weight-cell">
-                          <span className="modern-weight-value">{Number.parseFloat(row.total_weight).toFixed(2)}</span>
-                          <span className="modern-weight-unit">kg</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="modern-weight-cell">
-                          <span className="modern-weight-value">{row.scrap_allowance}</span>
-                          <span className="modern-weight-unit">%</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="modern-cell-content">
-                          <span>{row.material_issue_type}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="modern-weight-cell">
-                          <span className="modern-weight-value">
-                            {Number.parseFloat(row.total_tild_weight).toFixed(2)}
-                          </span>
-                          <span className="modern-weight-unit">kg</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="modern-no-data">
-                      <div className="modern-no-data-content">
-                        <span className="modern-no-data-icon">📊</span>
-                        <span>No data available for the selected filters</span>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
