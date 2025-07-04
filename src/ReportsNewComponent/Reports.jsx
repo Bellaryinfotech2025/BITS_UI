@@ -1,4 +1,3 @@
-"use client"
 import { useState, useEffect } from "react"
 import { PenTool, Package2, TrendingUp, ChevronDown, Search, X, Calendar, Filter, ArrowLeft } from "lucide-react"
 import { VscListUnordered } from "react-icons/vsc"
