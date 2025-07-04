@@ -456,11 +456,11 @@ const MainDashboard = () => {
 
     // Handle Alignment
     if (activeMenu === "alignment") {
-      return <ErectionDatabasesearch />
+      return <AlignmentDatabasesearch />
     }
 
     if(activeMenu ==="painting"){
-      return <ErectionDatabasesearch/>
+      return <PaintingDatabasesearch/>
     }
 
     // Handle Billing

@@ -1,3 +1,4 @@
+"use client"
 import { useState } from "react"
 import { PenTool, Package2, TrendingUp, ChevronDown, Search, X, Calendar, Filter, ArrowLeft } from "lucide-react"
 import "../ReportsNewComponent/ReportsDesign.css"
@@ -9,26 +10,27 @@ const ReportTemplate = () => {
   const [currentView, setCurrentView] = useState("home") // "home" or specific report ID
   const [selectedReport, setSelectedReport] = useState(null)
   const [loading, setLoading] = useState(false)
-
-  // Order Status states
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState("")
   const [showTable, setShowTable] = useState(false)
   const [tableLoading, setTableLoading] = useState(false)
 
-  // Drawing Status states
-  const [selectedBuildingName, setSelectedBuildingName] = useState("")
-  const [selectedProjectName, setSelectedProjectName] = useState("")
-  const [selectedServiceDescription, setSelectedServiceDescription] = useState("")
+  // Order Status states - add service description
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState([])
+  const [selectedOrderServiceDescription, setSelectedOrderServiceDescription] = useState([])
 
-  // Billing Reports states
-  const [selectedRANo, setSelectedRANo] = useState("")
+  // Drawing Status states - convert to arrays
+  const [selectedBuildingName, setSelectedBuildingName] = useState([])
+  const [selectedProjectName, setSelectedProjectName] = useState([])
+  const [selectedServiceDescription, setSelectedServiceDescription] = useState([])
 
-  // Material Requirement states
-  const [selectedDrawingNo, setSelectedDrawingNo] = useState("")
+  // Billing Reports states - convert to arrays
+  const [selectedRANo, setSelectedRANo] = useState([])
 
-  // Inspection Reports states
-  const [selectedMarkNo, setSelectedMarkNo] = useState("")
-  const [selectedContractor, setSelectedContractor] = useState("")
+  // Material Requirement states - convert to arrays
+  const [selectedDrawingNo, setSelectedDrawingNo] = useState([])
+
+  // Inspection Reports states - convert to arrays
+  const [selectedMarkNo, setSelectedMarkNo] = useState([])
+  const [selectedContractor, setSelectedContractor] = useState([])
 
   const reportBoxes = [
     {
@@ -96,14 +98,94 @@ const ReportTemplate = () => {
   }
 
   const resetAllStates = () => {
-    setSelectedWorkOrder("")
-    setSelectedBuildingName("")
-    setSelectedProjectName("")
-    setSelectedServiceDescription("")
-    setSelectedRANo("")
-    setSelectedDrawingNo("")
-    setSelectedMarkNo("")
-    setSelectedContractor("")
+    setSelectedWorkOrder([])
+    setSelectedOrderServiceDescription([])
+    setSelectedBuildingName([])
+    setSelectedProjectName([])
+    setSelectedServiceDescription([])
+    setSelectedRANo([])
+    setSelectedDrawingNo([])
+    setSelectedMarkNo([])
+    setSelectedContractor([])
+  }
+
+  const handleMultiSelectChange = (value, currentValues, setter, type) => {
+    const options = getOptionsForDropdown(type)
+
+    if (value === "select-all") {
+      // Toggle select all
+      if (currentValues.length === options.length) {
+        setter([])
+      } else {
+        setter(options.map((opt) => opt.value))
+      }
+    } else {
+      // Toggle individual option
+      if (currentValues.includes(value)) {
+        setter(currentValues.filter((v) => v !== value))
+      } else {
+        setter([...currentValues, value])
+      }
+    }
+  }
+
+  const getOptionsForDropdown = (type) => {
+    switch (type) {
+      case "workOrder":
+        return [
+          { value: "WO-001", label: "WO-001 - Project Alpha" },
+          { value: "WO-002", label: "WO-002 - Project Beta" },
+          { value: "WO-003", label: "WO-003 - Project Gamma" },
+          { value: "WO-004", label: "WO-004 - Project Delta" },
+        ]
+      case "building":
+        return [
+          { value: "Building-A", label: "Building A" },
+          { value: "Building-B", label: "Building B" },
+          { value: "Building-C", label: "Building C" },
+          { value: "Building-D", label: "Building D" },
+        ]
+      case "project":
+        return [
+          { value: "Project-Alpha", label: "Project Alpha" },
+          { value: "Project-Beta", label: "Project Beta" },
+          { value: "Project-Gamma", label: "Project Gamma" },
+          { value: "Project-Delta", label: "Project Delta" },
+          { value: "Project-Omega", label: "Project Omega" },
+        ]
+      case "service":
+        return serviceDescriptionOptions
+      case "drawing":
+        return [
+          { value: "DWG-001", label: "DWG-001" },
+          { value: "DWG-002", label: "DWG-002" },
+          { value: "DWG-003", label: "DWG-003" },
+          { value: "DWG-004", label: "DWG-004" },
+        ]
+      case "mark":
+        return [
+          { value: "MRK-001", label: "MRK-001" },
+          { value: "MRK-002", label: "MRK-002" },
+          { value: "MRK-003", label: "MRK-003" },
+          { value: "MRK-004", label: "MRK-004" },
+        ]
+      case "contractor":
+        return [
+          { value: "ABC-Construction", label: "ABC Construction" },
+          { value: "XYZ-Builders", label: "XYZ Builders" },
+          { value: "DEF-Engineering", label: "DEF Engineering" },
+          { value: "GHI-Contractors", label: "GHI Contractors" },
+        ]
+      case "ra":
+        return [
+          { value: "RA1", label: "RA1" },
+          { value: "RA2", label: "RA2" },
+          { value: "RA3", label: "RA3" },
+          { value: "RA4", label: "RA4" },
+        ]
+      default:
+        return []
+    }
   }
 
   const handleWorkOrderChange = (e) => {
@@ -139,28 +221,45 @@ const ReportTemplate = () => {
   }
 
   const handleShowTable = () => {
-    if (selectedReport === "order-status" && !selectedWorkOrder) return
+    if (selectedReport === "order-status" && selectedWorkOrder.length === 0) return
 
     if (
       selectedReport === "drawings-status" &&
-      (!selectedWorkOrder || !selectedBuildingName || !selectedProjectName || !selectedServiceDescription)
+      (selectedWorkOrder.length === 0 ||
+        selectedBuildingName.length === 0 ||
+        selectedProjectName.length === 0 ||
+        selectedServiceDescription.length === 0)
     )
       return
 
-    if (selectedReport === "billing-reports" && (!selectedWorkOrder || !selectedProjectName || !selectedRANo)) return
+    if (
+      selectedReport === "billing-reports" &&
+      (selectedWorkOrder.length === 0 || selectedProjectName.length === 0 || selectedRANo.length === 0)
+    )
+      return
 
     if (
       selectedReport === "material-requirement" &&
-      (!selectedWorkOrder || !selectedProjectName || !selectedBuildingName || !selectedDrawingNo)
+      (selectedWorkOrder.length === 0 ||
+        selectedProjectName.length === 0 ||
+        selectedBuildingName.length === 0 ||
+        selectedDrawingNo.length === 0)
     )
       return
 
-    if (selectedReport === "material-reconciliation" && (!selectedWorkOrder || !selectedProjectName || !selectedRANo))
+    if (
+      selectedReport === "material-reconciliation" &&
+      (selectedWorkOrder.length === 0 || selectedProjectName.length === 0 || selectedRANo.length === 0)
+    )
       return
 
     if (
       selectedReport === "inspection-reports" &&
-      (!selectedWorkOrder || !selectedProjectName || !selectedDrawingNo || !selectedMarkNo || !selectedContractor)
+      (selectedWorkOrder.length === 0 ||
+        selectedProjectName.length === 0 ||
+        selectedDrawingNo.length === 0 ||
+        selectedMarkNo.length === 0 ||
+        selectedContractor.length === 0)
     )
       return
 
@@ -209,39 +308,64 @@ const ReportTemplate = () => {
 
   const canShowSearchButton = () => {
     if (selectedReport === "order-status") {
-      return selectedWorkOrder
+      return selectedWorkOrder.length > 0
     }
     if (selectedReport === "drawings-status") {
-      return selectedWorkOrder && selectedBuildingName && selectedProjectName && selectedServiceDescription
+      return (
+        selectedWorkOrder.length > 0 &&
+        selectedBuildingName.length > 0 &&
+        selectedProjectName.length > 0 &&
+        selectedServiceDescription.length > 0
+      )
     }
     if (selectedReport === "billing-reports") {
-      return selectedWorkOrder && selectedProjectName && selectedRANo
+      return selectedWorkOrder.length > 0 && selectedProjectName.length > 0 && selectedRANo.length > 0
     }
     if (selectedReport === "material-requirement") {
-      return selectedWorkOrder && selectedProjectName && selectedBuildingName && selectedDrawingNo
+      return (
+        selectedWorkOrder.length > 0 &&
+        selectedProjectName.length > 0 &&
+        selectedBuildingName.length > 0 &&
+        selectedDrawingNo.length > 0
+      )
     }
     if (selectedReport === "material-reconciliation") {
-      return selectedWorkOrder && selectedProjectName && selectedRANo
+      return selectedWorkOrder.length > 0 && selectedProjectName.length > 0 && selectedRANo.length > 0
     }
     if (selectedReport === "inspection-reports") {
-      return selectedWorkOrder && selectedProjectName && selectedDrawingNo && selectedMarkNo && selectedContractor
+      return (
+        selectedWorkOrder.length > 0 &&
+        selectedProjectName.length > 0 &&
+        selectedDrawingNo.length > 0 &&
+        selectedMarkNo.length > 0 &&
+        selectedContractor.length > 0
+      )
     }
     return false
   }
 
   const getActiveFilters = () => {
     const filters = []
-    if (selectedWorkOrder) filters.push({ label: "Work Order", value: selectedWorkOrder })
-    if (selectedBuildingName) filters.push({ label: "Building Name", value: selectedBuildingName })
-    if (selectedProjectName) filters.push({ label: "Project Name", value: selectedProjectName })
-    if (selectedServiceDescription) {
-      const serviceLabel = serviceDescriptionOptions.find((opt) => opt.value === selectedServiceDescription)?.label
-      filters.push({ label: "Service", value: serviceLabel })
+    if (selectedWorkOrder.length > 0) filters.push({ label: "Work Order", value: selectedWorkOrder.join(", ") })
+    if (selectedOrderServiceDescription.length > 0) {
+      const serviceLabels = selectedOrderServiceDescription
+        .map((val) => serviceDescriptionOptions.find((opt) => opt.value === val)?.label)
+        .join(", ")
+      filters.push({ label: "Order Service", value: serviceLabels })
     }
-    if (selectedRANo) filters.push({ label: "RA No", value: selectedRANo })
-    if (selectedDrawingNo) filters.push({ label: "Drawing No", value: selectedDrawingNo })
-    if (selectedMarkNo) filters.push({ label: "Mark No", value: selectedMarkNo })
-    if (selectedContractor) filters.push({ label: "Contractor", value: selectedContractor })
+    if (selectedBuildingName.length > 0)
+      filters.push({ label: "Building Name", value: selectedBuildingName.join(", ") })
+    if (selectedProjectName.length > 0) filters.push({ label: "Project Name", value: selectedProjectName.join(", ") })
+    if (selectedServiceDescription.length > 0) {
+      const serviceLabels = selectedServiceDescription
+        .map((val) => serviceDescriptionOptions.find((opt) => opt.value === val)?.label)
+        .join(", ")
+      filters.push({ label: "Service", value: serviceLabels })
+    }
+    if (selectedRANo.length > 0) filters.push({ label: "RA No", value: selectedRANo.join(", ") })
+    if (selectedDrawingNo.length > 0) filters.push({ label: "Drawing No", value: selectedDrawingNo.join(", ") })
+    if (selectedMarkNo.length > 0) filters.push({ label: "Mark No", value: selectedMarkNo.join(", ") })
+    if (selectedContractor.length > 0) filters.push({ label: "Contractor", value: selectedContractor.join(", ") })
     return filters
   }
 
@@ -268,7 +392,7 @@ const ReportTemplate = () => {
         {/* Simple Header Text */}
         <div className="simple-header-text">
           <p>
-            Search your priority orders below by selecting the Order Status, Drawing Status, Material Requirement,
+            Search your priority orders above by selecting the Order Status, Drawing Status, Material Requirement,
             Material Reconciliation, Billing Reports, Inspection Reports
           </p>
         </div>
@@ -339,44 +463,135 @@ const ReportTemplate = () => {
         {/* Filter Section */}
         <div className="panther-detail-section">
           <div className="zebra-filter-section">
-            {/* Work Order Dropdown - Common for all */}
+            {/* Work Order Multi-Select Dropdown - Common for all */}
             <div className="giraffe-work-order-group">
               <label htmlFor="workOrder">Select Work Order</label>
-              <div className="hippo-select-wrapper">
-                <select
-                  id="workOrder"
-                  value={selectedWorkOrder}
-                  onChange={handleWorkOrderChange}
-                  className="rhino-select"
-                >
-                  <option value="">Choose work order...</option>
-                  <option value="WO-001">WO-001 - Project Alpha</option>
-                  <option value="WO-002">WO-002 - Project Beta</option>
-                  <option value="WO-003">WO-003 - Project Gamma</option>
-                  <option value="WO-004">WO-004 - Project Delta</option>
-                </select>
-                <ChevronDown className="monkey-select-icon" />
+              <div className="multi-select-wrapper">
+                <div className="multi-select-display">
+                  {selectedWorkOrder.length === 0 ? "Choose work order..." : `${selectedWorkOrder.length} selected`}
+                  <ChevronDown className="monkey-select-icon" />
+                </div>
+                <div className="multi-select-dropdown">
+                  <label className="multi-select-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedWorkOrder.length === getOptionsForDropdown("workOrder").length}
+                      onChange={() =>
+                        handleMultiSelectChange("select-all", selectedWorkOrder, setSelectedWorkOrder, "workOrder")
+                      }
+                    />
+                    <span>Select All</span>
+                  </label>
+                  {getOptionsForDropdown("workOrder").map((option) => (
+                    <label key={option.value} className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkOrder.includes(option.value)}
+                        onChange={() =>
+                          handleMultiSelectChange(option.value, selectedWorkOrder, setSelectedWorkOrder, "workOrder")
+                        }
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* Order Service Description Dropdown - Only for Order Status */}
+            {selectedReport === "order-status" && (
+              <div className="giraffe-work-order-group">
+                <label htmlFor="orderServiceDescription">Select Service Description</label>
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedOrderServiceDescription.length === 0
+                      ? "Choose service..."
+                      : `${selectedOrderServiceDescription.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderServiceDescription.length === serviceDescriptionOptions.length}
+                        onChange={() =>
+                          handleMultiSelectChange(
+                            "select-all",
+                            selectedOrderServiceDescription,
+                            setSelectedOrderServiceDescription,
+                            "service",
+                          )
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {serviceDescriptionOptions.map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderServiceDescription.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(
+                              option.value,
+                              selectedOrderServiceDescription,
+                              setSelectedOrderServiceDescription,
+                              "service",
+                            )
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Building Name Dropdown - For Drawings Status and Material Requirement */}
             {(selectedReport === "drawings-status" || selectedReport === "material-requirement") && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="buildingName">Select Building Name</label>
-                <div className="hippo-select-wrapper">
-                  <select
-                    id="buildingName"
-                    value={selectedBuildingName}
-                    onChange={handleBuildingNameChange}
-                    className="rhino-select"
-                  >
-                    <option value="">Choose building...</option>
-                    <option value="Building-A">Building A</option>
-                    <option value="Building-B">Building B</option>
-                    <option value="Building-C">Building C</option>
-                    <option value="Building-D">Building D</option>
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedBuildingName.length === 0
+                      ? "Choose building..."
+                      : `${selectedBuildingName.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedBuildingName.length === getOptionsForDropdown("building").length}
+                        onChange={() =>
+                          handleMultiSelectChange(
+                            "select-all",
+                            selectedBuildingName,
+                            setSelectedBuildingName,
+                            "building",
+                          )
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("building").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedBuildingName.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(
+                              option.value,
+                              selectedBuildingName,
+                              setSelectedBuildingName,
+                              "building",
+                            )
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -389,21 +604,40 @@ const ReportTemplate = () => {
               selectedReport === "inspection-reports") && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="projectName">Select Project Name</label>
-                <div className="hippo-select-wrapper">
-                  <select
-                    id="projectName"
-                    value={selectedProjectName}
-                    onChange={handleProjectNameChange}
-                    className="rhino-select"
-                  >
-                    <option value="">Choose project...</option>
-                    <option value="Project-Alpha">Project Alpha</option>
-                    <option value="Project-Beta">Project Beta</option>
-                    <option value="Project-Gamma">Project Gamma</option>
-                    <option value="Project-Delta">Project Delta</option>
-                    <option value="Project-Omega">Project Omega</option>
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedProjectName.length === 0 ? "Choose project..." : `${selectedProjectName.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedProjectName.length === getOptionsForDropdown("project").length}
+                        onChange={() =>
+                          handleMultiSelectChange("select-all", selectedProjectName, setSelectedProjectName, "project")
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("project").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedProjectName.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(
+                              option.value,
+                              selectedProjectName,
+                              setSelectedProjectName,
+                              "project",
+                            )
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -412,21 +646,47 @@ const ReportTemplate = () => {
             {selectedReport === "drawings-status" && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="serviceDescription">Select Service Description</label>
-                <div className="hippo-select-wrapper">
-                  <select
-                    id="serviceDescription"
-                    value={selectedServiceDescription}
-                    onChange={handleServiceDescriptionChange}
-                    className="rhino-select"
-                  >
-                    <option value="">Choose service...</option>
-                    {serviceDescriptionOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedServiceDescription.length === 0
+                      ? "Choose service..."
+                      : `${selectedServiceDescription.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedServiceDescription.length === getOptionsForDropdown("service").length}
+                        onChange={() =>
+                          handleMultiSelectChange(
+                            "select-all",
+                            selectedServiceDescription,
+                            setSelectedServiceDescription,
+                            "service",
+                          )
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("service").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedServiceDescription.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(
+                              option.value,
+                              selectedServiceDescription,
+                              setSelectedServiceDescription,
+                              "service",
+                            )
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
                     ))}
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                  </div>
                 </div>
               </div>
             )}
@@ -435,20 +695,35 @@ const ReportTemplate = () => {
             {(selectedReport === "material-requirement" || selectedReport === "inspection-reports") && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="drawingNo">Select Drawing No</label>
-                <div className="hippo-select-wrapper">
-                  <select
-                    id="drawingNo"
-                    value={selectedDrawingNo}
-                    onChange={handleDrawingNoChange}
-                    className="rhino-select"
-                  >
-                    <option value="">Choose drawing...</option>
-                    <option value="DWG-001">DWG-001</option>
-                    <option value="DWG-002">DWG-002</option>
-                    <option value="DWG-003">DWG-003</option>
-                    <option value="DWG-004">DWG-004</option>
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedDrawingNo.length === 0 ? "Choose drawing..." : `${selectedDrawingNo.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedDrawingNo.length === getOptionsForDropdown("drawing").length}
+                        onChange={() =>
+                          handleMultiSelectChange("select-all", selectedDrawingNo, setSelectedDrawingNo, "drawing")
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("drawing").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedDrawingNo.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(option.value, selectedDrawingNo, setSelectedDrawingNo, "drawing")
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -457,15 +732,35 @@ const ReportTemplate = () => {
             {selectedReport === "inspection-reports" && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="markNo">Select Mark No</label>
-                <div className="hippo-select-wrapper">
-                  <select id="markNo" value={selectedMarkNo} onChange={handleMarkNoChange} className="rhino-select">
-                    <option value="">Choose mark...</option>
-                    <option value="MRK-001">MRK-001</option>
-                    <option value="MRK-002">MRK-002</option>
-                    <option value="MRK-003">MRK-003</option>
-                    <option value="MRK-004">MRK-004</option>
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedMarkNo.length === 0 ? "Choose mark..." : `${selectedMarkNo.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedMarkNo.length === getOptionsForDropdown("mark").length}
+                        onChange={() =>
+                          handleMultiSelectChange("select-all", selectedMarkNo, setSelectedMarkNo, "mark")
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("mark").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedMarkNo.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(option.value, selectedMarkNo, setSelectedMarkNo, "mark")
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -474,20 +769,40 @@ const ReportTemplate = () => {
             {selectedReport === "inspection-reports" && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="contractor">Select Contractor</label>
-                <div className="hippo-select-wrapper">
-                  <select
-                    id="contractor"
-                    value={selectedContractor}
-                    onChange={handleContractorChange}
-                    className="rhino-select"
-                  >
-                    <option value="">Choose contractor...</option>
-                    <option value="ABC-Construction">ABC Construction</option>
-                    <option value="XYZ-Builders">XYZ Builders</option>
-                    <option value="DEF-Engineering">DEF Engineering</option>
-                    <option value="GHI-Contractors">GHI Contractors</option>
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedContractor.length === 0 ? "Choose contractor..." : `${selectedContractor.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedContractor.length === getOptionsForDropdown("contractor").length}
+                        onChange={() =>
+                          handleMultiSelectChange("select-all", selectedContractor, setSelectedContractor, "contractor")
+                        }
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("contractor").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedContractor.includes(option.value)}
+                          onChange={() =>
+                            handleMultiSelectChange(
+                              option.value,
+                              selectedContractor,
+                              setSelectedContractor,
+                              "contractor",
+                            )
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -496,15 +811,31 @@ const ReportTemplate = () => {
             {(selectedReport === "billing-reports" || selectedReport === "material-reconciliation") && (
               <div className="giraffe-work-order-group">
                 <label htmlFor="raNo">Select RA No</label>
-                <div className="hippo-select-wrapper">
-                  <select id="raNo" value={selectedRANo} onChange={handleRANoChange} className="rhino-select">
-                    <option value="">Choose RA No...</option>
-                    <option value="RA1">RA1</option>
-                    <option value="RA2">RA2</option>
-                    <option value="RA3">RA3</option>
-                    <option value="RA4">RA4</option>
-                  </select>
-                  <ChevronDown className="monkey-select-icon" />
+                <div className="multi-select-wrapper">
+                  <div className="multi-select-display">
+                    {selectedRANo.length === 0 ? "Choose RA No..." : `${selectedRANo.length} selected`}
+                    <ChevronDown className="monkey-select-icon" />
+                  </div>
+                  <div className="multi-select-dropdown">
+                    <label className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedRANo.length === getOptionsForDropdown("ra").length}
+                        onChange={() => handleMultiSelectChange("select-all", selectedRANo, setSelectedRANo, "ra")}
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {getOptionsForDropdown("ra").map((option) => (
+                      <label key={option.value} className="multi-select-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedRANo.includes(option.value)}
+                          onChange={() => handleMultiSelectChange(option.value, selectedRANo, setSelectedRANo, "ra")}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -685,13 +1016,6 @@ const ReportTemplate = () => {
                             <th className="detail-header cumulative-cell">Qty</th>
                             <th className="detail-header cumulative-cell">Total Wgt (Kgs)</th>
                             <th className="detail-header cumulative-cell">RA NO</th>
-                            <th className="detail-header upto-previous-cell">Qty</th>
-                            <th className="detail-header upto-previous-cell">Total Wgt (Kgs)</th>
-                            <th className="detail-header present-cell">Qty</th>
-                            <th className="detail-header present-cell">Total Wgt (Kgs)</th>
-                            <th className="detail-header cumulative-cell">Qty</th>
-                            <th className="detail-header cumulative-cell">Total Wgt (Kgs)</th>
-                            <th className="detail-header cumulative-cell">RA NO</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -737,6 +1061,38 @@ const ReportTemplate = () => {
                               <th>Work Order Qty</th>
                               <th>Completion Qty</th>
                               <th>Balance Quantity</th>
+                              {selectedOrderServiceDescription.includes("fabrication") && (
+                                <>
+                                  <th>Fabrication Completed (Mark Qty)</th>
+                                  <th>Fabrication Completed (Mark Weight)</th>
+                                  <th>Fabrication Balance (Mark Qty)</th>
+                                  <th>Fabrication Balance (Mark Weight)</th>
+                                </>
+                              )}
+                              {selectedOrderServiceDescription.includes("erection") && (
+                                <>
+                                  <th>Erection Completed (Mark Qty)</th>
+                                  <th>Erection Completed (Mark Weight)</th>
+                                  <th>Erection Balance (Mark Qty)</th>
+                                  <th>Erection Balance (Mark Weight)</th>
+                                </>
+                              )}
+                              {selectedOrderServiceDescription.includes("alignment") && (
+                                <>
+                                  <th>Alignment Completed (Mark Qty)</th>
+                                  <th>Alignment Completed (Mark Weight)</th>
+                                  <th>Alignment Balance (Mark Qty)</th>
+                                  <th>Alignment Balance (Mark Weight)</th>
+                                </>
+                              )}
+                              {selectedOrderServiceDescription.includes("painting") && (
+                                <>
+                                  <th>Painting Completed (Mark Qty)</th>
+                                  <th>Painting Completed (Mark Weight)</th>
+                                  <th>Painting Balance (Mark Qty)</th>
+                                  <th>Painting Balance (Mark Weight)</th>
+                                </>
+                              )}
                             </>
                           ) : selectedReport === "drawings-status" ? (
                             <>
@@ -781,7 +1137,9 @@ const ReportTemplate = () => {
                           <td
                             colSpan={
                               selectedReport === "order-status"
-                                ? "7"
+                                ? selectedOrderServiceDescription.length > 0
+                                  ? 7 + selectedOrderServiceDescription.length * 4
+                                  : "7"
                                 : selectedReport === "drawings-status"
                                   ? "9"
                                   : selectedReport === "material-requirement"

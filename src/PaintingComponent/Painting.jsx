@@ -1,14 +1,15 @@
- 
-import { useState, useEffect, useRef } from "react";
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { MdSave, MdKeyboardArrowDown } from "react-icons/md";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { IoMdOpen } from "react-icons/io";
-import { MdFileDownload } from "react-icons/md";
-import "../AlignmentNewComponent/alignment-database-search.css";
+"use client"
 
-const PaintingDatabasesearch = () => {
+import { useState, useEffect, useRef } from "react"
+import { AiOutlineLoading3Quarters } from "react-icons/ai"
+import { MdSave, MdKeyboardArrowDown } from "react-icons/md"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import { IoMdOpen } from "react-icons/io"
+import { MdFileDownload } from "react-icons/md"
+import '../AlignmentNewComponent/alignment-database-search.css'
+
+const AlignmentDatabasesearch = () => {
   // API Base URL
   const API_BASE_URL = "http://195.35.45.56:5522/api/V2.0"
 
@@ -17,38 +18,37 @@ const PaintingDatabasesearch = () => {
   const [saving, setSaving] = useState(false)
   const [tableData, setTableData] = useState([])
   const [filteredData, setFilteredData] = useState([])
-  const [drawingNumbers, setDrawingNumbers] = useState([])
-  const [markNumbers, setMarkNumbers] = useState([])
+
+  // NEW: Dropdown data for cascading filters
   const [workOrders, setWorkOrders] = useState([])
-  const [plantLocations, setPlantLocations] = useState([])
+  const [buildingNames, setBuildingNames] = useState([])
+  const [departments, setDepartments] = useState([])
   const [vendorNames, setVendorNames] = useState([])
 
-  // Filter states - Modified for multiple selections
-  const [selectedDrawingNos, setSelectedDrawingNos] = useState([])
-  const [selectedMarkNos, setSelectedMarkNos] = useState([])
+  // NEW: Multiple selection states for cascading dropdowns
   const [selectedWorkOrders, setSelectedWorkOrders] = useState([])
-  const [selectedPlantLocations, setSelectedPlantLocations] = useState([])
+  const [selectedBuildingNames, setSelectedBuildingNames] = useState([])
+  const [selectedDepartments, setSelectedDepartments] = useState([])
   const [selectedVendorName, setSelectedVendorName] = useState("")
 
   // Dropdown open states
   const [dropdownStates, setDropdownStates] = useState({
     workOrder: false,
     buildingName: false,
-    drawingNo: false,
-    markNo: false,
+    department: false,
     vendor: false,
   })
 
   // RA NO state for filter section
   const [filterRaNo, setFilterRaNo] = useState("")
   const [savingFilterRaNo, setSavingFilterRaNo] = useState(false)
+  const [raNoFieldEnabled, setRaNoFieldEnabled] = useState(false) // NEW: Control RA NO field
 
   // Selected filter values for display
   const [selectedFilters, setSelectedFilters] = useState({
     workOrders: [],
     buildingNames: [],
-    drawingNos: [],
-    markNos: [],
+    departments: [],
     raNo: "",
     vendorName: "",
   })
@@ -68,8 +68,7 @@ const PaintingDatabasesearch = () => {
   const dropdownRefs = {
     workOrder: useRef(null),
     buildingName: useRef(null),
-    drawingNo: useRef(null),
-    markNo: useRef(null),
+    department: useRef(null),
     vendor: useRef(null),
   }
 
@@ -82,38 +81,21 @@ const PaintingDatabasesearch = () => {
         }
       })
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
   // Fetch dropdown data on component mount
   useEffect(() => {
-    fetchDropdownData()
+    fetchInitialDropdownData()
     fetchVendorNames()
   }, [])
 
-  // Fetch dropdown data for Drawing No, Mark No, Work Order, and Plant Location
-  const fetchDropdownData = async () => {
+  // NEW: Fetch initial dropdown data (Work Orders only)
+  const fetchInitialDropdownData = async () => {
     try {
       setLoading(true)
-
-      // Fetch distinct drawing numbers from alignment entries
-      const drawingResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryDrawingNumbers/details`)
-      if (drawingResponse.ok) {
-        const drawingData = await drawingResponse.json()
-        setDrawingNumbers(drawingData || [])
-      }
-
-      // Fetch distinct mark numbers from alignment entries
-      const markResponse = await fetch(`${API_BASE_URL}/getDistinctAlignmentDrawingEntryMarkNumbers/details`)
-      if (markResponse.ok) {
-        const markData = await markResponse.json()
-        setMarkNumbers(markData || [])
-        setAvailableMarkNosForBilling(markData || [])
-      }
-
-      // Get work orders and plant locations from alignment entries
+      // Get all alignment entries and extract unique work orders from attribute1V
       const allAlignmentResponse = await fetch(`${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`)
       if (allAlignmentResponse.ok) {
         const allAlignmentData = await allAlignmentResponse.json()
@@ -127,18 +109,13 @@ const PaintingDatabasesearch = () => {
           ),
         ].sort()
 
-        // Extract unique plant locations from attribute2V
-        const uniquePlantLocations = [
-          ...new Set(
-            allAlignmentData.map((entry) => entry.attribute2V).filter((location) => location && location.trim() !== ""),
-          ),
-        ].sort()
-
         setWorkOrders(uniqueWorkOrders)
-        setPlantLocations(uniquePlantLocations)
+      } else {
+        console.error("Error fetching alignment entries:", allAlignmentResponse.statusText)
+        toast.error(`Error fetching work orders: ${allAlignmentResponse.statusText}`)
       }
     } catch (error) {
-      console.error("Error fetching dropdown data:", error)
+      console.error("Error fetching initial dropdown data:", error)
       toast.error(`Error fetching dropdown data: ${error.message}`)
     } finally {
       setLoading(false)
@@ -192,7 +169,88 @@ const PaintingDatabasesearch = () => {
     }
   }
 
-  // Add this function to handle vendor selection
+  // NEW: Handle Work Order selection changes (cascading effect)
+  useEffect(() => {
+    if (selectedWorkOrders.length > 0) {
+      fetchBuildingNamesByWorkOrders()
+    } else {
+      // Reset dependent dropdowns when no work orders selected
+      setSelectedBuildingNames([])
+      setSelectedDepartments([])
+      setBuildingNames([])
+      setDepartments([])
+    }
+  }, [selectedWorkOrders])
+
+  // NEW: Handle Building Name selection changes (cascading effect)
+  useEffect(() => {
+    if (selectedWorkOrders.length > 0 && selectedBuildingNames.length > 0) {
+      fetchDepartmentsByWorkOrdersAndBuildingNames()
+    } else {
+      // Reset departments when no building names selected
+      setSelectedDepartments([])
+      setDepartments([])
+    }
+  }, [selectedWorkOrders, selectedBuildingNames])
+
+  // NEW: Fetch building names based on selected work orders
+  const fetchBuildingNamesByWorkOrders = async () => {
+    try {
+      // Get all alignment entries
+      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`)
+      if (allEntriesResponse.ok) {
+        const allEntries = await allEntriesResponse.json()
+        // Filter building names by selected work orders
+        const filteredBuildingNames = [
+          ...new Set(
+            allEntries
+              .filter((entry) => selectedWorkOrders.includes(entry.attribute1V))
+              .map((entry) => entry.attribute2V)
+              .filter((name) => name && name.trim() !== ""),
+          ),
+        ].sort()
+
+        setBuildingNames(filteredBuildingNames || [])
+        // Reset building name selections if they're no longer valid
+        setSelectedBuildingNames((prev) => prev.filter((name) => filteredBuildingNames.includes(name)))
+      }
+    } catch (error) {
+      console.error("Error fetching building names:", error)
+      setBuildingNames([])
+    }
+  }
+
+  // NEW: Fetch departments based on selected work orders and building names
+  const fetchDepartmentsByWorkOrdersAndBuildingNames = async () => {
+    try {
+      // Get all alignment entries
+      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`)
+      if (allEntriesResponse.ok) {
+        const allEntries = await allEntriesResponse.json()
+        // Filter departments by selected work orders and building names
+        const filteredDepartments = [
+          ...new Set(
+            allEntries
+              .filter(
+                (entry) =>
+                  selectedWorkOrders.includes(entry.attribute1V) && selectedBuildingNames.includes(entry.attribute2V),
+              )
+              .map((entry) => entry.attribute3V)
+              .filter((dept) => dept && dept.trim() !== ""),
+          ),
+        ].sort()
+
+        setDepartments(filteredDepartments || [])
+        // Reset department selections if they're no longer valid
+        setSelectedDepartments((prev) => prev.filter((dept) => filteredDepartments.includes(dept)))
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error)
+      setDepartments([])
+    }
+  }
+
+  // Handle vendor selection
   const handleVendorChange = (vendorName) => {
     setSelectedVendorName(vendorName)
     if (showSearchResults) {
@@ -203,52 +261,30 @@ const PaintingDatabasesearch = () => {
     }
   }
 
-  // Handle search button click
+  // NEW: Handle search button click with multiple selections
   const handleSearch = async () => {
-    if (
-      selectedDrawingNos.length === 0 &&
-      selectedMarkNos.length === 0 &&
-      selectedWorkOrders.length === 0 &&
-      selectedPlantLocations.length === 0
-    ) {
-      toast.warning("Please select at least one filter criteria to search")
+    if (selectedWorkOrders.length === 0 || selectedBuildingNames.length === 0 || selectedDepartments.length === 0) {
+      toast.warning("Please select at least one Work Order, Building Name, and Department to search")
       return
     }
 
     try {
       setLoading(true)
-
-      const searchUrl = `${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`
-      const response = await fetch(searchUrl)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // Get all alignment entries and filter by selected criteria
+      const allEntriesResponse = await fetch(`${API_BASE_URL}/getAllAlignmentDrawingEntriesComplete/details`)
+      if (!allEntriesResponse.ok) {
+        throw new Error(`HTTP error! status: ${allEntriesResponse.status}`)
       }
 
-      const allData = await response.json()
+      const allEntries = await allEntriesResponse.json()
 
-      // Filter the data based on selected criteria using AND logic
-      let filteredResults = allData
-
-      // Apply Work Order filter (attribute1V)
-      if (selectedWorkOrders.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedWorkOrders.includes(item.attribute1V))
-      }
-
-      // Apply Building Name filter (attribute2V)
-      if (selectedPlantLocations.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedPlantLocations.includes(item.attribute2V))
-      }
-
-      // Apply Drawing No filter
-      if (selectedDrawingNos.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedDrawingNos.includes(item.drawingNo))
-      }
-
-      // Apply Mark No filter
-      if (selectedMarkNos.length > 0) {
-        filteredResults = filteredResults.filter((item) => selectedMarkNos.includes(item.markNo))
-      }
+      // Filter entries based on multiple selections using AND logic
+      const filteredResults = allEntries.filter(
+        (entry) =>
+          selectedWorkOrders.includes(entry.attribute1V) &&
+          selectedBuildingNames.includes(entry.attribute2V) &&
+          selectedDepartments.includes(entry.attribute3V),
+      )
 
       setTableData(filteredResults)
       setFilteredData(filteredResults)
@@ -264,12 +300,18 @@ const PaintingDatabasesearch = () => {
       // Set selected filter values for display
       setSelectedFilters({
         workOrders: selectedWorkOrders,
-        buildingNames: selectedPlantLocations,
-        drawingNos: selectedDrawingNos,
-        markNos: selectedMarkNos,
+        buildingNames: selectedBuildingNames,
+        departments: selectedDepartments,
         raNo: filterRaNo,
         vendorName: selectedVendorName,
       })
+
+      // NEW: Enable RA NO field after successful search
+      setRaNoFieldEnabled(true)
+
+      // Extract unique mark numbers for billing popup
+      const uniqueMarkNos = [...new Set(filteredResults.map((item) => item.markNo).filter((markNo) => markNo))]
+      setAvailableMarkNosForBilling(uniqueMarkNos)
 
       toast.info(`Found ${filteredResults.length} records`)
     } catch (error) {
@@ -278,6 +320,7 @@ const PaintingDatabasesearch = () => {
       setTableData([])
       setFilteredData([])
       setShowSearchResults(false)
+      setRaNoFieldEnabled(false) // Disable RA NO field on error
     } finally {
       setLoading(false)
     }
@@ -297,7 +340,6 @@ const PaintingDatabasesearch = () => {
       toast.warning("Please enter RA NO before saving")
       return
     }
-
     if (filteredData.length === 0) {
       toast.warning("No search results to update")
       return
@@ -305,8 +347,8 @@ const PaintingDatabasesearch = () => {
 
     try {
       setSavingFilterRaNo(true)
-
       let successCount = 0
+
       for (const row of filteredData) {
         try {
           const updateData = {
@@ -356,7 +398,7 @@ const PaintingDatabasesearch = () => {
     }
   }
 
-  // Handle Move to Billing button click (Completed button)
+  // Handle Move to Billing button click
   const handleMoveToBilling = () => {
     setShowMoveToBillingPopup(true)
   }
@@ -381,8 +423,8 @@ const PaintingDatabasesearch = () => {
 
     try {
       setLoading(true)
-
       const entriesToMove = []
+
       for (const markNo of selectedMarkNosForBilling) {
         const entries = tableData.filter((item) => item.markNo === markNo)
         entriesToMove.push(...entries)
@@ -430,6 +472,7 @@ const PaintingDatabasesearch = () => {
         finishingStage: item.finishingStage || "N",
       }))
 
+      // Note: You'll need to create a billing endpoint similar to alignment
       const response = await fetch(`${API_BASE_URL}/createBulkBillingDrawingEntries/details`, {
         method: "POST",
         headers: {
@@ -483,7 +526,6 @@ const PaintingDatabasesearch = () => {
           </span>
           <MdKeyboardArrowDown className={`dropdown-arrow ${isOpen ? "rotated" : ""}`} />
         </div>
-
         {isOpen && (
           <div className="dropdown-menu">
             <div className="dropdown-option select-all">
@@ -524,12 +566,12 @@ const PaintingDatabasesearch = () => {
       {/* Header */}
       <div className="header-section">
         <div className="header-title">
-          <h1>Search for Painting Details</h1>
+          <h1>Search for Painting entries</h1>
         </div>
         <div className="header-buttons">
           <button className="save-btn">
-            <MdFileDownload />  
-            Download report
+            <MdFileDownload />
+            Download reports
           </button>
           <button className="completed-btn" onClick={handleMoveToBilling} disabled={filteredData.length === 0}>
             Completed
@@ -537,45 +579,39 @@ const PaintingDatabasesearch = () => {
         </div>
       </div>
 
-      {/* Filter Section */}
+      {/* Filter Section - NEW: Multiple Selection Cascading Dropdowns */}
       <div className="filter-section">
         <div className="filter-grid">
-          {/* Work Order Dropdown */}
+          {/* Work Order Dropdown - Multiple Selection */}
           {renderCustomDropdown(
             "workOrder",
             workOrders,
             selectedWorkOrders,
             setSelectedWorkOrders,
-            "Select Work Order",
+            "Select Work Order(s)",
           )}
 
-          {/* Building Name Dropdown */}
+          {/* Building Name Dropdown - Multiple Selection */}
           {renderCustomDropdown(
             "buildingName",
-            plantLocations,
-            selectedPlantLocations,
-            setSelectedPlantLocations,
-            "Select Building Name",
+            buildingNames,
+            selectedBuildingNames,
+            setSelectedBuildingNames,
+            "Select Building Name(s)",
           )}
 
-          {/* Serial No Dropdown - Using Drawing Numbers */}
+          {/* Department Dropdown - Multiple Selection */}
           {renderCustomDropdown(
-            "drawingNo",
-            drawingNumbers,
-            selectedDrawingNos,
-            setSelectedDrawingNos,
-            "Select Drawing No",
+            "department",
+            departments,
+            selectedDepartments,
+            setSelectedDepartments,
+            "Select Project(s)",
           )}
-
-          {/* Drawing No Dropdown - Using Mark Numbers */}
-          {renderCustomDropdown("markNo", markNumbers, selectedMarkNos, setSelectedMarkNos, "Select Mark No")}
-
-          {/* Mark No Dropdown - Empty for now */}
-           
         </div>
 
         <div className="filter-row-2">
-          {/* RA NO Field */}
+          {/* RA NO Field - NEW: Disabled until search */}
           <div className="ra-no-group">
             <label className="ra-no-label">RA NO:</label>
             <div className="ra-no-container">
@@ -585,11 +621,12 @@ const PaintingDatabasesearch = () => {
                 onChange={(e) => setFilterRaNo(e.target.value)}
                 className="ra-no-input"
                 placeholder="Enter the RA NO"
+                disabled={!raNoFieldEnabled}
               />
               <button
                 onClick={handleSaveFilterRaNo}
                 className="ra-no-save"
-                disabled={savingFilterRaNo}
+                disabled={savingFilterRaNo || !raNoFieldEnabled}
                 title="Save RA NO"
               >
                 {savingFilterRaNo ? <AiOutlineLoading3Quarters className="spinner" /> : <MdSave />}
@@ -619,7 +656,7 @@ const PaintingDatabasesearch = () => {
             onChange={(e) => handleVendorChange(e.target.value)}
             className="vendor-select"
           >
-            <option value="">Select Vendor Name</option>
+            <option value="">Select Vendor</option>
             {vendorNames.map((vendor, index) => (
               <option key={`vendor_${index}`} value={vendor}>
                 {vendor}
@@ -635,12 +672,6 @@ const PaintingDatabasesearch = () => {
           <div className="selected-filters-container">
             <h4>Applied Filters:</h4>
             <div className="selected-filters-grid">
-              {selectedFilters.raNo && (
-                <div className="filter-item">
-                  <span className="filter-label">RA NO:</span>
-                  <span className="filter-value">{selectedFilters.raNo}</span>
-                </div>
-              )}
               {selectedFilters.workOrders.length > 0 && (
                 <div className="filter-item">
                   <span className="filter-label">Work Orders:</span>
@@ -651,6 +682,18 @@ const PaintingDatabasesearch = () => {
                 <div className="filter-item">
                   <span className="filter-label">Building Names:</span>
                   <span className="filter-value">{selectedFilters.buildingNames.join(", ")}</span>
+                </div>
+              )}
+              {selectedFilters.departments.length > 0 && (
+                <div className="filter-item">
+                  <span className="filter-label">Departments:</span>
+                  <span className="filter-value">{selectedFilters.departments.join(", ")}</span>
+                </div>
+              )}
+              {selectedFilters.raNo && (
+                <div className="filter-item">
+                  <span className="filter-label">RA NO:</span>
+                  <span className="filter-value">{selectedFilters.raNo}</span>
                 </div>
               )}
               {selectedFilters.vendorName && (
@@ -713,7 +756,7 @@ const PaintingDatabasesearch = () => {
               {filteredData.length === 0 && !loading && (
                 <tr>
                   <td colSpan="7" className="empty-message">
-                    Please select Drawing No and/or Mark No and click Search to view records.
+                    Please select Work Order(s), Building Name(s), and Department(s) and click Search to view records.
                   </td>
                 </tr>
               )}
@@ -746,7 +789,6 @@ const PaintingDatabasesearch = () => {
             <h4>For Bellary Infotech Solutions</h4>
           </div>
           <div className="signature-space">
-            
             <p>Authorized Signature</p>
           </div>
         </div>
@@ -818,4 +860,4 @@ const PaintingDatabasesearch = () => {
   )
 }
 
-export default PaintingDatabasesearch;
+export default AlignmentDatabasesearch;
