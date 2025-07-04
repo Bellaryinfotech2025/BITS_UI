@@ -249,7 +249,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
-  overflow: visible; /* Changed from hidden to visible */
+  overflow: visible;
   position: relative;
   z-index: 1;
 }
@@ -345,7 +345,7 @@
   gap: 1rem;
   border-bottom: 1px solid #f1f5f9;
   flex-wrap: wrap;
-  overflow: visible; /* Ensure dropdowns are not clipped */
+  overflow: visible;
   position: relative;
   z-index: 5;
 }
@@ -680,199 +680,10 @@
   background: #f8fafc;
 }
 
-/* Inspection Reports Horizontal Layout */
-.inspection-horizontal-layout {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.inspection-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-
-.inspection-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
-
-.inspection-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
-  margin-bottom: 1rem;
-}
-
-.inspection-row:last-child {
-  margin-bottom: 0;
-}
-
-.inspection-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.inspection-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.inspection-value {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #1e293b;
-  padding: 0.5rem 0;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-/* Billing Reports Table - Enhanced */
-.koala-billing-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 2000px;
-  font-size: 0.75rem;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-}
-
-.koala-billing-table th {
-  border: 1px solid #d1d5db;
-  padding: 0.75rem 0.5rem;
-  text-align: center;
-  font-weight: 600;
-  background: #f9fafb;
-  color: #374151;
-  position: relative;
-}
-
-.koala-billing-table td {
-  border: 1px solid #e5e7eb;
-  padding: 0.75rem 0.5rem;
-  text-align: center;
-  font-size: 0.75rem;
-  transition: all 0.2s ease;
-}
-
-.description-header {
-  background: linear-gradient(135deg, #1f2937, #111827) !important;
-  color: white !important;
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  text-align: center;
-}
-
-/* Basic Headers under Description */
-.basic-header {
-  background: linear-gradient(135deg, #f8fafc, #e2e8f0) !important;
-  color: #1f2937 !important;
-  font-weight: 700;
-  border: 1px solid #d1d5db;
-  text-align: center;
-}
-
-/* Main Section Headers */
-.main-header {
-  font-weight: 800;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 1rem 0.5rem;
-  text-align: center;
-}
-
-.fabrication-header {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-  color: white !important;
-}
-
-.erection-header {
-  background: linear-gradient(135deg, #10b981, #047857) !important;
-  color: white !important;
-}
-
-.alignment-header {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
-  color: white !important;
-}
-
-.painting-header {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-  color: white !important;
-}
-
-/* Detail Headers */
-.detail-header {
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  text-align: center;
-  border: 1px solid #d1d5db;
-}
-
-.present-header {
-  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
-  color: #92400e !important;
-  position: relative;
-}
-
-.present-header::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: #fbbf24;
-}
-
-.detail-header {
-  background: linear-gradient(135deg, #9ca3af, #6b7280) !important;
-  color: white !important;
-  font-weight: 500;
-  min-width: 100px;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-}
-
-.present-cell {
-  background: linear-gradient(135deg, #fefce8, #fef3c7) !important;
-  color: #92400e !important;
-  font-weight: 600;
-  position: relative;
-}
-
-.present-cell::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #fbbf24;
-}
-
-.koala-billing-table tbody tr:hover {
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  transform: scale(1.001);
-}
-
-.koala-billing-table tbody tr:hover td {
-  border-color: #3b82f6;
+.total-row {
+  background: #f8fafc !important;
+  font-weight: bold !important;
+  border-top: 2px solid #3b82f6;
 }
 
 .panda-no-data {
@@ -902,201 +713,6 @@
   100% {
     transform: rotate(360deg);
   }
-}
-
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .zebra-filter-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .giraffe-work-order-group {
-    max-width: none;
-  }
-  .snake-button-group {
-    justify-content: flex-end;
-  }
-  .inspection-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-}
-
-@media (max-width: 1024px) {
-  .reports-row {
-    flex-direction: column;
-    align-items: center;
-  }
-  .fox-report-box {
-    min-width: 320px;
-  }
-}
-
-@media (max-width: 768px) {
-  .tiger-reports-container {
-    padding: 0.375rem;
-  }
-  .fox-report-box {
-    min-width: 280px;
-    height: 70px;
-    padding: 1rem 1.5rem;
-  }
-  .deer-report-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1.25rem;
-  }
-  .rabbit-report-title {
-    font-size: 1rem;
-  }
-  .zebra-filter-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-  .giraffe-work-order-group {
-    max-width: none;
-  }
-  .snake-button-group {
-    justify-content: flex-end;
-  }
-  .wolf-filters-list {
-    flex-direction: column;
-  }
-  .inspection-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  .report-detail-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .multi-select-dropdown {
-    position: fixed;
-    top: auto;
-    left: 1rem;
-    right: 1rem;
-    bottom: 1rem;
-    max-height: 50vh;
-    border-radius: 16px;
-    z-index: 99999;
-  }
-
-  .multi-select-option {
-    padding: 1rem 1.25rem;
-    font-size: 0.9rem;
-  }
-
-  .multi-select-option input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .fox-report-box {
-    min-width: 260px;
-    height: 60px;
-    padding: 0.75rem 1rem;
-  }
-  .deer-report-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-  .rabbit-report-title {
-    font-size: 0.9rem;
-  }
-  .koala-data-table th,
-  .koala-data-table td {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .multi-select-dropdown {
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    max-height: 60vh;
-  }
-}
-
-/* Updated Color Scheme for Billing Table */
-.upto-previous-header {
-  background: linear-gradient(135deg, #bfdbfe, #93c5fd) !important;
-  color: #1e40af !important;
-}
-
-.cumulative-header {
-  background: linear-gradient(135deg, #bbf7d0, #86efac) !important;
-  color: #166534 !important;
-}
-
-.upto-previous-cell {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
-  color: #1e40af !important;
-  font-weight: 600;
-}
-
-.cumulative-cell {
-  background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
-  color: #166534 !important;
-  font-weight: 600;
-}
-
-/* Color Legend Styles */
-.color-legend {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.legend-title {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.75rem 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.legend-items {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.legend-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.upto-previous-legend {
-  background: linear-gradient(135deg, #bfdbfe, #93c5fd);
-}
-
-.present-legend {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-}
-
-.cumulative-legend {
-  background: linear-gradient(135deg, #bbf7d0, #86efac);
 }
 
 /* Simple Header Text */
@@ -1247,7 +863,6 @@
   .reports-grid-row {
     grid-template-columns: repeat(2, 1fr);
   }
-
   .reports-grid-row:last-child {
     max-width: 100%;
   }
@@ -1258,43 +873,9 @@
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
-
   .reports-grid-row:last-child {
     max-width: 100%;
   }
+  
 
-  .fox-report-box-compressed {
-    height: 44px;
-    min-height: 44px;
-    max-height: 44px;
-    padding: 0.5rem 0.75rem;
   }
-
-  .deer-report-icon-compressed {
-    width: 28px;
-    height: 28px;
-    font-size: 0.875rem;
-  }
-
-  .rabbit-report-title-compressed {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .fox-report-box-compressed {
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
-  }
-
-  .deer-report-icon-compressed {
-    width: 24px;
-    height: 24px;
-    font-size: 0.75rem;
-  }
-
-  .rabbit-report-title-compressed {
-    font-size: 0.75rem;
-  }
-}
